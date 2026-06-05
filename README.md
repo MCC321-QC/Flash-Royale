@@ -1,6 +1,10 @@
 # FlashManager
 
-FlashManager 是一个本地 Flash 游戏管理器，使用 Electron、Vite、React、TypeScript 和 Ruffle 构建。它专注管理本机 `.swf` 游戏库：导入、去重、封面、搜索、分类、标签、收藏和内置播放。
+![FlashManager 主界面预览](docs/assets/flashmanager-preview.png)
+
+FlashManager 是一款本地 Flash 游戏库管理工具，专门用来整理、搜索、分类和运行本机 `.swf` 游戏。它内置 Ruffle 播放器，不需要安装 Adobe Flash Player；游戏文件、封面和元数据都保存在本地，适合做成免安装文件夹后压缩分享。
+
+> 本地管理、本地运行、本地保存。把零散的 SWF 游戏收进一个干净、可搜索、可分类的桌面工具里。
 
 ## 功能
 
