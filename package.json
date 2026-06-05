@@ -1,0 +1,68 @@
+{
+  "name": "flashmanager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Flash game library manager powered by Electron, React, and Ruffle.",
+  "author": "xevil3301",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xevil3301/flashmanager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xevil3301/flashmanager/issues"
+  },
+  "homepage": "https://github.com/xevil3301/flashmanager#readme",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "postinstall": "node scripts/copy-ruffle.cjs",
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
+    "build": "tsc --noEmit && vite build",
+    "package:win": "npm run build && electron-builder --win dir",
+    "package:portable": "npm run package:fast",
+    "package:fast": "npm run build && electron-builder --win dir && node scripts/prepare-fast-package.cjs",
+    "package:share": "npm run build && electron-builder --win dir && node scripts/package-share-folder.cjs",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "build": {
+    "appId": "local.flashmanager.app",
+    "productName": "FlashManager",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "public/ruffle/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "dir"
+      ],
+      "artifactName": "${productName}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}.${ext}"
+    },
+    "asar": true
+  },
+  "dependencies": {
+    "@ruffle-rs/ruffle": "latest",
+    "fuse.js": "^7.0.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.17",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^8.2.2",
+    "electron": "^42.2.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "^5.3.3",
+    "vite": "^8.0.14",
+    "wait-on": "^7.2.0"
+  }
+}
