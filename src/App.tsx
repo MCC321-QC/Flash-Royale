@@ -9,6 +9,7 @@ import {
   Download,
   FolderOpen,
   Gamepad2,
+  Github,
   Heart,
   Maximize,
   Minimize,
@@ -73,6 +74,7 @@ type DetailsDraft = {
   developer: string;
   publisher: string;
   fullscreenByDefault: boolean;
+  repeatMusic: boolean;
   tags: string;
   notes: string;
 };
@@ -135,6 +137,7 @@ function createDetailsDraft(game: Game | null): DetailsDraft {
     developer: game?.developer || "",
     publisher: game?.publisher || "",
     fullscreenByDefault: Boolean(game?.fullscreenByDefault),
+    repeatMusic: game?.repeatMusic !== false,
     tags: game?.tags.join(", ") || "",
     notes: game?.notes || "",
   };
@@ -148,6 +151,7 @@ function detailsDraftToPatch(draft: DetailsDraft): GamePatch {
     developer: draft.developer,
     publisher: draft.publisher,
     fullscreenByDefault: draft.fullscreenByDefault,
+    repeatMusic: draft.repeatMusic,
     tags: normalizeTags(draft.tags),
     notes: draft.notes,
   };
@@ -776,6 +780,14 @@ function DetailsPanel({
           ))}
         </fieldset>
       )}
+      <label className="fullscreen-setting">
+        <input
+          type="checkbox"
+          checked={draft.repeatMusic}
+          onChange={(event) => updateDraft({ repeatMusic: event.target.checked })}
+        />
+        <span>{gameSettingsLabels[language].repeatMusic}</span>
+      </label>
 
       <div className="music-actions">
         <button className="secondary" onClick={() => onChooseMusic(game)}>
@@ -1599,7 +1611,7 @@ export function App() {
     if (!isThemeEnabled || !selectedTheme || isAnyGameRunning) return;
     const audioUrl = URL.createObjectURL(new Blob([selectedTheme.data], { type: selectedTheme.mimeType }));
     const audio = new Audio(audioUrl);
-    audio.loop = true;
+    audio.loop = selectedGame?.repeatMusic !== false;
     audio.volume = 0;
     themeAudioRef.current = audio;
     void audio.play().catch(() => {});
@@ -1612,7 +1624,7 @@ export function App() {
         URL.revokeObjectURL(audioUrl);
       });
     };
-  }, [isThemeEnabled, selectedTheme, isAnyGameRunning]);
+  }, [isThemeEnabled, selectedTheme, isAnyGameRunning, selectedGame?.repeatMusic]);
 
   useEffect(() => {
     if (themeAudioRef.current) themeAudioRef.current.volume = themeVolume;
@@ -2023,6 +2035,7 @@ export function App() {
         : toast.type === "gameStarted" || toast.type === "gameStopped" || toast.type === "coverCreated"
           ? toastLabels[language][toast.type].replace("{title}", toast.title)
           : null;
+  const attributionParts = settingsInfoLabels[language].originallyMadeBy.split("xevil3301");
 
   return (
     <div
@@ -2430,6 +2443,22 @@ export function App() {
                     </dd>
                   </div>
                 </dl>
+                <footer className="settings-about-footer">
+                  <span>
+                    {attributionParts[0]}
+                    <strong>xevil3301</strong>
+                    {attributionParts[1]}
+                  </span>
+                  <button
+                    type="button"
+                    className="icon settings-about-github"
+                    title={settingsInfoLabels[language].openOriginalAuthorRepository}
+                    aria-label={settingsInfoLabels[language].openOriginalAuthorRepository}
+                    onClick={() => void window.flashApi.openOriginalAuthorRepository().catch(() => {})}
+                  >
+                    <Github size={15} />
+                  </button>
+                </footer>
               </section>
             )}
           </section>

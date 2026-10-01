@@ -30,6 +30,11 @@ Flash Royale is a local library manager for organizing, searching, categorizing,
 - Ruffle
 - electron-builder
 
+## Contributors
+
+- xevil3301
+- MCC321-QC
+
 ## Development
 
 Windows and Node.js are required. In PowerShell, use `npm.cmd` to avoid conflicts with aliases or execution policies.

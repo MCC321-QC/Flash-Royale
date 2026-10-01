@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("flashApi", {
   getMinimizeToTrayOnMinimize: () => ipcRenderer.invoke("app:getMinimizeToTrayOnMinimize"),
   setMinimizeToTrayOnMinimize: (enabled) => ipcRenderer.invoke("app:setMinimizeToTrayOnMinimize", enabled),
   openRepository: () => ipcRenderer.invoke("app:openRepository"),
+  openOriginalAuthorRepository: () => ipcRenderer.invoke("app:openOriginalAuthorRepository"),
   openPlayer: (game, language) => ipcRenderer.invoke("player:open", game, language),
   closePlayer: (gameId) => ipcRenderer.invoke("player:close", gameId),
   getRunningPlayers: () => ipcRenderer.invoke("player:getRunning"),

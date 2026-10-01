@@ -38,6 +38,7 @@ if (!window.flashApi) {
       return enabled;
     },
     openRepository: async () => {},
+    openOriginalAuthorRepository: async () => {},
     openPlayer: async () => {
       throw new Error(messages[readLanguage()].electronOnlyPlay);
     },

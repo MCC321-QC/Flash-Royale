@@ -16,6 +16,7 @@ export interface Game {
   developer?: string;
   publisher?: string;
   fullscreenByDefault?: boolean;
+  repeatMusic?: boolean;
   customMusic?: { fileName: string; ext: string };
   defaultMusicIndex?: number;
   totalPlaySeconds?: number;
@@ -68,6 +69,7 @@ export interface GamePatch {
   developer?: string;
   publisher?: string;
   fullscreenByDefault?: boolean;
+  repeatMusic?: boolean;
   totalPlaySeconds?: number;
   favorite?: boolean;
   notes?: string;
@@ -84,6 +86,7 @@ export interface FlashApi {
   getMinimizeToTrayOnMinimize(): Promise<boolean>;
   setMinimizeToTrayOnMinimize(enabled: boolean): Promise<boolean>;
   openRepository(): Promise<void>;
+  openOriginalAuthorRepository(): Promise<void>;
   openPlayer(game: PlayerWindowData, language: Language): Promise<void>;
   closePlayer(gameId: string): Promise<void>;
   getRunningPlayers(): Promise<string[]>;

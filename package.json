@@ -1,9 +1,13 @@
 {
   "name": "flash-royale",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Local Flash game library manager powered by Electron, React, and Ruffle.",
-  "author": "xevil3301",
+  "author": "MCC321-QC",
+  "contributors": [
+    "xevil3301",
+    "MCC321-QC"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/MCC321-QC/Flash-Royale.git"

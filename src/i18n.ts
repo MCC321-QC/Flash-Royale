@@ -264,18 +264,18 @@ export const playerControlLabels: Record<Language, {
   ru: { playerControls: "Управление проигрывателем", zoomIn: "Увеличить", zoomOut: "Уменьшить", resetZoom: "Сбросить масштаб", zoomLevel: "Масштаб", fullscreen: "На весь экран", exitFullscreen: "Выйти из полноэкранного режима", showOptionsBar: "Показать настройки проигрывателя", hideOptionsBar: "Скрыть настройки проигрывателя", pinControls: "Оставить панель видимой", unpinControls: "Открепить панель" },
 };
 
-export const gameSettingsLabels: Record<Language, { fullscreenByDefault: string }> = {
-  en: { fullscreenByDefault: "Start this game in fullscreen" },
-  zh: { fullscreenByDefault: "默认全屏启动此游戏" },
-  es: { fullscreenByDefault: "Iniciar este juego en pantalla completa" },
-  fr: { fullscreenByDefault: "Démarrer ce jeu en plein écran" },
-  de: { fullscreenByDefault: "Dieses Spiel standardmäßig im Vollbild starten" },
-  "pt-BR": { fullscreenByDefault: "Iniciar este jogo em tela cheia" },
-  ja: { fullscreenByDefault: "このゲームを全画面で起動" },
-  ko: { fullscreenByDefault: "이 게임을 전체 화면으로 시작" },
-  hi: { fullscreenByDefault: "इस गेम को पूर्ण स्क्रीन में शुरू करें" },
-  ar: { fullscreenByDefault: "بدء هذه اللعبة بملء الشاشة" },
-  ru: { fullscreenByDefault: "Запускать эту игру в полноэкранном режиме" },
+export const gameSettingsLabels: Record<Language, { fullscreenByDefault: string; repeatMusic: string }> = {
+  en: { fullscreenByDefault: "Start this game in fullscreen", repeatMusic: "Repeat this game's music" },
+  zh: { fullscreenByDefault: "默认全屏启动此游戏", repeatMusic: "循环播放此游戏的音乐" },
+  es: { fullscreenByDefault: "Iniciar este juego en pantalla completa", repeatMusic: "Repetir la música de este juego" },
+  fr: { fullscreenByDefault: "Démarrer ce jeu en plein écran", repeatMusic: "Répéter la musique de ce jeu" },
+  de: { fullscreenByDefault: "Dieses Spiel standardmäßig im Vollbild starten", repeatMusic: "Musik dieses Spiels wiederholen" },
+  "pt-BR": { fullscreenByDefault: "Iniciar este jogo em tela cheia", repeatMusic: "Repetir a música deste jogo" },
+  ja: { fullscreenByDefault: "このゲームを全画面で起動", repeatMusic: "このゲームの音楽を繰り返す" },
+  ko: { fullscreenByDefault: "이 게임을 전체 화면으로 시작", repeatMusic: "이 게임의 음악 반복" },
+  hi: { fullscreenByDefault: "इस गेम को पूर्ण स्क्रीन में शुरू करें", repeatMusic: "इस गेम का संगीत दोहराएँ" },
+  ar: { fullscreenByDefault: "بدء هذه اللعبة بملء الشاشة", repeatMusic: "تكرار موسيقى هذه اللعبة" },
+  ru: { fullscreenByDefault: "Запускать эту игру в полноэкранном режиме", repeatMusic: "Повторять музыку этой игры" },
 };
 
 export const playTimeLabels: Record<Language, { playTime: string; session: string; activeSession: string; hour: string; minute: string; second: string }> = {
@@ -410,18 +410,18 @@ export const detailPanelLabels: Record<Language, { show: string; hide: string; r
   ru: { show: "Показать сведения об игре", hide: "Скрыть сведения об игре", resize: "Изменить ширину панели сведений" },
 };
 
-export const settingsInfoLabels: Record<Language, { about: string; version: string; author: string; github: string; ruffleVersion: string }> = {
-  en: { about: "About this app", version: "Version", author: "Author", github: "GitHub repository", ruffleVersion: "Ruffle version" },
-  zh: { about: "关于此应用", version: "版本", author: "作者", github: "GitHub 仓库", ruffleVersion: "Ruffle 版本" },
-  es: { about: "Acerca de esta aplicación", version: "Versión", author: "Autor", github: "Repositorio de GitHub", ruffleVersion: "Versión de Ruffle" },
-  fr: { about: "À propos de cette application", version: "Version", author: "Auteur", github: "Dépôt GitHub", ruffleVersion: "Version de Ruffle" },
-  de: { about: "Über diese App", version: "Version", author: "Autor", github: "GitHub-Repository", ruffleVersion: "Ruffle-Version" },
-  "pt-BR": { about: "Sobre este aplicativo", version: "Versão", author: "Autor", github: "Repositório no GitHub", ruffleVersion: "Versão do Ruffle" },
-  ja: { about: "このアプリについて", version: "バージョン", author: "作者", github: "GitHubリポジトリ", ruffleVersion: "Ruffleバージョン" },
-  ko: { about: "이 앱 정보", version: "버전", author: "제작자", github: "GitHub 저장소", ruffleVersion: "Ruffle 버전" },
-  hi: { about: "इस ऐप के बारे में", version: "संस्करण", author: "लेखक", github: "GitHub रिपॉज़िटरी", ruffleVersion: "Ruffle संस्करण" },
-  ar: { about: "حول هذا التطبيق", version: "الإصدار", author: "المؤلف", github: "مستودع GitHub", ruffleVersion: "إصدار Ruffle" },
-  ru: { about: "Об этом приложении", version: "Версия", author: "Автор", github: "Репозиторий GitHub", ruffleVersion: "Версия Ruffle" },
+export const settingsInfoLabels: Record<Language, { about: string; version: string; author: string; github: string; ruffleVersion: string; originallyMadeBy: string; openOriginalAuthorRepository: string }> = {
+  en: { about: "About this app", version: "Version", author: "Author", github: "GitHub repository", ruffleVersion: "Ruffle version", originallyMadeBy: "This app was originally made by xevil3301.", openOriginalAuthorRepository: "Open xevil3301's GitHub repository" },
+  zh: { about: "关于此应用", version: "版本", author: "作者", github: "GitHub 仓库", ruffleVersion: "Ruffle 版本", originallyMadeBy: "此应用最初由 xevil3301 制作。", openOriginalAuthorRepository: "打开 xevil3301 的 GitHub 仓库" },
+  es: { about: "Acerca de esta aplicación", version: "Versión", author: "Autor", github: "Repositorio de GitHub", ruffleVersion: "Versión de Ruffle", originallyMadeBy: "Esta aplicación fue creada originalmente por xevil3301.", openOriginalAuthorRepository: "Abrir el repositorio de GitHub de xevil3301" },
+  fr: { about: "À propos de cette application", version: "Version", author: "Auteur", github: "Dépôt GitHub", ruffleVersion: "Version de Ruffle", originallyMadeBy: "Cette application a été créée à l’origine par xevil3301.", openOriginalAuthorRepository: "Ouvrir le dépôt GitHub de xevil3301" },
+  de: { about: "Über diese App", version: "Version", author: "Autor", github: "GitHub-Repository", ruffleVersion: "Ruffle-Version", originallyMadeBy: "Diese App wurde ursprünglich von xevil3301 erstellt.", openOriginalAuthorRepository: "Das GitHub-Repository von xevil3301 öffnen" },
+  "pt-BR": { about: "Sobre este aplicativo", version: "Versão", author: "Autor", github: "Repositório no GitHub", ruffleVersion: "Versão do Ruffle", originallyMadeBy: "Este aplicativo foi criado originalmente por xevil3301.", openOriginalAuthorRepository: "Abrir o repositório do GitHub de xevil3301" },
+  ja: { about: "このアプリについて", version: "バージョン", author: "作者", github: "GitHubリポジトリ", ruffleVersion: "Ruffleバージョン", originallyMadeBy: "このアプリはもともとxevil3301によって作成されました。", openOriginalAuthorRepository: "xevil3301のGitHubリポジトリを開く" },
+  ko: { about: "이 앱 정보", version: "버전", author: "제작자", github: "GitHub 저장소", ruffleVersion: "Ruffle 버전", originallyMadeBy: "이 앱은 원래 xevil3301이 만들었습니다.", openOriginalAuthorRepository: "xevil3301의 GitHub 저장소 열기" },
+  hi: { about: "इस ऐप के बारे में", version: "संस्करण", author: "लेखक", github: "GitHub रिपॉज़िटरी", ruffleVersion: "Ruffle संस्करण", originallyMadeBy: "यह ऐप मूल रूप से xevil3301 द्वारा बनाया गया था।", openOriginalAuthorRepository: "xevil3301 की GitHub रिपॉज़िटरी खोलें" },
+  ar: { about: "حول هذا التطبيق", version: "الإصدار", author: "المؤلف", github: "مستودع GitHub", ruffleVersion: "إصدار Ruffle", originallyMadeBy: "تم إنشاء هذا التطبيق في الأصل بواسطة xevil3301.", openOriginalAuthorRepository: "فتح مستودع GitHub الخاص بـ xevil3301" },
+  ru: { about: "Об этом приложении", version: "Версия", author: "Автор", github: "Репозиторий GitHub", ruffleVersion: "Версия Ruffle", originallyMadeBy: "Это приложение изначально создано пользователем xevil3301.", openOriginalAuthorRepository: "Открыть репозиторий GitHub пользователя xevil3301" },
 };
 
 export const generalSettingsLabels: Record<Language, { general: string; startInFullscreen: string; minimizeToTrayOnGameLaunch: string; minimizeToTrayOnMinimize: string; nextLaunch: string }> = {

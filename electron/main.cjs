@@ -641,6 +641,7 @@ function mergeGameUpdate(game, patch, language) {
   if (typeof patch.developer === "string") next.developer = patch.developer.trim();
   if (typeof patch.publisher === "string") next.publisher = patch.publisher.trim();
   if (typeof patch.fullscreenByDefault === "boolean") next.fullscreenByDefault = patch.fullscreenByDefault;
+  if (typeof patch.repeatMusic === "boolean") next.repeatMusic = patch.repeatMusic;
   if (typeof patch.notes === "string") next.notes = patch.notes;
   if (typeof patch.favorite === "boolean") next.favorite = patch.favorite;
   if (Array.isArray(patch.tags)) {
@@ -1220,6 +1221,7 @@ app.whenReady().then(async () => {
     return enabled;
   });
   ipcMain.handle("app:openRepository", () => shell.openExternal(String(appPackage.repository?.url || "https://github.com")));
+  ipcMain.handle("app:openOriginalAuthorRepository", () => shell.openExternal("https://github.com/xevil3301/flashmanager.git"));
   ipcMain.handle("player:open", (_event, game, language) => openPlayerWindow(game, language));
   ipcMain.handle("player:getRunning", () => Array.from(playerWindows.keys()));
   ipcMain.handle("player:close", (_event, gameId) => {

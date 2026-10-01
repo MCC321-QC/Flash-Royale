@@ -1039,6 +1039,10 @@ button {
   cursor: pointer;
 }
 
+.music-tracks + .fullscreen-setting {
+  margin-top: -10px;
+}
+
 .details .fullscreen-setting input[type="checkbox"] {
   flex: 0 0 auto;
   width: 16px;
@@ -1687,7 +1691,7 @@ button {
 }
 
 .settings-about {
-  padding: 0 22px 18px;
+  padding: 0 22px 5px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -1736,6 +1740,25 @@ button {
 
 .settings-info a:hover {
   text-decoration: underline;
+}
+
+.settings-about-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  color: #95a3b5;
+  font-size: 11px;
+  text-align: center;
+}
+
+.settings-about-github {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  padding: 0;
 }
 
 .player-modal header {
