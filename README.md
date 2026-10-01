@@ -1,10 +1,28 @@
+<img src="assets/new-flash-royale-logo.png" alt="Flash Royale logo" width="115"/>
+
 # Flash Royale
 
-![Flash Royale main window preview](docs/assets/flash-royale-preview.png)
+![Flash Royale main window preview](docs/assets/Screenshots/preview.gif)
 
 Flash Royale is a local library manager for organizing, searching, categorizing, and playing `.swf` games. It includes the Ruffle player, so Adobe Flash Player is not required. Game files, covers, and metadata stay on your computer, and the app can be shared as a portable folder.
 
 > Manage locally, play locally, keep everything local. Bring scattered SWF games together in a clean, searchable desktop library.
+
+> [!WARNING]  
+> ### 🛑 Windows 11 Smart App Control Block
+> Because this is a **portable .exe** and an open-source project without an expensive commercial signature, **Windows Smart App Control** or **SmartScreen** will block it immediately upon launch. 
+> 
+> To bypass this restriction, you just need to remove the "Mark of the Web" from the file. Follow these steps before running the app:
+>
+> 1. Right-click the file "Flash Royale.exe" and select **Properties**.
+> 2. At the very bottom of the **General** tab, find the **Security** section.
+> 3. Check the box next to **Unblock**.
+> 4. Click **Apply**, then click **OK**.
+>
+> *Alternatively, advanced users can open PowerShell from the app directory and run:*
+> ```powershell
+> Unblock-File -Path ".\Flash Royale.exe"
+> ```
 
 ## Features
 
