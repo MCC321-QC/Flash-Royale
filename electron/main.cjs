@@ -939,7 +939,7 @@ function createWindow() {
     minWidth: 1060,
     minHeight: 680,
     title: "Flash Royale",
-    icon: path.join(__dirname, "..", "assets", "flash-royale.ico"),
+    icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
     autoHideMenuBar: true,
     backgroundColor: "#101318",
     fullscreen: startInFullscreen,
@@ -1113,7 +1113,7 @@ const trayMessages = {
 
 function createTrayIcon() {
   return nativeImage
-    .createFromPath(path.join(__dirname, "..", "assets", "flash-royale-logo.png"))
+    .createFromPath(path.join(__dirname, "..", "assets", "new-flash-royale-logo.png"))
     .resize({ width: 32, height: 32 });
 }
 

@@ -41,7 +41,7 @@
       "package.json"
     ],
     "win": {
-      "icon": "assets/flash-royale.ico",
+      "icon": "assets/new-flash-royale-logo.ico",
       "target": [
         "dir"
       ],

@@ -35,7 +35,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import flashRoyaleLogo from "../assets/flash-royale-logo.png";
+import flashRoyaleLogo from "../assets/new-flash-royale-logo.png";
 import { cardSizeLabels, cardSizeToggleLabels, confirmationActionLabels, detailPanelLabels, gameSettingsLabels, generalSettingsLabels, importCountLabels, messages, playerControlLabels, playTimeLabels, readLanguage, renameActionLabels, settingsInfoLabels, sortLabels, stopPlayingLabels, themeLabels, toastLabels, translateError, importProgressLabels, musicLabels, coverCaptureLabels, closeBlockedLabels, type Language } from "./i18n";
 import type { AppInfo, FlashApi, Game, GamePatch, ImportProgress, ImportResult, LibraryState, PlayerWindowData } from "./types";
 
@@ -493,18 +493,20 @@ function GameCard({
       </div>
       <div
         className="game-card-body"
-        style={{ gridTemplateRows: `34px 16px repeat(${metadata.length}, 16px) auto` }}
+        style={{ gridTemplateRows: `34px 16px repeat(${metadata.length}, 16px)${game.tags.length ? " auto" : ""}` }}
       >
         <strong title={game.title}>{game.title}</strong>
         <span title={displayCategory(game.category, language)}>{displayCategory(game.category, language)}</span>
         {metadata.map((value) => (
           <span className="game-card-metadata" key={value} title={value}>{value}</span>
         ))}
-        <div className="mini-tags">
-          {game.tags.map((tag) => (
-            <em key={tag} title={tag}>{tag}</em>
-          ))}
-        </div>
+        {game.tags.length > 0 && (
+          <div className="mini-tags">
+            {game.tags.map((tag) => (
+              <em key={tag} title={tag}>{tag}</em>
+            ))}
+          </div>
+        )}
       </div>
     </button>
   );
