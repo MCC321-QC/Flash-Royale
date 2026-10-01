@@ -1,5 +1,5 @@
 {
-  "name": "flashmanager",
+  "name": "flash-royale",
   "version": "0.1.0",
   "private": true,
   "description": "Local Flash game library manager powered by Electron, React, and Ruffle.",
@@ -24,18 +24,20 @@
     "preview": "vite preview --host 127.0.0.1"
   },
   "build": {
-    "appId": "local.flashmanager.app",
-    "productName": "FlashManager",
+    "appId": "local.flashroyale.app",
+    "productName": "Flash Royale",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "assets/**/*",
       "public/ruffle/**/*",
       "package.json"
     ],
     "win": {
+      "icon": "assets/flash-royale.ico",
       "target": [
         "dir"
       ],
@@ -58,7 +60,7 @@
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^6.0.2",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "electron": "^42.2.0",
     "electron-builder": "^26.8.1",
     "typescript": "^5.3.3",

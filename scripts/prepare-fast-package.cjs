@@ -5,30 +5,30 @@ const { execFileSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const releaseDir = path.join(root, "release");
 const unpackedDir = path.join(releaseDir, "win-unpacked");
-const readyDir = path.join(releaseDir, "FlashManager-ReadyToRun");
-const zipPath = path.join(releaseDir, "FlashManager-ReadyToRun.zip");
+const readyDir = path.join(releaseDir, "Flash Royale-ReadyToRun");
+const zipPath = path.join(releaseDir, "Flash Royale-ReadyToRun.zip");
 
 const rootReadme = [
-  "FlashManager",
+  "Flash Royale",
   "",
-  "双击 FlashManager.exe 即可运行。",
+  "Double-click Flash Royale.exe to launch the app.",
   "",
-  "游戏库会保存在本文件夹下的 library 目录中。",
-  "发送给别人时，请发送 release\\FlashManager-ReadyToRun.zip。",
+  "The game library is stored in the library folder next to this file.",
+  "To share the app, send release\\Flash Royale-ReadyToRun.zip.",
   "",
 ].join("\r\n");
 
 const packageReadme = [
-  "FlashManager 免安装版",
+  "Flash Royale Portable Edition",
   "",
-  "双击 FlashManager.exe 即可运行。",
+  "Double-click Flash Royale.exe to launch the app.",
   "",
-  "游戏库会保存在本文件夹下的 library 目录中：",
-  "  library/games   导入后的 SWF",
-  "  library/covers  游戏封面",
-  "  library/db.json 游戏元数据",
+  "The game library is stored in the library folder next to this app:",
+  "  library/games   Imported SWF files",
+  "  library/covers  Game cover images",
+  "  library/db.json Game metadata",
   "",
-  "请保持 FlashManager.exe、resources、locales 和同目录 DLL 文件在一起。",
+  "Keep Flash Royale.exe, resources, locales, and the DLL files together.",
   "",
 ].join("\r\n");
 
@@ -73,7 +73,7 @@ function zipReadyFolder() {
 }
 
 copyRuntimeTo(root);
-fs.writeFileSync(path.join(root, "FlashManager-快速启动说明.txt"), rootReadme, "utf8");
+fs.writeFileSync(path.join(root, "Flash Royale-Quick-Start.txt"), rootReadme, "utf8");
 
 fs.rmSync(readyDir, { recursive: true, force: true });
 copyRuntimeTo(readyDir);
@@ -81,6 +81,6 @@ fs.mkdirSync(path.join(readyDir, "library"), { recursive: true });
 fs.writeFileSync(path.join(readyDir, "README.txt"), packageReadme, "utf8");
 zipReadyFolder();
 
-console.log(`Fast launcher: ${path.join(root, "FlashManager.exe")}`);
+console.log(`Fast launcher: ${path.join(root, "Flash Royale.exe")}`);
 console.log(`Ready-to-run folder: ${readyDir}`);
 console.log(`Ready-to-run zip: ${zipPath}`);

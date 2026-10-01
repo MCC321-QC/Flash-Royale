@@ -6,18 +6,18 @@ const root = path.resolve(__dirname, "..");
 const parentDir = path.dirname(root);
 const releaseDir = path.join(root, "release");
 const unpackedDir = path.join(releaseDir, "win-unpacked");
-const shareDir = path.join(releaseDir, "flashmanager");
-const zipPath = path.join(parentDir, "flashmanager.zip");
+const shareDir = path.join(releaseDir, "flash-royale");
+const zipPath = path.join(parentDir, "flash-royale.zip");
 
 const readme = [
-  "FlashManager",
+  "Flash Royale",
   "",
-  "使用方法：",
-  "1. 解压整个 flashmanager 文件夹。",
-  "2. 双击 FlashManager.exe 启动。",
-  "3. 游戏库保存在同目录的 library 文件夹中。",
+  "Instructions:",
+  "1. Extract the entire flash-royale folder.",
+  "2. Double-click Flash Royale.exe to launch the app.",
+  "3. The game library is stored in the library folder next to the app.",
   "",
-  "请不要删除 resources、locales、DLL、PAK、DAT 等文件，它们是程序运行所需文件。",
+  "Do not delete resources, locales, DLL, PAK, or DAT files. They are required to run the app.",
   "",
 ].join("\r\n");
 

@@ -4,20 +4,20 @@ const { execFileSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const releaseDir = path.join(root, "release");
-const portableDir = path.join(releaseDir, "FlashManager-Portable");
-const rootExe = path.join(root, "FlashManager.exe");
-const portableExe = path.join(portableDir, "FlashManager.exe");
-const zipPath = path.join(releaseDir, "FlashManager-Portable.zip");
+const portableDir = path.join(releaseDir, "Flash Royale-Portable");
+const rootExe = path.join(root, "Flash Royale.exe");
+const portableExe = path.join(portableDir, "Flash Royale.exe");
+const zipPath = path.join(releaseDir, "Flash Royale-Portable.zip");
 
 function findPortableExe() {
   const candidates = fs
     .readdirSync(releaseDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && /^FlashManager.*\.exe$/i.test(entry.name))
+    .filter((entry) => entry.isFile() && /^Flash Royale.*\.exe$/i.test(entry.name))
     .map((entry) => path.join(releaseDir, entry.name))
     .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
 
   if (candidates.length === 0) {
-    throw new Error("Portable FlashManager exe was not found in release/.");
+    throw new Error("Portable Flash Royale exe was not found in release/.");
   }
   return candidates[0];
 }
@@ -29,16 +29,16 @@ function copyFile(source, target) {
 
 function writePortableReadme() {
   const text = [
-    "FlashManager 便携版",
+    "Flash Royale Portable Edition",
     "",
-    "直接双击 FlashManager.exe 即可运行。",
+    "Double-click Flash Royale.exe to launch the app.",
     "",
-    "游戏库会保存在本文件夹下的 library 目录中：",
-    "  library/games   导入后的 SWF",
-    "  library/covers  游戏封面",
-    "  library/db.json 游戏元数据",
+    "The game library is stored in the library folder next to this app:",
+    "  library/games   Imported SWF files",
+    "  library/covers  Game cover images",
+    "  library/db.json Game metadata",
     "",
-    "发送给别人时，把整个 FlashManager-Portable 文件夹或 FlashManager-Portable.zip 发过去即可。",
+    "To share the app, send the entire Flash Royale-Portable folder or Flash Royale-Portable.zip.",
     "",
   ].join("\r\n");
   fs.writeFileSync(path.join(portableDir, "README.txt"), text, "utf8");

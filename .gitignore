@@ -16,8 +16,8 @@ library/
 public/ruffle/
 
 # Electron runtime copied to the project root by package:fast
-FlashManager.exe
-FlashManager-*.txt
+Flash Royale.exe
+Flash Royale-*.txt
 chrome_*.pak
 d3dcompiler_47.dll
 dxcompiler.dll

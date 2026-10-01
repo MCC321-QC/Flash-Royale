@@ -1,23 +1,26 @@
-# FlashManager
+# Flash Royale
 
-![FlashManager 主界面预览](docs/assets/flashmanager-preview.png)
+![Flash Royale main window preview](docs/assets/flash-royale-preview.png)
 
-FlashManager 是一款本地 Flash 游戏库管理工具，专门用来整理、搜索、分类和运行本机 `.swf` 游戏。它内置 Ruffle 播放器，不需要安装 Adobe Flash Player；游戏文件、封面和元数据都保存在本地，适合做成免安装文件夹后压缩分享。
+Flash Royale is a local library manager for organizing, searching, categorizing, and playing `.swf` games. It includes the Ruffle player, so Adobe Flash Player is not required. Game files, covers, and metadata stay on your computer, and the app can be shared as a portable folder.
 
-> 本地管理、本地运行、本地保存。把零散的 SWF 游戏收进一个干净、可搜索、可分类的桌面工具里。
+> Manage locally, play locally, keep everything local. Bring scattered SWF games together in a clean, searchable desktop library.
 
-## 功能
+## Features
 
-- 导入 `.swf` 文件，并按 SHA-256 自动去重。
-- 将游戏复制到本地库目录，避免原始文件移动后失效。
-- 使用 Ruffle Web/WASM 在应用内运行 SWF。
-- 自动生成本地封面，支持手动选择 PNG/JPG/WEBP 封面。
-- 本地搜索标题、标签、分类、备注和原文件名。
-- 支持分类、标签、收藏、备注、游玩次数和最近游玩时间。
-- 播放器会读取 SWF 舞台尺寸，尽量按原始比例显示横版和竖版游戏。
-- 支持生成免安装 Windows 文件夹，方便压缩后分享。
+- Import `.swf` files and automatically detect duplicates using SHA-256.
+- Copy games into the local library so they remain available if the original files are moved.
+- Play SWF files in the app using Ruffle Web/WASM.
+- Generate local cover art automatically or choose PNG, JPG, or WEBP images.
+- Search locally by title, tags, category, notes, and original filename.
+- Organize games with categories, tags, favorites, notes, play counts, total play time, and last-played dates.
+- Store release dates, developers, and publishers; populated details also appear on game cards.
+- Choose fullscreen as the default launch mode for individual games.
+- Read SWF stage dimensions to preserve each game's aspect ratio where possible.
+- Create a portable Windows folder that can be compressed and shared.
+- Switch the interface in Settings between English, Simplified Chinese, Spanish, French, German, Brazilian Portuguese, Japanese, Korean, Hindi, Arabic, and Russian.
 
-## 技术栈
+## Tech Stack
 
 - Electron
 - Vite
@@ -27,77 +30,77 @@ FlashManager 是一款本地 Flash 游戏库管理工具，专门用来整理、
 - Ruffle
 - electron-builder
 
-## 开发环境
+## Development
 
-需要 Windows 和 Node.js。PowerShell 中建议使用 `npm.cmd`，避免脚本别名或执行策略造成干扰。
+Windows and Node.js are required. In PowerShell, use `npm.cmd` to avoid conflicts with aliases or execution policies.
 
 ```powershell
 npm.cmd install
 npm.cmd run dev
 ```
 
-安装依赖后，`postinstall` 会把 `@ruffle-rs/ruffle` 的 Web 资源复制到 `public/ruffle/`。该目录是生成产物，不提交到 Git。
+After dependencies are installed, the `postinstall` script copies the `@ruffle-rs/ruffle` web assets into `public/ruffle/`. This is generated output and should not be committed to Git.
 
-## 构建
+## Build
 
 ```powershell
 npm.cmd run build
 ```
 
-## 打包
+## Packaging
 
-生成 Electron 解包目录：
+Build the unpacked Electron application:
 
 ```powershell
 npm.cmd run package:win
 ```
 
-生成根目录快速启动版和 `release/FlashManager-ReadyToRun.zip`：
+Create a quick launcher in the project root and `release/Flash Royale-ReadyToRun.zip`:
 
 ```powershell
 npm.cmd run package:fast
 ```
 
-生成适合直接发给朋友的 `D:\Alaboratory\flashmanager.zip`：
+Create `flash-royale.zip` in the parent directory of the project, ready to share:
 
 ```powershell
 npm.cmd run package:share
 ```
 
-分享时请发送完整压缩包或完整文件夹，不要只发送单独的 `FlashManager.exe`。
+Share the complete archive or folder. Do not send `Flash Royale.exe` by itself.
 
-## 本地数据
+## Local Data
 
-默认库目录位于应用所在目录下：
+By default, the library is stored next to the application:
 
 ```text
 library/
-  games/       # 导入后的 SWF
-  covers/      # 封面文件
-  db.json      # 游戏元数据
-  config.json  # 本地配置
+  games/       # Imported SWF files
+  covers/      # Cover images
+  db.json      # Game metadata
+  config.json  # Local configuration
 ```
 
-`library/` 保存用户个人数据和游戏文件，不应该提交到 GitHub。
+`library/` contains personal data and game files and should not be committed to GitHub.
 
-## 项目结构
+## Project Structure
 
 ```text
-electron/             Electron 主进程和 preload
-src/                  React 前端
-scripts/              Ruffle 复制和打包脚本
-public/               静态资源入口
-docs/                 开发文档
+electron/             Electron main process and preload
+src/                  React frontend
+scripts/              Ruffle and packaging scripts
+public/               Static asset entry point
+docs/                 Development documentation
 ```
 
-## 文档
+## Documentation
 
-开发和维护说明见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)。
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for development and maintenance notes.
 
-## 兼容性说明
+## Compatibility
 
-Flash 运行依赖 Ruffle。部分复杂 AS3 游戏、依赖外部资源的 SWF 或 Ruffle 尚未完整支持的游戏，可能无法完美运行。
+Flash playback depends on Ruffle. Some complex AS3 games, SWF files that rely on external assets, and games that Ruffle does not fully support may not run correctly.
 
-## 版权与内容提醒
+## Copyright and Content Notice
 
-本仓库只包含 FlashManager 程序源码。请不要把第三方 SWF 游戏、封面图片或个人游戏库提交到仓库，除非你确认自己拥有分享权利。
+This repository contains only the Flash Royale source code. Do not commit third-party SWF games, cover images, or personal libraries unless you have the right to share them.
