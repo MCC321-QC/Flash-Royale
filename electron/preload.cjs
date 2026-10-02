@@ -4,19 +4,59 @@ contextBridge.exposeInMainWorld("flashApi", {
   getPathForFile: (file) => webUtils.getPathForFile(file),
   getAssetBaseUrl: () => ipcRenderer.invoke("library:getAssetBaseUrl"),
   getAppInfo: () => ipcRenderer.invoke("app:getInfo"),
+  checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
+  openUpdatePage: (releaseUrl) => ipcRenderer.invoke("app:openUpdatePage", releaseUrl),
   getStartInFullscreen: () => ipcRenderer.invoke("app:getStartInFullscreen"),
   setStartInFullscreen: (enabled) => ipcRenderer.invoke("app:setStartInFullscreen", enabled),
   getMinimizeToTrayOnGameLaunch: () => ipcRenderer.invoke("app:getMinimizeToTrayOnGameLaunch"),
   setMinimizeToTrayOnGameLaunch: (enabled) => ipcRenderer.invoke("app:setMinimizeToTrayOnGameLaunch", enabled),
   getMinimizeToTrayOnMinimize: () => ipcRenderer.invoke("app:getMinimizeToTrayOnMinimize"),
   setMinimizeToTrayOnMinimize: (enabled) => ipcRenderer.invoke("app:setMinimizeToTrayOnMinimize", enabled),
+  getExploreAvailability: () => ipcRenderer.invoke("app:getExploreAvailability"),
+  setExploreEnabled: (enabled) => ipcRenderer.invoke("app:setExploreEnabled", enabled),
+  onAppVisibilityChanged: (callback) => {
+    const listener = (_event, visible) => callback(visible);
+    ipcRenderer.on("app:visibilityChanged", listener);
+    return () => ipcRenderer.removeListener("app:visibilityChanged", listener);
+  },
+  copyPublicResourceUrl: (gameId, url) => ipcRenderer.invoke("library:copyPublicResourceUrl", gameId, url),
+  openGameFolder: (gameId) => ipcRenderer.invoke("library:openGameFolder", gameId),
   openRepository: () => ipcRenderer.invoke("app:openRepository"),
   openOriginalAuthorRepository: () => ipcRenderer.invoke("app:openOriginalAuthorRepository"),
+  openExplore: () => ipcRenderer.invoke("app:openExplore"),
+  listExploreGames: (query, page, pageSize, sortMode, ascending) =>
+    ipcRenderer.invoke("explore:list", query, page, pageSize, sortMode, ascending),
+  openExploreSite: () => ipcRenderer.invoke("explore:openSite"),
+  openExploreDetails: (id) => ipcRenderer.invoke("explore:openDetails", id),
+  getExploreGameDetails: (id) => ipcRenderer.invoke("explore:getDetails", id),
+  importExploreGame: (id, language) => ipcRenderer.invoke("explore:import", id, language),
+  getExploreImportProgress: () => ipcRenderer.invoke("explore:getImportProgress"),
+  onExploreImportProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on("explore:importProgress", listener);
+    return () => ipcRenderer.removeListener("explore:importProgress", listener);
+  },
+  getGameStorageMigrationProgress: () => ipcRenderer.invoke("library:getStorageMigrationProgress"),
+  onGameStorageMigrationProgress: (callback) => {
+    const listener = (_event, progress) => callback(progress);
+    ipcRenderer.on("library:storageMigrationProgress", listener);
+    return () => ipcRenderer.removeListener("library:storageMigrationProgress", listener);
+  },
+  onExploreImported: (callback) => {
+    const listener = (_event, title) => callback(title);
+    ipcRenderer.on("library:exploreImported", listener);
+    return () => ipcRenderer.removeListener("library:exploreImported", listener);
+  },
+  onExploreLibraryChanged: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("library:exploreChanged", listener);
+    return () => ipcRenderer.removeListener("library:exploreChanged", listener);
+  },
   openPlayer: (game, language) => ipcRenderer.invoke("player:open", game, language),
   closePlayer: (gameId) => ipcRenderer.invoke("player:close", gameId),
   getRunningPlayers: () => ipcRenderer.invoke("player:getRunning"),
   onCloseBlocked: (callback) => {
-    const listener = () => callback();
+    const listener = (_event, reason) => callback(reason === "explore" ? "explore" : "game");
     ipcRenderer.on("app:closeBlocked", listener);
     return () => ipcRenderer.removeListener("app:closeBlocked", listener);
   },
@@ -35,6 +75,11 @@ contextBridge.exposeInMainWorld("flashApi", {
     const listener = (_event, game) => callback(game);
     ipcRenderer.on("library:playTimeUpdated", listener);
     return () => ipcRenderer.removeListener("library:playTimeUpdated", listener);
+  },
+  onGameResourcesUpdated: (callback) => {
+    const listener = (_event, game) => callback(game);
+    ipcRenderer.on("library:publicResourcesUpdated", listener);
+    return () => ipcRenderer.removeListener("library:publicResourcesUpdated", listener);
   },
   readLibrary: () => ipcRenderer.invoke("library:read"),
   getGameTheme: (gameId) => ipcRenderer.invoke("library:getGameTheme", gameId),

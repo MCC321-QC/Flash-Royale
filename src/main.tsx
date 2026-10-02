@@ -1,6 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { App, PlayerModal } from "./App";
+import { Explore, ExploreDetails } from "./Explore";
+import { ExploreImportProgress } from "./ExploreImportProgress";
+import { GameStorageMigrationProgress } from "./GameStorageMigrationProgress";
 import { messages, readLanguage } from "./i18n";
 import type { Language } from "./i18n";
 import type { PlayerWindowData } from "./types";
@@ -22,6 +25,8 @@ if (!window.flashApi) {
     },
     getAssetBaseUrl: async () => window.location.origin,
     getAppInfo: async () => null,
+    checkForUpdates: async () => ({ status: "error", currentVersion: "", latestVersion: "", changelog: "", releaseUrl: "" }),
+    openUpdatePage: async () => {},
     getStartInFullscreen: async () => localStorage.getItem("flashmanager.startInFullscreen") === "true",
     setStartInFullscreen: async (enabled) => {
       localStorage.setItem("flashmanager.startInFullscreen", String(enabled));
@@ -37,8 +42,28 @@ if (!window.flashApi) {
       localStorage.setItem("flashmanager.minimizeToTrayOnMinimize", String(enabled));
       return enabled;
     },
+    getExploreAvailability: async () => ({ enabled: localStorage.getItem("flashroyale.exploreEnabled") !== "false", online: false }),
+    setExploreEnabled: async (enabled) => {
+      localStorage.setItem("flashroyale.exploreEnabled", String(enabled));
+      return enabled;
+    },
+    onAppVisibilityChanged: () => () => {},
+    copyPublicResourceUrl: async () => {},
+    openGameFolder: async () => {},
     openRepository: async () => {},
     openOriginalAuthorRepository: async () => {},
+    openExplore: async () => { throw new Error(messages[readLanguage()].electronOnlyPlay); },
+    listExploreGames: async () => ({ games: [], page: 1, totalPages: 0, total: 0 }),
+    openExploreSite: async () => {},
+    openExploreDetails: async () => { throw new Error(messages[readLanguage()].electronOnlyEdit); },
+    getExploreGameDetails: async () => { throw new Error(messages[readLanguage()].electronOnlyEdit); },
+    importExploreGame: async () => { throw new Error(messages[readLanguage()].electronOnlyPlay); },
+    getExploreImportProgress: async () => ({ title: "", stage: "preparing", percent: null, receivedBytes: 0, totalBytes: null }),
+    getGameStorageMigrationProgress: async () => ({ current: 0, total: 0, gameTitle: "", percent: 0 }),
+    onExploreImportProgress: () => () => {},
+    onGameStorageMigrationProgress: () => () => {},
+    onExploreImported: () => () => {},
+    onExploreLibraryChanged: () => () => {},
     openPlayer: async () => {
       throw new Error(messages[readLanguage()].electronOnlyPlay);
     },
@@ -49,6 +74,7 @@ if (!window.flashApi) {
     setPlayerFullscreen: async () => false,
     onPlayerFullscreenChange: () => () => {},
     onPlayTimeUpdated: () => () => {},
+    onGameResourcesUpdated: () => () => {},
     readLibrary: async () => ({ libraryRoot: "Electron IPC preview unavailable in browser", games: [] }),
     chooseAndImport: async () => ({ libraryRoot: "Electron IPC preview unavailable in browser", games: [] }),
     cancelImport: async () => {},
@@ -89,10 +115,37 @@ if (playerParam) {
   } catch {}
 }
 
+if (new URLSearchParams(window.location.search).has("explore")) {
+  document.title = "Explore Flash games";
+  document.body.classList.add("explore-window-body");
+}
+
+const exploreGameId = Number(new URLSearchParams(window.location.search).get("exploreGame"));
+const isExploreDetails = Number.isSafeInteger(exploreGameId) && exploreGameId > 0;
+if (isExploreDetails) document.body.classList.add("explore-window-body");
+const importParams = new URLSearchParams(window.location.search);
+const isExploreImport = importParams.has("exploreImport");
+const isGameStorageMigration = importParams.has("libraryMigration");
+if (isGameStorageMigration) {
+  document.title = "Updating game folders";
+  document.body.classList.add("explore-window-body");
+}
+const importLanguage = importParams.get("language");
+const progressLanguage: Language = importLanguage && importLanguage in messages ? importLanguage as Language : readLanguage();
+if (isExploreImport) document.body.classList.add("explore-window-body");
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {playerRoute ? (
+    {isGameStorageMigration ? (
+      <GameStorageMigrationProgress />
+    ) : playerRoute ? (
       <PlayerModal game={playerRoute.game} onClose={() => window.close()} language={playerRoute.language} standalone />
+    ) : isExploreImport ? (
+      <ExploreImportProgress language={progressLanguage} />
+    ) : isExploreDetails ? (
+      <ExploreDetails gameId={exploreGameId} />
+    ) : new URLSearchParams(window.location.search).has("explore") ? (
+      <Explore />
     ) : (
       <App />
     )}

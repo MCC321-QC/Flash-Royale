@@ -3,10 +3,15 @@ import {
   ArrowDown,
   ArrowDownUp,
   ArrowUp,
+  Ban,
   CalendarDays,
   Camera,
+  Check,
   ChevronDown,
+  Compass,
+  Copy,
   Download,
+  ExternalLink,
   FolderOpen,
   Gamepad2,
   Github,
@@ -36,8 +41,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import flashRoyaleLogo from "../assets/new-flash-royale-logo.png";
-import { cardSizeLabels, cardSizeToggleLabels, confirmationActionLabels, detailPanelLabels, gameSettingsLabels, generalSettingsLabels, importCountLabels, messages, playerControlLabels, playTimeLabels, readLanguage, renameActionLabels, settingsInfoLabels, sortLabels, stopPlayingLabels, themeLabels, toastLabels, translateError, importProgressLabels, musicLabels, coverCaptureLabels, closeBlockedLabels, type Language } from "./i18n";
-import type { AppInfo, FlashApi, Game, GamePatch, ImportProgress, ImportResult, LibraryState, PlayerWindowData } from "./types";
+import { StarRating } from "./StarRating";
+import { exploreCloseBlockedLabels } from "./i18n";
+import { compatibilitySettingsLabels } from "./i18n";
+import { cardSizeLabels, cardSizeToggleLabels, confirmationActionLabels, datePlaceholderLabels, detailPanelLabels, exploreCoverLabels, exploreSettingsLabels, gameSettingsLabels, generalSettingsLabels, importCountLabels, messages, playerControlLabels, playTimeLabels, readLanguage, renameActionLabels, settingsInfoLabels, sortLabels, sourceMetadataLabels, stopPlayingLabels, themeLabels, toastLabels, translateError, importProgressLabels, musicLabels, coverCaptureLabels, closeBlockedLabels, updateActionLabels, updateLabels, userRatingLabels, type Language } from "./i18n";
+import type { AppInfo, FlashApi, Game, GamePatch, ImportProgress, ImportResult, LibraryState, PlayerWindowData, UpdateCheckResult } from "./types";
 
 type Filter =
   | { type: "all" }
@@ -50,6 +58,7 @@ type PlayerResizeDirection = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 type ToastMessage =
   | string
   | { type: "importSummary"; imported: number; skipped: number }
+  | { type: "exploreImported"; title: string }
   | { type: "appStarted" }
   | { type: "coversFinished" }
   | { type: "gameStarted" | "gameStopped" | "coverCreated"; title: string };
@@ -73,9 +82,14 @@ type DetailsDraft = {
   releaseDate: string;
   developer: string;
   publisher: string;
+  version: string;
   fullscreenByDefault: boolean;
+  standaloneCompatibility: boolean;
+  fixScaling: boolean;
+  allowOnlineFeatures: boolean;
   repeatMusic: boolean;
   tags: string;
+  description: string;
   notes: string;
 };
 
@@ -136,9 +150,14 @@ function createDetailsDraft(game: Game | null): DetailsDraft {
     releaseDate: game?.releaseDate || "",
     developer: game?.developer || "",
     publisher: game?.publisher || "",
+    version: game?.version || "",
     fullscreenByDefault: Boolean(game?.fullscreenByDefault),
+    standaloneCompatibility: Boolean(game?.standaloneCompatibility),
+    fixScaling: Boolean(game?.fixScaling),
+    allowOnlineFeatures: game?.allowOnlineFeatures !== false,
     repeatMusic: game?.repeatMusic !== false,
     tags: game?.tags.join(", ") || "",
+    description: game?.description || "",
     notes: game?.notes || "",
   };
 }
@@ -150,9 +169,14 @@ function detailsDraftToPatch(draft: DetailsDraft): GamePatch {
     releaseDate: draft.releaseDate,
     developer: draft.developer,
     publisher: draft.publisher,
+    version: draft.version,
     fullscreenByDefault: draft.fullscreenByDefault,
+    standaloneCompatibility: draft.standaloneCompatibility,
+    fixScaling: draft.fixScaling,
+    allowOnlineFeatures: draft.allowOnlineFeatures,
     repeatMusic: draft.repeatMusic,
     tags: normalizeTags(draft.tags),
+    description: draft.description,
     notes: draft.notes,
   };
 }
@@ -201,7 +225,7 @@ function findCanvas(root: HTMLElement | ShadowRoot): HTMLCanvasElement | null {
 function ruffleApi(player: HTMLElement) {
   return (player as HTMLElement & {
     ruffle(): {
-      load(options: string | { url: string; allowScriptAccess?: boolean }): Promise<void> | void;
+      load(options: string | (({ url: string } | { data: ArrayBuffer; swfFileName: string; base: string }) & { allowScriptAccess?: boolean; salign?: string; forceAlign?: boolean; scale?: string; forceScale?: boolean; allowNetworking?: "all" | "none"; urlRewriteRules?: [RegExp | string, string][] })): Promise<void> | void;
     };
   }).ruffle();
 }
@@ -210,6 +234,7 @@ function coverStatusLabel(status: Game["coverStatus"], language: Language) {
   const text = messages[language];
   if (status === "captured") return text.coverCaptured;
   if (status === "custom") return text.coverCustom;
+  if (status === "explore") return exploreCoverLabels[language];
   return text.coverFallback;
 }
 
@@ -247,6 +272,21 @@ function fadeAudioVolume(audio: HTMLAudioElement, getTarget: () => number, onDon
     }
   }, 30);
   return () => window.clearInterval(timer);
+}
+
+function fadeManagedAudio(
+  audio: HTMLAudioElement,
+  getTarget: () => number,
+  activeFadeRef: { current: { audio: HTMLAudioElement; cancel: () => void } | null },
+  onDone?: () => void,
+) {
+  if (activeFadeRef.current?.audio === audio) activeFadeRef.current.cancel();
+  let cancel = () => {};
+  cancel = fadeAudioVolume(audio, getTarget, () => {
+    if (activeFadeRef.current?.cancel === cancel) activeFadeRef.current = null;
+    onDone?.();
+  });
+  activeFadeRef.current = { audio, cancel };
 }
 
 function formatTrackDuration(seconds: number) {
@@ -471,10 +511,12 @@ function GameCard({
 }) {
   const text = messages[language];
   const timeText = playTimeLabels[language];
+  const visibleRating = game.userRating ?? game.sourceRating;
   const metadata = [
     game.releaseDate ? `${text.release}: ${formatReleaseDate(game.releaseDate, language)}` : null,
     game.developer ? `${text.developer}: ${game.developer}` : null,
     game.publisher ? `${text.publisher}: ${game.publisher}` : null,
+    game.version ? `${sourceMetadataLabels[language].version}: ${game.version}` : null,
     `${timeText.playTime}: ${game.totalPlaySeconds ? formatPlayDuration(game.totalPlaySeconds, language) : text.notPlayed}`,
   ].filter((value): value is string => Boolean(value));
 
@@ -488,6 +530,11 @@ function GameCard({
         {game.favorite && showFavoriteBadge && (
           <span className="fav-badge" title={messages[language].selectedFavorite}>
             <Heart size={15} fill="currentColor" />
+          </span>
+        )}
+        {visibleRating !== undefined && Number.isFinite(visibleRating) && (
+          <span className="cover-rating">
+            <StarRating rating={visibleRating} label={game.userRating !== undefined ? userRatingLabels[language].title : sourceMetadataLabels[language].rating} language={language} compact />
           </span>
         )}
       </div>
@@ -570,6 +617,7 @@ function DetailsPanel({
   onChooseMusic,
   onRemoveMusic,
   musicDescription,
+  hasMusic,
   musicTracks,
   onSelectDefaultMusic,
   onRecaptureCover,
@@ -586,6 +634,7 @@ function DetailsPanel({
   onChooseMusic: (game: Game) => void;
   onRemoveMusic: (game: Game) => void;
   musicDescription: string;
+  hasMusic: boolean;
   musicTracks: number[];
   onSelectDefaultMusic: (game: Game, index: number) => void;
   onRecaptureCover: (game: Game) => void;
@@ -593,8 +642,13 @@ function DetailsPanel({
   language: Language;
 }) {
   const text = messages[language];
+  const reopenTooltip = isRunning ? compatibilitySettingsLabels[language].reopen : undefined;
   const categoryComboRef = useRef<HTMLDivElement>(null);
   const releaseDateInputRef = useRef<HTMLInputElement>(null);
+  const publicResourcesListRef = useRef<HTMLUListElement>(null);
+  const [publicResourcesHaveScrollbar, setPublicResourcesHaveScrollbar] = useState(false);
+  const [copiedPublicResourceUrl, setCopiedPublicResourceUrl] = useState<string | null>(null);
+  const copiedPublicResourceTimerRef = useRef<number | null>(null);
   const [draft, setDraft] = useState(() => createDetailsDraft(game));
   const draftRef = useRef(draft);
   const saveTimerRef = useRef<number | null>(null);
@@ -614,6 +668,17 @@ function DetailsPanel({
     };
   }, [game?.id]);
 
+  useEffect(() => {
+    setCopiedPublicResourceUrl(null);
+    if (copiedPublicResourceTimerRef.current !== null) {
+      window.clearTimeout(copiedPublicResourceTimerRef.current);
+      copiedPublicResourceTimerRef.current = null;
+    }
+    return () => {
+      if (copiedPublicResourceTimerRef.current !== null) window.clearTimeout(copiedPublicResourceTimerRef.current);
+    };
+  }, [game?.id]);
+
   const updateDraft = (patch: Partial<DetailsDraft>) => {
     const nextDraft = { ...draftRef.current, ...patch };
     draftRef.current = nextDraft;
@@ -625,6 +690,42 @@ function DetailsPanel({
       onPatch(game.id, detailsDraftToPatch(nextDraft));
     }, 350);
   };
+
+  const copyPublicResource = async (url: string) => {
+    if (!game) return;
+    try {
+      await window.flashApi.copyPublicResourceUrl(game.id, url);
+      setCopiedPublicResourceUrl(url);
+      if (copiedPublicResourceTimerRef.current !== null) window.clearTimeout(copiedPublicResourceTimerRef.current);
+      copiedPublicResourceTimerRef.current = window.setTimeout(() => {
+        copiedPublicResourceTimerRef.current = null;
+        setCopiedPublicResourceUrl(null);
+      }, 1600);
+    } catch {
+      setCopiedPublicResourceUrl(null);
+    }
+  };
+
+  useEffect(() => {
+    const list = publicResourcesListRef.current;
+    if (!list) {
+      setPublicResourcesHaveScrollbar(false);
+      return;
+    }
+    const updateScrollbarState = () => {
+      setPublicResourcesHaveScrollbar(list.scrollHeight > list.clientHeight + 1);
+    };
+    updateScrollbarState();
+    const resizeObserver = new ResizeObserver(updateScrollbarState);
+    resizeObserver.observe(list);
+    for (const row of list.children) resizeObserver.observe(row);
+    const mutationObserver = new MutationObserver(updateScrollbarState);
+    mutationObserver.observe(list, { childList: true, subtree: true, characterData: true });
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [game?.id, game?.publicResourceUrls?.length]);
 
   useEffect(() => {
     const closeCategoryMenu = (event: MouseEvent) => {
@@ -671,14 +772,107 @@ function DetailsPanel({
         </div>
       </div>
 
-      <label className="fullscreen-setting">
-        <input
-          type="checkbox"
-          checked={draft.fullscreenByDefault}
-          onChange={(event) => updateDraft({ fullscreenByDefault: event.target.checked })}
-        />
-        <span>{gameSettingsLabels[language].fullscreenByDefault}</span>
-      </label>
+      <div className="game-playback-settings">
+        <label className="fullscreen-setting">
+          <input
+            type="checkbox"
+            checked={draft.fullscreenByDefault}
+            onChange={(event) => updateDraft({ fullscreenByDefault: event.target.checked })}
+          />
+          <span>{gameSettingsLabels[language].fullscreenByDefault}</span>
+        </label>
+        <label className="fullscreen-setting" title={reopenTooltip}>
+          <input type="checkbox" checked={draft.fixScaling} onChange={(event) => updateDraft({ fixScaling: event.target.checked })} />
+          <span>{compatibilitySettingsLabels[language].fixScaling}</span>
+        </label>
+        <label className="fullscreen-setting" title={reopenTooltip}>
+          <input type="checkbox" checked={draft.standaloneCompatibility} onChange={(event) => updateDraft({ standaloneCompatibility: event.target.checked })} />
+          <span>{compatibilitySettingsLabels[language].standalone}</span>
+        </label>
+        <label className="fullscreen-setting" title={reopenTooltip}>
+          <input type="checkbox" checked={draft.allowOnlineFeatures} onChange={(event) => updateDraft({ allowOnlineFeatures: event.target.checked })} />
+          <span>{compatibilitySettingsLabels[language].online}</span>
+        </label>
+      </div>
+      <div className="public-resources">
+        <strong>{compatibilitySettingsLabels[language].resources}</strong>
+        {game.publicResourceUrls?.length ? (
+          <ul ref={publicResourcesListRef} className={publicResourcesHaveScrollbar ? "has-scrollbar-gap" : undefined}>
+            {game.publicResourceUrls.map((url) => {
+              const blocked = game.blockedPublicResourceUrls?.includes(url) || false;
+              return (
+                <li className={blocked ? "blocked" : ""} key={url}>
+                  <button
+                    className={`public-resource-copy${copiedPublicResourceUrl === url ? " copied" : ""}`}
+                    type="button"
+                    title={`${copiedPublicResourceUrl === url ? compatibilitySettingsLabels[language].resourceCopied : compatibilitySettingsLabels[language].copyResource}: ${url}`}
+                    aria-label={`${copiedPublicResourceUrl === url ? compatibilitySettingsLabels[language].resourceCopied : compatibilitySettingsLabels[language].copyResource}: ${url}`}
+                    onClick={() => void copyPublicResource(url)}
+                  >
+                    <span>{url}</span>
+                    {copiedPublicResourceUrl === url ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                  </button>
+                  <button
+                    className="icon"
+                    type="button"
+                    title={blocked ? compatibilitySettingsLabels[language].unblockResource : compatibilitySettingsLabels[language].blockResource}
+                    aria-label={`${blocked ? compatibilitySettingsLabels[language].unblockResource : compatibilitySettingsLabels[language].blockResource}: ${url}`}
+                    onClick={() => {
+                      const current = new Set(game.blockedPublicResourceUrls || []);
+                      if (blocked) current.delete(url);
+                      else current.add(url);
+                      onPatch(game.id, { blockedPublicResourceUrls: Array.from(current) });
+                    }}
+                  >
+                    {blocked ? <Check size={16} /> : <Ban size={16} />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <span className="public-resources-empty">{compatibilitySettingsLabels[language].noResources}</span>
+        )}
+      </div>
+      <fieldset className="user-rating-field">
+        <legend>{userRatingLabels[language].title}{game.userRating !== undefined && `: ${game.userRating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`}</legend>
+        <div className="user-rating-options">
+          {[1, 2, 3, 4, 5].map((value) => {
+            const fill = Math.max(0, Math.min(1, (game.userRating ?? 0) - value + 1));
+            return (
+              <span className="user-rating-star" key={value}>
+                <span className="user-rating-star-glyph" aria-hidden="true">
+                  <Star size={18} />
+                  <span className="user-rating-star-fill" style={{ width: `${fill * 100}%` }}>
+                    <Star size={18} fill="currentColor" />
+                  </span>
+                </span>
+                {[value - 0.5, value].map((rating) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    className="user-rating-hitbox"
+                    onClick={() => onPatch(game.id, { userRating: rating })}
+                    aria-label={`${userRatingLabels[language].title}: ${rating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`}
+                    aria-pressed={game.userRating === rating}
+                    title={`${userRatingLabels[language].title}: ${rating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`}
+                  />
+                ))}
+              </span>
+            );
+          })}
+          <button
+            type="button"
+            className="icon user-rating-clear"
+            onClick={() => onPatch(game.id, { userRating: null })}
+            disabled={game.userRating === undefined}
+            aria-label={userRatingLabels[language].clear}
+            title={userRatingLabels[language].clear}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </fieldset>
       <label>
         {text.title}
         <input value={draft.title} onChange={(event) => updateDraft({ title: event.target.value })} />
@@ -732,6 +926,7 @@ function DetailsPanel({
             value={draft.releaseDate}
             onChange={(event) => updateDraft({ releaseDate: event.target.value })}
           />
+          {!draft.releaseDate && <span className="date-placeholder" aria-hidden="true">{datePlaceholderLabels[language]}</span>}
           <button
             type="button"
             className="category-trigger date-trigger"
@@ -756,8 +951,16 @@ function DetailsPanel({
         <input value={draft.publisher} onChange={(event) => updateDraft({ publisher: event.target.value })} />
       </label>
       <label>
+        {sourceMetadataLabels[language].version}
+        <input value={draft.version} onChange={(event) => updateDraft({ version: event.target.value })} />
+      </label>
+      <label>
         {text.tags}
         <input value={draft.tags} onChange={(event) => updateDraft({ tags: event.target.value })} placeholder={text.tagsPlaceholder} />
+      </label>
+      <label className="description-field">
+        {sourceMetadataLabels[language].description}
+        <textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} />
       </label>
       <label>
         {text.notes}
@@ -782,14 +985,16 @@ function DetailsPanel({
           ))}
         </fieldset>
       )}
-      <label className="fullscreen-setting">
-        <input
-          type="checkbox"
-          checked={draft.repeatMusic}
-          onChange={(event) => updateDraft({ repeatMusic: event.target.checked })}
-        />
-        <span>{gameSettingsLabels[language].repeatMusic}</span>
-      </label>
+      {hasMusic && (
+        <label className="fullscreen-setting">
+          <input
+            type="checkbox"
+            checked={draft.repeatMusic}
+            onChange={(event) => updateDraft({ repeatMusic: event.target.checked })}
+          />
+          <span>{gameSettingsLabels[language].repeatMusic}</span>
+        </label>
+      )}
 
       <div className="music-actions">
         <button className="secondary" onClick={() => onChooseMusic(game)}>
@@ -816,12 +1021,21 @@ function DetailsPanel({
       </div>
 
       <div className="meta">
-        <span>{text.file}: {game.originalFileName}</span>
+        <span className="meta-file-row">
+          {text.file}:
+          <button className="meta-file-link" type="button" title={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} onClick={() => void window.flashApi.openGameFolder(game.id).catch(() => {})}>
+            <span className="meta-file-name">{game.storageFileName || game.originalFileName}</span>
+            <ExternalLink size={12} aria-hidden="true" />
+          </button>
+        </span>
         <span>{text.plays}: {game.playCount ? `${game.playCount} ${text.times}` : text.never}</span>
         <span>{playTimeLabels[language].playTime}: {game.totalPlaySeconds ? formatPlayDuration(game.totalPlaySeconds, language) : text.notPlayed}</span>
         <span>{text.lastPlayed}: {formatDate(game.lastPlayedAt, language)}</span>
         <span>{sortLabels[language].dateAdded}: {formatDate(game.createdAt, language)}</span>
         <span>{text.cover}: {coverStatusLabel(game.coverStatus, language)}</span>
+        {game.sourceRating !== undefined && (
+          <span>{sourceMetadataLabels[language].rating}: {game.sourceRating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5{game.sourceRatingCount !== undefined && ` (${game.sourceRatingCount.toLocaleString(language)} ${sourceMetadataLabels[language].votes})`}</span>
+        )}
         <span title={musicDescription}>{musicLabels[language].music}: {musicDescription}</span>
       </div>
     </aside>
@@ -943,7 +1157,30 @@ export function PlayerModal({
         player.className = "ruffle-player";
         containerRef.current.appendChild(player);
         setStatus(text.loadingGame);
-        await ruffleApi(player).load({ url: game.swfUrl, allowScriptAccess: false });
+        let movieSource: { url: string } | { data: ArrayBuffer; swfFileName: string; base: string } = { url: game.swfUrl };
+        if (game.standaloneCompatibility && window.location.protocol === "file:") {
+          const response = await fetch(game.swfUrl);
+          if (!response.ok) throw new Error(text.gameLoadFailed);
+          movieSource = { data: await response.arrayBuffer(), swfFileName: game.originalFileName || "game.swf", base: new URL("./", game.swfUrl).href };
+          if (cancelled) return;
+        }
+        const publicResourceRules: [RegExp | string, string][] = [];
+        if (game.allowOnlineFeatures !== false) {
+          for (const [index, url] of (game.publicResourceUrls || []).entries()) {
+            const relay = game.publicResourceRelayUrls?.[index];
+            if (relay) publicResourceRules.push([new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), relay]);
+          }
+        }
+        await ruffleApi(player).load({
+          ...movieSource,
+          allowScriptAccess: false,
+          salign: "",
+          forceAlign: true,
+          scale: "showAll",
+          forceScale: game.fixScaling === true,
+          allowNetworking: game.allowOnlineFeatures === false ? "none" : "all",
+          urlRewriteRules: publicResourceRules,
+        });
         setStatus(text.running);
       } catch (error) {
         setStatus(error instanceof Error ? error.message : text.gameLoadFailed);
@@ -968,8 +1205,8 @@ export function PlayerModal({
       const style = window.getComputedStyle(surface);
       const horizontalPadding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
       const verticalPadding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-      const availableWidth = Math.max(1, surface.clientWidth - horizontalPadding);
-      const availableHeight = Math.max(1, surface.clientHeight - verticalPadding);
+      const availableWidth = Math.max(1, surface.offsetWidth - horizontalPadding);
+      const availableHeight = Math.max(1, surface.offsetHeight - verticalPadding);
       const ratio = stageWidth / stageHeight;
 
       let width = availableWidth;
@@ -1378,11 +1615,19 @@ export function App() {
   }, [captureQueue.length]);
   const [language, setLanguage] = useState<Language>(readLanguage);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+  const [updateDialog, setUpdateDialog] = useState<UpdateCheckResult | null>(null);
+  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+  const updateCheckInFlightRef = useRef(false);
+  const startupUpdateCheckRef = useRef(false);
   const [runningGameIds, setRunningGameIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [startInFullscreen, setStartInFullscreen] = useState(false);
   const [minimizeToTrayOnGameLaunch, setMinimizeToTrayOnGameLaunch] = useState(true);
   const [minimizeToTrayOnMinimize, setMinimizeToTrayOnMinimize] = useState(true);
+  const [exploreAvailability, setExploreAvailability] = useState({ enabled: true, online: false });
+  const [checkingExplore, setCheckingExplore] = useState(true);
+  const [explorePreferenceLoaded, setExplorePreferenceLoaded] = useState(false);
+  const exploreCheckRef = useRef(0);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
   const [textPrompt, setTextPrompt] = useState<TextPromptRequest | null>(null);
   const cancelConfirmationButtonRef = useRef<HTMLButtonElement>(null);
@@ -1418,14 +1663,76 @@ export function App() {
   const [isDragging, setIsDragging] = useState(false);
   const isTextPromptOpen = textPrompt !== null;
 
+  const runUpdateCheck = async (manual: boolean) => {
+    if (updateCheckInFlightRef.current) return;
+    updateCheckInFlightRef.current = true;
+    setIsCheckingForUpdates(true);
+    try {
+      const result = await window.flashApi.checkForUpdates();
+      if (result.status === "available") {
+        setUpdateDialog(result);
+        setToast(updateLabels[language].availableToast.replace("{version}", result.latestVersion));
+      } else if (manual) {
+        setToast(result.status === "current" ? updateLabels[language].currentToast : updateLabels[language].failedToast);
+      }
+    } catch {
+      if (manual) setToast(updateLabels[language].failedToast);
+    } finally {
+      updateCheckInFlightRef.current = false;
+      setIsCheckingForUpdates(false);
+    }
+  };
+
   useEffect(() => {
     window.flashApi.readLibrary().then((state) => {
       setLibrary(state);
     });
   }, []);
 
+  useEffect(() => window.flashApi.onExploreImported((title) => {
+    window.flashApi.readLibrary().then(setLibrary).catch(() => {});
+    setToast({ type: "exploreImported", title });
+  }), []);
+
   useEffect(() => {
     window.flashApi.getAppInfo().then(setAppInfo).catch(() => setAppInfo(null));
+  }, []);
+
+  useEffect(() => {
+    if (startupUpdateCheckRef.current) return;
+    startupUpdateCheckRef.current = true;
+    void runUpdateCheck(false);
+  }, []);
+
+  const refreshExploreAvailability = async () => {
+    const request = ++exploreCheckRef.current;
+    try {
+      const availability = await window.flashApi.getExploreAvailability();
+      if (request === exploreCheckRef.current) setExploreAvailability(availability);
+    } catch {
+      if (request === exploreCheckRef.current) setExploreAvailability((current) => ({ ...current, online: false }));
+    } finally {
+      if (request === exploreCheckRef.current) {
+        setCheckingExplore(false);
+        setExplorePreferenceLoaded(true);
+      }
+    }
+  };
+
+  useEffect(() => {
+    void refreshExploreAvailability();
+    const refresh = () => { void refreshExploreAvailability(); };
+    const interval = window.setInterval(refresh, 30000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener("online", refresh);
+    window.addEventListener("offline", refresh);
+    return () => {
+      ++exploreCheckRef.current;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("online", refresh);
+      window.removeEventListener("offline", refresh);
+    };
   }, []);
 
   useEffect(() => {
@@ -1453,7 +1760,11 @@ export function App() {
   useEffect(() => window.flashApi.onImportProgress(setImportProgress), []);
 
   const [isCloseBlockedOpen, setIsCloseBlockedOpen] = useState(false);
-  useEffect(() => window.flashApi.onCloseBlocked(() => setIsCloseBlockedOpen(true)), []);
+  const [closeBlockedReason, setCloseBlockedReason] = useState<"game" | "explore">("game");
+  useEffect(() => window.flashApi.onCloseBlocked((reason) => {
+    setCloseBlockedReason(reason);
+    setIsCloseBlockedOpen(true);
+  }), []);
 
   useEffect(() =>
     window.flashApi.onPlayTimeUpdated((updatedGame) => {
@@ -1464,6 +1775,13 @@ export function App() {
     }),
   []);
 
+  useEffect(() => window.flashApi.onGameResourcesUpdated((updatedGame) => {
+    setLibrary((current) => ({
+      ...current,
+      games: current.games.map((game) => (game.id === updatedGame.id ? updatedGame : game)),
+    }));
+  }), []);
+
   useEffect(() => {
     try {
       localStorage.setItem("flashmanager.language", language);
@@ -1471,7 +1789,7 @@ export function App() {
   }, [language]);
 
   const escapeHandledElsewhere =
-    settingsOpen || Boolean(confirmation) || Boolean(textPrompt) || sortMenuOpen || Boolean(importProgress) || Boolean(importSummary) || isCloseBlockedOpen;
+    settingsOpen || Boolean(confirmation) || Boolean(textPrompt) || Boolean(updateDialog) || sortMenuOpen || Boolean(importProgress) || Boolean(importSummary) || isCloseBlockedOpen;
   useEffect(() => {
     if (!selectedId || escapeHandledElsewhere) return;
     const deselectOnEscape = (event: KeyboardEvent) => {
@@ -1527,6 +1845,15 @@ export function App() {
     return () => document.removeEventListener("keydown", cancelOnEscape);
   }, [isTextPromptOpen]);
 
+  useEffect(() => {
+    if (!updateDialog) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setUpdateDialog(null);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [updateDialog]);
+
   const selectedGame = library.games.find((game) => game.id === selectedId) || null;
   const [isThemeEnabled, setIsThemeEnabled] = useState(() => readStoredFlag("flashmanager.themeEnabled"));
   const [themeVolume, setThemeVolume] = useState(() => {
@@ -1543,6 +1870,9 @@ export function App() {
   const [musicCandidates, setMusicCandidates] = useState<{ gameId: string; durations: number[] } | null>(null);
   const musicCandidatesCacheRef = useRef(new Map<string, number[]>());
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const themeFadeRef = useRef<{ audio: HTMLAudioElement; cancel: () => void } | null>(null);
+  const [visibilityRefreshKey, setVisibilityRefreshKey] = useState(0);
+  const isAppVisibleRef = useRef(true);
   const themeVolumeRef = useRef(themeVolume);
   themeVolumeRef.current = themeVolume;
   const isAnyGameRunning = runningGameIds.length > 0;
@@ -1610,23 +1940,47 @@ export function App() {
 
   useEffect(() => {
     // Stays paused while a game is running so the two soundtracks never overlap.
-    if (!isThemeEnabled || !selectedTheme || isAnyGameRunning) return;
+    if (!isThemeEnabled || !selectedTheme || isAnyGameRunning || !isAppVisibleRef.current) return;
     const audioUrl = URL.createObjectURL(new Blob([selectedTheme.data], { type: selectedTheme.mimeType }));
     const audio = new Audio(audioUrl);
     audio.loop = selectedGame?.repeatMusic !== false;
     audio.volume = 0;
     themeAudioRef.current = audio;
     void audio.play().catch(() => {});
-    const stopFadeIn = fadeAudioVolume(audio, () => themeVolumeRef.current);
+    fadeManagedAudio(audio, () => themeVolumeRef.current, themeFadeRef);
     return () => {
-      stopFadeIn();
       if (themeAudioRef.current === audio) themeAudioRef.current = null;
-      fadeAudioVolume(audio, () => 0, () => {
+      fadeManagedAudio(audio, () => 0, themeFadeRef, () => {
         audio.pause();
         URL.revokeObjectURL(audioUrl);
       });
     };
-  }, [isThemeEnabled, selectedTheme, isAnyGameRunning, selectedGame?.repeatMusic]);
+  }, [isThemeEnabled, selectedTheme, isAnyGameRunning, selectedGame?.repeatMusic, visibilityRefreshKey]);
+
+  useEffect(() => {
+    const unsubscribe = window.flashApi.onAppVisibilityChanged((visible) => {
+      isAppVisibleRef.current = visible;
+      const audio = themeAudioRef.current;
+      if (!visible) {
+        if (audio) {
+          fadeManagedAudio(audio, () => 0, themeFadeRef, () => {
+            if (!isAppVisibleRef.current && themeAudioRef.current === audio) audio.pause();
+          });
+        }
+        return;
+      }
+      if (audio && isThemeEnabledRef.current && !isAnyGameRunning) {
+        void audio.play().then(() => {
+          if (isAppVisibleRef.current && isThemeEnabledRef.current && !isAnyGameRunning && themeAudioRef.current === audio) {
+            fadeManagedAudio(audio, () => themeVolumeRef.current, themeFadeRef);
+          }
+        }).catch(() => {});
+      } else if (!audio) {
+        setVisibilityRefreshKey((key) => key + 1);
+      }
+    });
+    return unsubscribe;
+  }, [isAnyGameRunning]);
 
   useEffect(() => {
     if (themeAudioRef.current) themeAudioRef.current.volume = themeVolume;
@@ -1785,6 +2139,22 @@ export function App() {
     }
   };
 
+  const updateExploreEnabled = async (enabled: boolean) => {
+    const previous = exploreAvailability;
+    ++exploreCheckRef.current;
+    setExploreAvailability({ enabled, online: false });
+    setCheckingExplore(enabled);
+    setExplorePreferenceLoaded(true);
+    try {
+      await window.flashApi.setExploreEnabled(enabled);
+      if (enabled) void refreshExploreAvailability();
+    } catch (error) {
+      setExploreAvailability(previous);
+      setCheckingExplore(false);
+      setToast(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+    }
+  };
+
   const handleImportResult = (result: ImportResult) => {
     applyLibrary(result, result.imported?.[0]?.id);
     const imported = result.imported?.length || 0;
@@ -1831,7 +2201,10 @@ export function App() {
       }));
       setToast(text.saved);
     } catch (error) {
-      setToast(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+      const message = error instanceof Error ? error.message : "";
+      setToast(/Invalid public resource URL|Too many public resource URLs/.test(message)
+        ? compatibilitySettingsLabels[language].invalidResource
+        : translateError(message, language, text.saveFailed));
     }
   };
 
@@ -2032,12 +2405,18 @@ export function App() {
   const toastText =
     typeof toast === "string"
       ? toast
+      : toast.type === "exploreImported"
+        ? `${importCountLabels[language].imported} ${toast.title}`
       : toast.type === "appStarted" || toast.type === "coversFinished"
         ? toastLabels[language][toast.type]
         : toast.type === "gameStarted" || toast.type === "gameStopped" || toast.type === "coverCreated"
           ? toastLabels[language][toast.type].replace("{title}", toast.title)
           : null;
   const attributionParts = settingsInfoLabels[language].originallyMadeBy.split("xevil3301");
+  const exploreLabels = exploreSettingsLabels[language];
+  const exploreTooltip = !exploreAvailability.enabled ? exploreLabels.disabled
+    : checkingExplore ? exploreLabels.checking
+    : exploreAvailability.online ? exploreLabels.open : exploreLabels.offline;
 
   return (
     <div
@@ -2088,6 +2467,22 @@ export function App() {
               <Download size={18} />
               {text.importSwf}
             </button>
+            {explorePreferenceLoaded && exploreAvailability.enabled && (
+              <span className="explore-action" title={exploreTooltip}>
+                <button
+                  className="primary explore-button"
+                  onClick={() => void window.flashApi.openExplore().catch((error) => {
+                    setToast(String(error));
+                    void refreshExploreAvailability();
+                  })}
+                  aria-label={exploreTooltip}
+                  disabled={!exploreAvailability.online || checkingExplore}
+                >
+                  <Compass size={18} />
+                  Explore
+                </button>
+              </span>
+            )}
             {!showDetailsPanel && (
               <PlayToggleButton
                 className="play-selected"
@@ -2335,6 +2730,7 @@ export function App() {
           onChooseMusic={chooseCustomMusic}
           onRemoveMusic={removeCustomMusic}
           musicDescription={musicDescription}
+          hasMusic={Boolean(selectedTheme)}
           musicTracks={selectedMusicTracks}
           onSelectDefaultMusic={selectDefaultMusic}
           onRecaptureCover={recaptureCover}
@@ -2413,6 +2809,14 @@ export function App() {
                 />
                 <span>{generalSettingsLabels[language].minimizeToTrayOnMinimize}</span>
               </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
+                  checked={exploreAvailability.enabled}
+                  onChange={(event) => void updateExploreEnabled(event.target.checked)}
+                />
+                <span>{exploreLabels.enable}</span>
+              </label>
             </section>
             {appInfo && (
               <section className="settings-about" aria-labelledby="settings-about-title">
@@ -2445,6 +2849,14 @@ export function App() {
                     </dd>
                   </div>
                 </dl>
+                <button
+                  type="button"
+                  className="secondary update-check-button"
+                  disabled={isCheckingForUpdates}
+                  onClick={() => void runUpdateCheck(true)}
+                >
+                  {isCheckingForUpdates ? updateLabels[language].checking : updateLabels[language].check}
+                </button>
                 <footer className="settings-about-footer">
                   <span>
                     {attributionParts[0]}
@@ -2482,6 +2894,38 @@ export function App() {
               </button>
               <button className="confirm-destructive" onClick={() => resolveConfirmation(true)}>
                 {confirmation.confirmLabel}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {updateDialog?.status === "available" && (
+        <div
+          className="modal-backdrop confirm-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setUpdateDialog(null);
+          }}
+        >
+          <section className="confirm-dialog update-dialog" role="alertdialog" aria-modal="true" aria-labelledby="update-dialog-title">
+            <h2 id="update-dialog-title">{updateLabels[language].title.replace("{version}", updateDialog.latestVersion)}</h2>
+            <p className="update-current-version">{updateLabels[language].currentVersion.replace("{version}", updateDialog.currentVersion)}</p>
+            <h3>{updateLabels[language].changelog}</h3>
+            <pre className="update-changelog">{updateDialog.changelog.trim() || updateLabels[language].noChangelog}</pre>
+            <div className="confirm-actions">
+              <button type="button" className="secondary" autoFocus onClick={() => setUpdateDialog(null)}>
+                {updateLabels[language].cancel}
+              </button>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => {
+                  const releaseUrl = updateDialog.releaseUrl;
+                  setUpdateDialog(null);
+                  void window.flashApi.openUpdatePage(releaseUrl).catch(() => setToast(updateLabels[language].openFailed));
+                }}
+              >
+                {updateActionLabels[language]}
               </button>
             </div>
           </section>
@@ -2568,7 +3012,7 @@ export function App() {
           }}
         >
           <section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-describedby="close-blocked-message">
-            <p id="close-blocked-message">{closeBlockedLabels[language]}</p>
+            <p id="close-blocked-message">{closeBlockedReason === "explore" ? exploreCloseBlockedLabels[language] : closeBlockedLabels[language]}</p>
             <div className="confirm-actions">
               <button className="primary" autoFocus onClick={() => setIsCloseBlockedOpen(false)}>
                 {importProgressLabels[language].ok}

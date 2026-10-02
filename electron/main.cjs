@@ -1,10 +1,14 @@
-const { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } = require("electron");
+const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, nativeImage, screen, session, shell, Tray } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const fssync = require("node:fs");
 const crypto = require("node:crypto");
 const http = require("node:http");
+const os = require("node:os");
 const zlib = require("node:zlib");
+const silvergames = require("./silvergames.cjs");
+const { normalizePublicResourceUrl, normalizeDiscoveredPublicResourceUrl, readPublicResource } = require("./public-resources.cjs");
+const { gameFolderName, getGamePaths, migrateGameStorage, migrateLegacyLocalStorage } = require("./game-storage.cjs");
 
 const isDev = !app.isPackaged;
 const projectRoot = path.resolve(__dirname, "..");
@@ -34,6 +38,17 @@ const ruffleRoot = path.join(projectRoot, "public", "ruffle");
 let assetBaseUrl = "";
 let assetServer = null;
 let mainWindow = null;
+let isAppInitializing = true;
+let gameStorageMigrationWindow = null;
+let gameStorageMigrationProgress = { current: 0, total: 0, gameTitle: "", percent: 0 };
+let gameStorageMigrationShownAt = 0;
+let exploreWindow = null;
+let exploreDetailsWindow = null;
+let exploreDetailsGameId = null;
+let exploreDetailsGameSlug = null;
+const pendingExploreImports = new Set();
+const exploreImportJobs = new Map();
+let exploreEnabled = true;
 let startInFullscreen = false;
 let minimizeToTrayOnGameLaunch = true;
 let minimizeToTrayOnMinimize = true;
@@ -42,9 +57,11 @@ let trayLanguage = "en";
 let hiddenForGame = false;
 let hiddenForMinimize = false;
 const playerTitles = new Map();
-let windowState = { main: null, players: {} };
+let windowState = { main: null, players: {}, explore: null, exploreDetails: null };
 let playTimeWriteQueue = Promise.resolve();
 const playerWindows = new Map();
+const playerNetworkAccess = new Map();
+const guardedPlayerSessions = new WeakSet();
 
 const coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".svg"];
 
@@ -58,7 +75,67 @@ const defaultConfig = {
   startInFullscreen: false,
   minimizeToTrayOnGameLaunch: true,
   minimizeToTrayOnMinimize: true,
+  exploreEnabled: true,
 };
+
+async function getExploreAvailability() {
+  if (!exploreEnabled) return { enabled: false, online: false };
+  try {
+    const response = await fetch("https://www.silvergames.com/search/core.json", {
+      method: "HEAD",
+      signal: AbortSignal.timeout(5000),
+    });
+    return { enabled: true, online: response.ok && new URL(response.url).origin === "https://www.silvergames.com" };
+  } catch {
+    return { enabled: true, online: false };
+  }
+}
+
+function compareVersions(first, second) {
+  const parse = (value) => {
+    const match = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(String(value || "").trim());
+    return match ? { parts: match.slice(1, 4).map(Number), prerelease: match[4] || "" } : null;
+  };
+  const left = parse(first);
+  const right = parse(second);
+  if (!left || !right) throw new Error("Invalid version format");
+  for (let index = 0; index < 3; index += 1) {
+    if (left.parts[index] !== right.parts[index]) return left.parts[index] > right.parts[index] ? 1 : -1;
+  }
+  if (left.prerelease === right.prerelease) return 0;
+  if (!left.prerelease) return 1;
+  if (!right.prerelease) return -1;
+  return left.prerelease.localeCompare(right.prerelease, undefined, { numeric: true });
+}
+
+async function checkForUpdates() {
+  const currentVersion = String(appPackage.version || app.getVersion());
+  try {
+    const repository = new URL(String(appPackage.repository?.url || ""));
+    if (repository.protocol !== "https:" || repository.hostname !== "github.com") throw new Error("Update repository is not configured");
+    const repositoryPath = repository.pathname.replace(/\.git$/i, "").replace(/\/$/, "");
+    const response = await fetch(`https://api.github.com/repos${repositoryPath}/releases/latest`, {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": "Flash-Royale" },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+    const release = await response.json();
+    const latestVersion = String(release.tag_name || "").replace(/^v/i, "");
+    const releaseUrl = new URL(String(release.html_url || ""));
+    if (releaseUrl.origin !== "https://github.com" || !releaseUrl.pathname.startsWith(`${repositoryPath}/releases/tag/`)) {
+      throw new Error("Invalid GitHub release URL");
+    }
+    return {
+      status: compareVersions(latestVersion, currentVersion) > 0 ? "available" : "current",
+      currentVersion,
+      latestVersion,
+      changelog: String(release.body || "").slice(0, 20000),
+      releaseUrl: releaseUrl.href,
+    };
+  } catch {
+    return { status: "error", currentVersion, latestVersion: "", changelog: "", releaseUrl: "" };
+  }
+}
 
 const mainMessages = {
   en: { uncategorized: "Uncategorized", notSwf: "Not an SWF file", alreadyInLibrary: "Already in library", importTitle: "Import Flash games", importFilter: "Flash SWF files", coverTitle: "Choose a cover for {title}", coverFilter: "Cover images", musicTitle: "Choose music for {title}", musicFilter: "Audio files" },
@@ -80,7 +157,6 @@ function getMainMessages(language) {
 
 async function ensureLibrary() {
   await fs.mkdir(gamesRoot, { recursive: true });
-  await fs.mkdir(coversRoot, { recursive: true });
   if (!fssync.existsSync(dbPath)) {
     await writeJson(dbPath, defaultDb);
   }
@@ -114,6 +190,33 @@ async function readDb() {
 
 async function writeDb(db) {
   await writeJson(dbPath, db);
+}
+
+function gameSettingsSnapshot(game) {
+  return {
+    version: 1,
+    gameId: game.id,
+    title: game.title,
+    fullscreenByDefault: game.fullscreenByDefault,
+    standaloneCompatibility: game.standaloneCompatibility,
+    fixScaling: game.fixScaling,
+    allowOnlineFeatures: game.allowOnlineFeatures,
+    publicResourceUrls: game.publicResourceUrls || [],
+    blockedPublicResourceUrls: game.blockedPublicResourceUrls || [],
+    repeatMusic: game.repeatMusic,
+    defaultMusicIndex: game.defaultMusicIndex,
+    customMusic: game.customMusic,
+  };
+}
+
+async function writeGameSettings(game) {
+  const settingsPath = getGamePaths(gamesRoot, game).settingsPath;
+  const settings = gameSettingsSnapshot(game);
+  try {
+    const current = JSON.parse(await fs.readFile(settingsPath, "utf8"));
+    if (JSON.stringify(current) === JSON.stringify(settings)) return;
+  } catch {}
+  await writeJson(settingsPath, settings);
 }
 
 async function hashFile(filePath) {
@@ -325,8 +428,8 @@ function isSafeGameId(gameId) {
   return typeof gameId === "string" && /^[a-zA-Z0-9_-]+$/.test(gameId);
 }
 
-function customMusicPath(gameId, ext) {
-  return path.join(gamesRoot, gameId, `custom-music${ext}`);
+function customMusicPath(game, ext) {
+  return getGamePaths(gamesRoot, game).customMusicPath(ext);
 }
 
 async function readCustomMusic(game) {
@@ -335,7 +438,7 @@ async function readCustomMusic(game) {
   try {
     return {
       mimeType: audioMimeTypes[ext],
-      data: await fs.readFile(customMusicPath(game.id, ext)),
+      data: await fs.readFile(customMusicPath(game, ext)),
       source: "custom",
       fileName: game.customMusic.fileName,
     };
@@ -347,13 +450,55 @@ async function readCustomMusic(game) {
 // The longest embedded tracks are the likely music; short ones are sound effects.
 const maxMusicCandidates = 6;
 
-async function findMusicCandidates(gameId) {
-  const body = await readSwfBody(path.join(gamesRoot, gameId, "game.swf"));
+async function findMusicCandidates(game) {
+  const body = await readSwfBody(game.filePath);
   if (!body) return [];
   return collectSwfSounds(body)
     .filter((sound) => sound.chunks.length > 0 && sound.duration >= 3)
     .sort((first, second) => second.duration - first.duration)
     .slice(0, maxMusicCandidates);
+}
+
+async function saveDetectedMusicTracks(game, candidates) {
+  const paths = getGamePaths(gamesRoot, game);
+  await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
+  const tracks = [];
+  const savedFiles = new Set();
+  for (const [index, track] of candidates.entries()) {
+    const extension = track.kind === "mp3" ? ".mp3" : ".wav";
+    const data = track.kind === "mp3" ? Buffer.concat(track.chunks) : wavFromPcm(Buffer.concat(track.chunks), track);
+    const targetPath = paths.defaultMusicTrackPath(index, extension);
+    await fs.writeFile(targetPath, data);
+    savedFiles.add(path.basename(targetPath));
+    tracks.push({ index, duration: track.duration, extension, mimeType: extension === ".mp3" ? "audio/mpeg" : "audio/wav" });
+  }
+  for (const fileName of await fs.readdir(paths.defaultMusicDirectory)) {
+    if (/^track-\d+\.(?:mp3|wav)$/i.test(fileName) && !savedFiles.has(fileName)) {
+      await fs.rm(path.join(paths.defaultMusicDirectory, fileName), { force: true });
+    }
+  }
+  await writeJson(paths.defaultMusicManifestPath, { version: 1, tracks });
+  return tracks;
+}
+
+async function getSavedMusicTracks(game) {
+  const paths = getGamePaths(gamesRoot, game);
+  try {
+    const manifest = JSON.parse(await fs.readFile(paths.defaultMusicManifestPath, "utf8"));
+    if (manifest.version === 1 && Array.isArray(manifest.tracks) && manifest.tracks.length <= maxMusicCandidates) {
+      const tracks = [];
+      for (const [index, track] of manifest.tracks.entries()) {
+        if (track.index !== index || !Number.isFinite(track.duration) || ![".mp3", ".wav"].includes(track.extension)) throw new Error("Invalid music track manifest");
+        const filePath = paths.defaultMusicTrackPath(index, track.extension);
+        await fs.access(filePath);
+        tracks.push({ ...track, filePath });
+      }
+      return tracks;
+    }
+  } catch {}
+  const candidates = await findMusicCandidates(game);
+  const tracks = await saveDetectedMusicTracks(game, candidates);
+  return tracks.map((track) => ({ ...track, filePath: paths.defaultMusicTrackPath(track.index, track.extension) }));
 }
 
 async function extractGameTheme(gameId) {
@@ -363,14 +508,16 @@ async function extractGameTheme(gameId) {
     const game = db.games.find((item) => item.id === gameId);
     const custom = await readCustomMusic(game);
     if (custom) return custom;
-    const candidates = await findMusicCandidates(gameId);
-    const index = Number.isInteger(game?.defaultMusicIndex) && candidates[game.defaultMusicIndex] ? game.defaultMusicIndex : 0;
-    const theme = candidates[index];
-    if (!theme) return null;
-    const audio = Buffer.concat(theme.chunks);
-    return theme.kind === "mp3"
-      ? { mimeType: "audio/mpeg", data: audio, source: "default", trackIndex: index }
-      : { mimeType: "audio/wav", data: wavFromPcm(audio, theme), source: "default", trackIndex: index };
+    const tracks = await getSavedMusicTracks(game);
+    const index = Number.isInteger(game?.defaultMusicIndex) && tracks[game.defaultMusicIndex] ? game.defaultMusicIndex : 0;
+    const track = tracks[index];
+    if (!track) return null;
+    return {
+      mimeType: track.mimeType,
+      data: await fs.readFile(track.filePath),
+      source: "default",
+      trackIndex: index,
+    };
   } catch {
     return null;
   }
@@ -379,7 +526,8 @@ async function extractGameTheme(gameId) {
 async function listMusicCandidates(gameId) {
   if (!isSafeGameId(gameId)) return [];
   try {
-    return (await findMusicCandidates(gameId)).map((sound) => ({ duration: sound.duration }));
+    const game = (await readDb()).games.find((item) => item.id === gameId);
+    return game ? (await getSavedMusicTracks(game)).map((track) => ({ duration: track.duration })) : [];
   } catch {
     return [];
   }
@@ -391,8 +539,11 @@ async function setDefaultMusic(gameId, index) {
   const db = await readDb();
   const game = db.games.find((item) => item.id === gameId);
   if (!game) throw new Error("找不到游戏");
+  const tracks = await getSavedMusicTracks(game);
+  if (index >= tracks.length) throw new Error("Invalid music track");
   if (index === 0) delete game.defaultMusicIndex;
   else game.defaultMusicIndex = index;
+  await writeGameSettings(game);
   await writeDb(db);
   return gameToClient(game);
 }
@@ -413,10 +564,11 @@ async function chooseCustomMusic(gameId, language = "zh") {
   const ext = path.extname(sourcePath).toLowerCase();
   if (!audioMimeTypes[ext]) throw new Error("Unsupported audio file");
   const previousExt = game.customMusic?.ext;
-  await fs.mkdir(path.join(gamesRoot, gameId), { recursive: true });
-  await fs.copyFile(sourcePath, customMusicPath(gameId, ext));
-  if (previousExt && previousExt !== ext) await fs.rm(customMusicPath(gameId, previousExt), { force: true });
+  await fs.mkdir(getGamePaths(gamesRoot, game).customMusicDirectory, { recursive: true });
+  await fs.copyFile(sourcePath, customMusicPath(game, ext));
+  if (previousExt && previousExt !== ext) await fs.rm(customMusicPath(game, previousExt), { force: true });
   game.customMusic = { fileName: path.basename(sourcePath), ext };
+  await writeGameSettings(game);
   await writeDb(db);
   return gameToClient(game);
 }
@@ -427,9 +579,10 @@ async function removeCustomMusic(gameId) {
   const game = db.games.find((item) => item.id === gameId);
   if (!game) throw new Error("找不到游戏");
   if (game.customMusic?.ext && audioMimeTypes[game.customMusic.ext]) {
-    await fs.rm(customMusicPath(gameId, game.customMusic.ext), { force: true });
+    await fs.rm(customMusicPath(game, game.customMusic.ext), { force: true });
   }
   delete game.customMusic;
+  await writeGameSettings(game);
   await writeDb(db);
   return gameToClient(game);
 }
@@ -451,7 +604,9 @@ function escapeXml(value) {
 }
 
 async function createFallbackCover(game) {
-  const coverPath = path.join(coversRoot, `${game.id}.svg`);
+  const paths = getGamePaths(gamesRoot, game);
+  await fs.mkdir(paths.coverDirectory, { recursive: true });
+  const coverPath = paths.coverPath(".svg");
   const title = escapeXml(game.title || "Untitled Flash");
   const initials = escapeXml(
     (game.title || "Flash")
@@ -480,20 +635,18 @@ async function createFallbackCover(game) {
   return coverPath;
 }
 
-async function removeAlternateCovers(gameId, keepPath) {
-  await Promise.all(
-    coverExtensions.map(async (ext) => {
-      const candidate = path.join(coversRoot, `${gameId}${ext}`);
-      if (path.resolve(candidate) !== path.resolve(keepPath)) {
-        await fs.rm(candidate, { force: true });
-      }
-    }),
-  );
+async function removeAlternateCovers(game, keepPath) {
+  const coverDirectory = getGamePaths(gamesRoot, game).coverDirectory;
+  for (const ext of coverExtensions) {
+    const candidate = path.join(coverDirectory, `cover${ext}`);
+    if (path.resolve(candidate) !== path.resolve(keepPath)) await fs.rm(candidate, { force: true });
+  }
 }
 
 function gameToClient(game) {
   return {
     ...game,
+    storageFileName: path.basename(game.filePath || game.originalFileName || ""),
     swfUrl: `${assetBaseUrl}/game/${encodeURIComponent(game.id)}/game.swf`,
     coverUrl: `${assetBaseUrl}/cover/${encodeURIComponent(game.id)}?v=${encodeURIComponent(game.updatedAt)}`,
   };
@@ -537,20 +690,27 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
 
     const now = new Date().toISOString();
     const id = makeGameId(hash);
-    const gameDir = path.join(gamesRoot, id);
-    const targetPath = path.join(gameDir, "game.swf");
-    await fs.mkdir(gameDir, { recursive: true });
+    const title = toTitle(absoluteSource) || "Untitled Flash";
+    const paths = getGamePaths(gamesRoot, { id, title });
+    const targetPath = paths.swfPath;
+    await fs.mkdir(paths.directory, { recursive: true });
+    await fs.mkdir(paths.savesDirectory, { recursive: true });
+    await migrateLegacyLocalStorage(paths.savesDirectory, null);
+    await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
+    await fs.mkdir(paths.customMusicDirectory, { recursive: true });
     await fs.copyFile(absoluteSource, targetPath);
     const stageSize = await readSwfStageSize(targetPath);
 
     const game = {
       id,
-      title: toTitle(absoluteSource) || "Untitled Flash",
+      title,
+      folderName: paths.folderName,
       originalFileName: path.basename(absoluteSource),
       filePath: targetPath,
       coverPath: "",
       tags: [],
       category: text.uncategorized,
+      description: "",
       favorite: false,
       notes: "",
       createdAt: now,
@@ -564,6 +724,8 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
       stageHeight: stageSize?.height ?? null,
     };
     game.coverPath = await createFallbackCover(game);
+    await saveDetectedMusicTracks(game, await findMusicCandidates(game));
+    await writeGameSettings(game);
     db.games.unshift(game);
     imported.push(gameToClient(game));
   }
@@ -596,7 +758,9 @@ async function persistCoverBuffer(game, buffer, extension, status) {
   if (![".png", ".jpg", ".jpeg", ".webp"].includes(safeExt)) {
     throw new Error("仅支持 PNG、JPG、WEBP 封面");
   }
-  const coverPath = path.join(coversRoot, `${game.id}${safeExt}`);
+  const paths = getGamePaths(gamesRoot, game);
+  await fs.mkdir(paths.coverDirectory, { recursive: true });
+  const coverPath = paths.coverPath(safeExt);
   const tempPath = `${coverPath}.tmp`;
   await fs.writeFile(tempPath, buffer);
   const stat = await fs.stat(tempPath);
@@ -605,7 +769,7 @@ async function persistCoverBuffer(game, buffer, extension, status) {
     throw new Error("封面图片无效，已保留原封面");
   }
   await fs.rename(tempPath, coverPath);
-  await removeAlternateCovers(game.id, coverPath);
+  await removeAlternateCovers(game, coverPath);
   game.coverPath = coverPath;
   game.coverStatus = status;
   game.updatedAt = new Date().toISOString();
@@ -640,10 +804,26 @@ function mergeGameUpdate(game, patch, language) {
   if (typeof patch.releaseDate === "string") next.releaseDate = patch.releaseDate.trim();
   if (typeof patch.developer === "string") next.developer = patch.developer.trim();
   if (typeof patch.publisher === "string") next.publisher = patch.publisher.trim();
+  if (typeof patch.version === "string") next.version = patch.version.trim();
+  if (typeof patch.description === "string") next.description = patch.description;
   if (typeof patch.fullscreenByDefault === "boolean") next.fullscreenByDefault = patch.fullscreenByDefault;
+  if (typeof patch.standaloneCompatibility === "boolean") next.standaloneCompatibility = patch.standaloneCompatibility;
+  if (typeof patch.fixScaling === "boolean") next.fixScaling = patch.fixScaling;
+  delete next.useSwfScaling;
+  if (typeof patch.allowOnlineFeatures === "boolean") next.allowOnlineFeatures = patch.allowOnlineFeatures;
+  if (Array.isArray(patch.publicResourceUrls)) {
+    const urls = patch.publicResourceUrls.map(normalizePublicResourceUrl);
+    if (urls.length > 50) throw new TypeError("Too many public resource URLs");
+    next.publicResourceUrls = Array.from(new Set(urls));
+  }
+  if (Array.isArray(patch.blockedPublicResourceUrls)) {
+    next.blockedPublicResourceUrls = Array.from(new Set(patch.blockedPublicResourceUrls.map(normalizePublicResourceUrl)));
+  }
   if (typeof patch.repeatMusic === "boolean") next.repeatMusic = patch.repeatMusic;
   if (typeof patch.notes === "string") next.notes = patch.notes;
   if (typeof patch.favorite === "boolean") next.favorite = patch.favorite;
+  if (patch.userRating === null) delete next.userRating;
+  else if (typeof patch.userRating === "number" && Number.isInteger(patch.userRating * 2) && patch.userRating >= 0.5 && patch.userRating <= 5) next.userRating = patch.userRating;
   if (Array.isArray(patch.tags)) {
     next.tags = Array.from(new Set(patch.tags.map((tag) => String(tag).trim()).filter(Boolean)));
   }
@@ -657,9 +837,91 @@ async function updateGame(gameId, patch, language = "zh") {
   if (index === -1) {
     throw new Error("找不到游戏");
   }
-  db.games[index] = mergeGameUpdate(db.games[index], patch, language);
+  const previousGame = db.games[index];
+  const nextGame = mergeGameUpdate(previousGame, patch, language);
+  const currentFolder = getGamePaths(gamesRoot, previousGame).folderName;
+  const nextFolder = gameFolderName(nextGame);
+  const deferFolderRename = currentFolder !== nextFolder;
+  if (deferFolderRename) {
+    nextGame.folderName = previousGame.folderName;
+    nextGame.filePath = previousGame.filePath;
+    nextGame.coverPath = previousGame.coverPath;
+    await writeJson(path.join(path.dirname(previousGame.filePath), "settings.json"), gameSettingsSnapshot(nextGame));
+  } else {
+    await migrateGameStorage(gamesRoot, coversRoot, nextGame, previousGame, coverExtensions);
+    await writeGameSettings(nextGame);
+  }
+  db.games[index] = nextGame;
   await writeDb(db);
+  for (const access of playerNetworkAccess.values()) {
+    if (access.gameId === gameId) {
+      access.allowOnlineFeatures = db.games[index].allowOnlineFeatures !== false;
+      access.blockedUrls = db.games[index].blockedPublicResourceUrls || [];
+    }
+  }
   return { games: db.games.map(gameToClient), game: gameToClient(db.games[index]) };
+}
+
+const publicResourceLimit = 50;
+const pendingResourceWrites = new Map();
+
+async function rememberPublicResource(gameId, value) {
+  const url = normalizePublicResourceUrl(value);
+  const previous = (pendingResourceWrites.get(gameId) || Promise.resolve()).catch(() => {});
+  const pending = previous.then(async () => {
+    const db = await readDb();
+    const game = db.games.find((entry) => entry.id === gameId);
+    if (!game || game.allowOnlineFeatures === false) return null;
+    const blocked = new Set(game.blockedPublicResourceUrls || []);
+    if (blocked.has(url)) return null;
+    const urls = game.publicResourceUrls || [];
+    if (urls.includes(url)) return urls.indexOf(url);
+    if (urls.length >= publicResourceLimit) return null;
+    game.publicResourceUrls = [...urls, url];
+    game.updatedAt = new Date().toISOString();
+    await writeGameSettings(game);
+    await writeDb(db);
+    const clientGame = gameToClient(game);
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("library:publicResourcesUpdated", clientGame);
+    return game.publicResourceUrls.length - 1;
+  });
+  pendingResourceWrites.set(gameId, pending);
+  try { return await pending; }
+  finally { if (pendingResourceWrites.get(gameId) === pending) pendingResourceWrites.delete(gameId); }
+}
+
+function registerPlayerNetworkGuard(playerSession) {
+  if (guardedPlayerSessions.has(playerSession)) return;
+  playerSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*"] }, (details, callback) => {
+    const access = playerNetworkAccess.get(details.webContentsId);
+    if (!access || access.allowOnlineFeatures) {
+      if (!access || !access.allowOnlineFeatures || details.method !== "GET" || !["http:", "https:"].includes(new URL(details.url).protocol)) {
+        callback({ cancel: Boolean(access?.blockedUrls?.includes(details.url)) });
+        return;
+      }
+      let resourceUrl;
+      try { resourceUrl = normalizeDiscoveredPublicResourceUrl(details.url); } catch {
+        callback({});
+        return;
+      }
+      if (access.blockedUrls?.includes(resourceUrl)) {
+        callback({ cancel: true });
+        return;
+      }
+      rememberPublicResource(access.gameId, resourceUrl).then((index) => {
+        if (index === null) {
+          callback({});
+          return;
+        }
+        if (!access.urls.includes(resourceUrl)) access.urls.push(resourceUrl);
+        callback({ redirectURL: `${assetBaseUrl}/public-resource/${access.gameId}/${access.token}/${index}` });
+      }, () => callback({}));
+      return;
+    }
+    const origin = new URL(details.url).origin;
+    callback({ cancel: origin !== assetBaseUrl && !(isDev && origin === "http://127.0.0.1:5173") });
+  });
+  guardedPlayerSessions.add(playerSession);
 }
 
 async function renameTag(oldTag, newTag) {
@@ -713,8 +975,8 @@ async function deleteGame(gameId, removeFiles) {
   db.games = db.games.filter((item) => item.id !== gameId);
   await writeDb(db);
   if (removeFiles) {
-    await fs.rm(path.join(gamesRoot, game.id), { recursive: true, force: true });
-    if (game.coverPath) {
+    await fs.rm(getGamePaths(gamesRoot, game).directory, { recursive: true, force: true });
+    if (game.coverPath && !path.resolve(game.coverPath).startsWith(path.resolve(getGamePaths(gamesRoot, game).directory))) {
       await fs.rm(game.coverPath, { force: true });
     }
   }
@@ -763,6 +1025,65 @@ async function readLibrary() {
   };
 }
 
+async function migrateLibraryGameStorage() {
+  const db = await readDb();
+  const gamesToMigrate = db.games.filter(gameNeedsStorageMigration);
+  const legacyLocalStorage = null;
+  for (const [index, game] of gamesToMigrate.entries()) {
+    updateGameStorageMigrationProgress({
+      current: index + 1,
+      total: gamesToMigrate.length,
+      gameTitle: game.title,
+      percent: Math.floor((index / gamesToMigrate.length) * 100),
+    });
+    const previousGame = { ...game };
+    const paths = await migrateGameStorage(gamesRoot, coversRoot, game, previousGame, coverExtensions);
+    await migrateLegacyLocalStorage(paths.savesDirectory, legacyLocalStorage);
+    if (!game.coverPath || !fssync.existsSync(game.coverPath)) {
+      game.coverPath = await createFallbackCover(game);
+      game.coverStatus = "fallback";
+    }
+    await getSavedMusicTracks(game);
+    await writeGameSettings(game);
+    updateGameStorageMigrationProgress({
+      current: index + 1,
+      total: gamesToMigrate.length,
+      gameTitle: game.title,
+      percent: Math.floor(((index + 1) / gamesToMigrate.length) * 100),
+    });
+  }
+  if (gamesToMigrate.length) await writeDb(db);
+  return gamesToMigrate.length;
+}
+
+function gameNeedsStorageMigration(game) {
+  const currentPaths = getGamePaths(gamesRoot, game);
+  const targetPaths = getGamePaths(gamesRoot, { ...game, folderName: undefined });
+  const coverDirectoryPrefix = `${path.resolve(targetPaths.coverDirectory)}${path.sep}`;
+  return currentPaths.folderName !== targetPaths.folderName ||
+    path.resolve(game.filePath || "") !== path.resolve(targetPaths.swfPath) ||
+    !game.coverPath || !path.resolve(game.coverPath).startsWith(coverDirectoryPrefix) ||
+    !fssync.existsSync(targetPaths.settingsPath) ||
+    !fssync.existsSync(path.join(targetPaths.savesDirectory, ".legacy-local-storage-migrated")) ||
+    !fssync.existsSync(targetPaths.defaultMusicManifestPath);
+}
+
+async function getGamesNeedingStorageMigration() {
+  const db = await readDb();
+  return db.games.filter(gameNeedsStorageMigration);
+}
+
+async function prepareGameSaveDirectories() {
+  const db = await readDb();
+  const legacyLocalStorage = session.defaultSession.storagePath
+    ? path.join(session.defaultSession.storagePath, "Local Storage")
+    : null;
+  for (const game of db.games) {
+    const paths = getGamePaths(gamesRoot, game);
+    await migrateLegacyLocalStorage(paths.savesDirectory, legacyLocalStorage);
+  }
+}
+
 async function chooseAndImport(language = "zh", options) {
   const text = getMainMessages(language);
   const result = await dialog.showOpenDialog({
@@ -795,7 +1116,7 @@ async function runImport(event, task) {
   }
 }
 
-function resolveAssetPath(requestUrl) {
+async function resolveAssetPath(requestUrl) {
   const parsed = new URL(requestUrl, "http://127.0.0.1");
   if (parsed.pathname.startsWith("/ruffle/")) {
     const relativePath = decodeURIComponent(parsed.pathname.replace(/^\/ruffle\//, ""));
@@ -807,16 +1128,14 @@ function resolveAssetPath(requestUrl) {
   if (parsed.pathname.startsWith("/game/")) {
     const id = decodeURIComponent(parsed.pathname.split("/").filter(Boolean)[1] || "");
     if (!/^[a-zA-Z0-9_-]+$/.test(id)) return null;
-    return path.join(gamesRoot, id, "game.swf");
+    const game = (await readDb()).games.find((entry) => entry.id === id);
+    return game?.filePath || null;
   }
   if (parsed.pathname.startsWith("/cover/")) {
     const id = decodeURIComponent(parsed.pathname.split("/").filter(Boolean)[1] || "");
-    if (!/^[a-zA-Z0-9_.-]+$/.test(id)) return null;
-    for (const ext of coverExtensions) {
-      const candidate = path.join(coversRoot, `${id}${ext}`);
-      if (fssync.existsSync(candidate)) return candidate;
-    }
-    return path.join(coversRoot, `${id}.svg`);
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) return null;
+    const game = (await readDb()).games.find((entry) => entry.id === id);
+    return game?.coverPath || null;
   }
   return null;
 }
@@ -837,7 +1156,7 @@ function contentTypeFor(filePath) {
 async function startAssetServer() {
   if (assetServer) return assetBaseUrl;
   await ensureLibrary();
-  assetServer = http.createServer((request, response) => {
+  assetServer = http.createServer(async (request, response) => {
     response.setHeader("Access-Control-Allow-Origin", "*");
     response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
     if (request.method === "OPTIONS") {
@@ -850,7 +1169,27 @@ async function startAssetServer() {
       response.end("Method not allowed");
       return;
     }
-    const filePath = resolveAssetPath(request.url);
+    const resourceMatch = /^\/public-resource\/([a-zA-Z0-9_-]+)\/([a-f0-9]{32})\/(\d+)$/.exec(new URL(request.url, "http://127.0.0.1").pathname);
+    if (resourceMatch) {
+      const access = Array.from(playerNetworkAccess.values()).find((entry) => entry.gameId === resourceMatch[1] && entry.token === resourceMatch[2]);
+      const url = access?.urls[Number(resourceMatch[3])];
+      try {
+        const savedGame = access && (await readDb()).games.find((entry) => entry.id === access.gameId);
+        if (!url || !access.allowOnlineFeatures || access.blockedUrls?.includes(url) || !savedGame || savedGame.allowOnlineFeatures === false || savedGame.blockedPublicResourceUrls?.includes(url) || !savedGame.publicResourceUrls?.includes(url)) {
+          response.writeHead(403);
+          response.end("Public resource access is disabled");
+          return;
+        }
+        const resource = await readPublicResource(url);
+        response.writeHead(200, { "Content-Type": resource.contentType, "Cache-Control": "no-store" });
+        response.end(resource.data);
+      } catch {
+        response.writeHead(502);
+        response.end("Public resource is unavailable");
+      }
+      return;
+    }
+    const filePath = await resolveAssetPath(request.url);
     if (!filePath || !fssync.existsSync(filePath)) {
       response.writeHead(404);
       response.end("Not found");
@@ -877,9 +1216,11 @@ function readWindowState() {
     return {
       main: saved.main && typeof saved.main === "object" ? saved.main : null,
       players: saved.players && typeof saved.players === "object" ? saved.players : {},
+      explore: saved.explore && typeof saved.explore === "object" ? saved.explore : null,
+      exploreDetails: saved.exploreDetails && typeof saved.exploreDetails === "object" ? saved.exploreDetails : null,
     };
   } catch {
-    return { main: null, players: {} };
+    return { main: null, players: {}, explore: null, exploreDetails: null };
   }
 }
 
@@ -951,19 +1292,30 @@ function createWindow() {
     },
   });
   mainWindow = win;
+  const notifyVisibility = (visible) => {
+    if (!win.isDestroyed() && !win.webContents.isDestroyed()) win.webContents.send("app:visibilityChanged", visible);
+  };
   win.on("minimize", (event) => {
+    notifyVisibility(false);
     if (!minimizeToTrayOnMinimize) return;
     event.preventDefault();
     hiddenForMinimize = true;
     win.hide();
     updateTray();
   });
+  win.on("restore", () => notifyVisibility(true));
+  win.on("show", () => notifyVisibility(true));
+  win.on("hide", () => notifyVisibility(false));
   if (savedBounds?.maximized && !startInFullscreen) win.maximize();
   win.on("close", (event) => {
-    if (playerWindows.size === 0) return;
+    const exploreOpen = Boolean(
+      (exploreWindow && !exploreWindow.isDestroyed()) ||
+      (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()),
+    );
+    if (playerWindows.size === 0 && !exploreOpen) return;
     event.preventDefault();
     restoreMainWindow();
-    win.webContents.send("app:closeBlocked");
+    win.webContents.send("app:closeBlocked", playerWindows.size > 0 ? "game" : "explore");
   });
   trackWindowBounds(
     win,
@@ -995,6 +1347,22 @@ async function openPlayerWindow(game, language = "en") {
 
   const allowedLanguages = ["en", "zh", "es", "fr", "de", "pt-BR", "ja", "ko", "hi", "ar", "ru"];
   if (allowedLanguages.includes(language)) trayLanguage = language;
+  const playerDb = await readDb();
+  const savedGameIndex = playerDb.games.findIndex((entry) => entry.id === game.id);
+  const savedGame = playerDb.games[savedGameIndex];
+  if (!savedGame) throw new Error("找不到游戏");
+  const storagePaths = getGamePaths(gamesRoot, savedGame);
+  await fs.mkdir(storagePaths.savesDirectory, { recursive: true });
+  const playerSession = session.fromPath(storagePaths.savesDirectory, { cache: false });
+  registerPlayerNetworkGuard(playerSession);
+  const standaloneCompatibility = savedGame.standaloneCompatibility === true;
+  const networkAccess = {
+    gameId: game.id,
+    token: crypto.randomBytes(16).toString("hex"),
+    urls: (savedGame.publicResourceUrls || []).map(normalizePublicResourceUrl),
+    blockedUrls: (savedGame.blockedPublicResourceUrls || []).map(normalizePublicResourceUrl),
+    allowOnlineFeatures: savedGame.allowOnlineFeatures !== false,
+  };
   const sessionStartedAt = Date.now();
   const playerData = {
     game: {
@@ -1004,6 +1372,12 @@ async function openPlayerWindow(game, language = "en") {
       stageWidth: Number(game.stageWidth) > 0 ? Number(game.stageWidth) : null,
       stageHeight: Number(game.stageHeight) > 0 ? Number(game.stageHeight) : null,
       fullscreenByDefault: Boolean(game.fullscreenByDefault),
+      standaloneCompatibility,
+      fixScaling: savedGame.fixScaling === true,
+      originalFileName: savedGame.originalFileName,
+      allowOnlineFeatures: networkAccess.allowOnlineFeatures,
+      publicResourceUrls: networkAccess.urls,
+      publicResourceRelayUrls: networkAccess.urls.map((_url, index) => `${assetBaseUrl}/public-resource/${game.id}/${networkAccess.token}/${index}`),
       sessionStartedAt,
     },
     language: allowedLanguages.includes(language) ? language : "en",
@@ -1017,10 +1391,12 @@ async function openPlayerWindow(game, language = "en") {
     titleBarStyle: "hidden",
     fullscreen: playerData.game.fullscreenByDefault,
     title: playerData.game.title,
+    icon: path.join(__dirname, "..", "assets", "flash-royale-ruffle-player-logo-v2.png"),
     autoHideMenuBar: true,
     backgroundColor: "#0b0f14",
     show: false,
     webPreferences: {
+      session: playerSession,
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
@@ -1028,6 +1404,8 @@ async function openPlayerWindow(game, language = "en") {
     },
   });
   playerWindows.set(game.id, playerWindow);
+  const playerWebContentsId = playerWindow.webContents.id;
+  playerNetworkAccess.set(playerWebContentsId, networkAccess);
   playerTitles.set(game.id, playerData.game.title);
   broadcastRunningPlayers();
   if (minimizeToTrayOnGameLaunch && mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
@@ -1062,6 +1440,7 @@ async function openPlayerWindow(game, language = "en") {
     recordPlayDuration(game.id, (Date.now() - sessionStartedAt) / 1000).then(finishClose, finishClose);
   });
   playerWindow.on("closed", () => {
+    playerNetworkAccess.delete(playerWebContentsId);
     if (playerWindows.get(game.id) === playerWindow) {
       playerWindows.delete(game.id);
       playerTitles.delete(game.id);
@@ -1071,7 +1450,7 @@ async function openPlayerWindow(game, language = "en") {
 
   const serializedData = JSON.stringify(playerData);
   try {
-    if (isDev) {
+    if (isDev && !standaloneCompatibility) {
       await playerWindow.loadURL(`http://127.0.0.1:5173/?player=${encodeURIComponent(serializedData)}`);
     } else {
       await playerWindow.loadFile(path.join(projectRoot, "dist", "index.html"), {
@@ -1095,6 +1474,69 @@ function broadcastRunningPlayers() {
     mainWindow.webContents.send("player:runningChanged", Array.from(playerWindows.keys()));
   }
   updateTray();
+}
+
+function notifyExploreLibraryChanged() {
+  if (exploreWindow && !exploreWindow.isDestroyed()) {
+    exploreWindow.webContents.send("library:exploreChanged");
+  }
+  if (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) {
+    exploreDetailsWindow.webContents.send("library:exploreChanged");
+  }
+}
+
+async function openExploreImportProgress(id, language, parentWindow) {
+  const progressWindow = new BrowserWindow({
+    width: 460,
+    height: 120,
+    frame: false,
+    useContentSize: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    closable: false,
+    parent: parentWindow,
+    modal: true,
+    show: false,
+    title: "Flash Royale",
+    icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+    backgroundColor: "#171c24",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+  progressWindow.setMenu(null);
+  const centerOnParent = () => {
+    if (parentWindow.isDestroyed() || progressWindow.isDestroyed()) return;
+    const parentBounds = parentWindow.getBounds();
+    const progressBounds = progressWindow.getBounds();
+    progressWindow.setPosition(
+      Math.round(parentBounds.x + (parentBounds.width - progressBounds.width) / 2),
+      Math.round(parentBounds.y + (parentBounds.height - progressBounds.height) / 2),
+    );
+  };
+  parentWindow.on("move", centerOnParent);
+  parentWindow.on("resize", centerOnParent);
+  progressWindow.on("closed", () => {
+    parentWindow.removeListener("move", centerOnParent);
+    parentWindow.removeListener("resize", centerOnParent);
+  });
+  const job = { window: progressWindow, progress: { title: "", stage: "preparing", percent: null, receivedBytes: 0, totalBytes: null } };
+  exploreImportJobs.set(id, job);
+  const query = { exploreImport: String(id), language: String(language) };
+  if (isDev) await progressWindow.loadURL(`http://127.0.0.1:5173/?${new URLSearchParams(query)}`);
+  else await progressWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query });
+  centerOnParent();
+  progressWindow.show();
+  return job;
+}
+
+function updateExploreImportProgress(job, patch) {
+  job.progress = { ...job.progress, ...patch };
+  if (!job.window.isDestroyed()) job.window.webContents.send("explore:importProgress", job.progress);
 }
 
 const trayMessages = {
@@ -1149,7 +1591,7 @@ function updateTray() {
     tray = new Tray(createTrayIcon());
     tray.on("click", restoreMainWindow);
   }
-  tray.setToolTip(text.tooltip);
+  tray.setToolTip(runningCount > 0 ? text.tooltip : "Flash Royale");
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: text.restore, click: restoreMainWindow },
@@ -1168,14 +1610,87 @@ function updateTray() {
   );
 }
 
+function updateGameStorageMigrationProgress(progress) {
+  gameStorageMigrationProgress = progress;
+  if (gameStorageMigrationWindow && !gameStorageMigrationWindow.isDestroyed()) {
+    gameStorageMigrationWindow.webContents.send("library:storageMigrationProgress", progress);
+  }
+}
+
+async function openGameStorageMigrationProgress() {
+  const progressWindow = new BrowserWindow({
+    width: 460,
+    height: 120,
+    frame: false,
+    useContentSize: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    closable: false,
+    skipTaskbar: true,
+    show: false,
+    title: "Flash Royale",
+    icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+    backgroundColor: "#171c24",
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+    },
+  });
+  progressWindow.setMenu(null);
+  gameStorageMigrationWindow = progressWindow;
+  progressWindow.on("closed", () => {
+    if (gameStorageMigrationWindow === progressWindow) gameStorageMigrationWindow = null;
+  });
+  const query = { libraryMigration: "1" };
+  if (isDev) await progressWindow.loadURL(`http://127.0.0.1:5173/?${new URLSearchParams(query)}`);
+  else await progressWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query });
+  if (!progressWindow.isDestroyed()) {
+    progressWindow.center();
+    progressWindow.show();
+    gameStorageMigrationShownAt = Date.now();
+  }
+  return progressWindow;
+}
+
+async function destroyGameStorageMigrationWindow(force = false) {
+  const progressWindow = gameStorageMigrationWindow;
+  if (!force && gameStorageMigrationShownAt) {
+    const remaining = 2000 - (Date.now() - gameStorageMigrationShownAt);
+    if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+  }
+  if (gameStorageMigrationWindow === progressWindow) gameStorageMigrationWindow = null;
+  gameStorageMigrationShownAt = 0;
+  if (progressWindow && !progressWindow.isDestroyed()) progressWindow.destroy();
+}
+
 app.whenReady().then(async () => {
   await ensureLibrary();
   const config = await readJson(configPath, defaultConfig);
   startInFullscreen = Boolean(config.startInFullscreen);
   minimizeToTrayOnGameLaunch = config.minimizeToTrayOnGameLaunch !== false;
   minimizeToTrayOnMinimize = config.minimizeToTrayOnMinimize !== false;
+  exploreEnabled = config.exploreEnabled !== false;
   windowState = readWindowState();
+  await prepareGameSaveDirectories();
+  const gamesNeedingMigration = await getGamesNeedingStorageMigration();
+  gameStorageMigrationProgress = {
+    current: 0,
+    total: gamesNeedingMigration.length,
+    gameTitle: "",
+    percent: 0,
+  };
+  ipcMain.handle("library:getStorageMigrationProgress", () => gameStorageMigrationProgress);
+  try {
+    if (gamesNeedingMigration.length) await openGameStorageMigrationProgress();
+    await migrateLibraryGameStorage();
+  } finally {
+    await destroyGameStorageMigrationWindow();
+  }
   await startAssetServer();
+  registerPlayerNetworkGuard(session.defaultSession);
 
   ipcMain.handle("library:getAssetBaseUrl", () => assetBaseUrl);
   ipcMain.handle("app:getInfo", () => ({
@@ -1184,6 +1699,17 @@ app.whenReady().then(async () => {
     repository: String(appPackage.repository?.url || ""),
     ruffleVersion: String(rufflePackage.version || ""),
   }));
+  ipcMain.handle("app:checkForUpdates", checkForUpdates);
+  ipcMain.handle("app:openUpdatePage", async (_event, value) => {
+    if (typeof value !== "string") throw new TypeError("Invalid release URL");
+    const repository = new URL(String(appPackage.repository?.url || ""));
+    const repositoryPath = repository.pathname.replace(/\.git$/i, "").replace(/\/$/, "");
+    const releaseUrl = new URL(value);
+    if (releaseUrl.origin !== "https://github.com" || !releaseUrl.pathname.startsWith(`${repositoryPath}/releases/tag/`)) {
+      throw new Error("Invalid release URL");
+    }
+    return shell.openExternal(releaseUrl.href);
+  });
   ipcMain.handle("app:getStartInFullscreen", async () => {
     const config = await readJson(configPath, defaultConfig);
     startInFullscreen = Boolean(config.startInFullscreen);
@@ -1220,8 +1746,194 @@ app.whenReady().then(async () => {
     minimizeToTrayOnMinimize = enabled;
     return enabled;
   });
+  ipcMain.handle("app:getExploreAvailability", getExploreAvailability);
+  ipcMain.handle("app:setExploreEnabled", async (_event, enabled) => {
+    if (typeof enabled !== "boolean") throw new TypeError("Expected a boolean Explore preference");
+    const config = await readJson(configPath, defaultConfig);
+    await writeJson(configPath, { ...defaultConfig, ...config, exploreEnabled: enabled });
+    exploreEnabled = enabled;
+    if (!enabled && exploreWindow && !exploreWindow.isDestroyed()) exploreWindow.close();
+    return enabled;
+  });
   ipcMain.handle("app:openRepository", () => shell.openExternal(String(appPackage.repository?.url || "https://github.com")));
   ipcMain.handle("app:openOriginalAuthorRepository", () => shell.openExternal("https://github.com/xevil3301/flashmanager.git"));
+  ipcMain.handle("app:openExplore", async () => {
+    const availability = await getExploreAvailability();
+    if (!availability.enabled) throw new Error("Explore is disabled in settings.");
+    if (!availability.online) throw new Error("No internet connection to Silvergames.");
+    if (exploreWindow && !exploreWindow.isDestroyed()) {
+      exploreWindow.focus();
+      return;
+    }
+    const savedExploreBounds = windowState.explore;
+    exploreWindow = new BrowserWindow({
+      ...restoreBounds(savedExploreBounds, { width: 960, height: 790, minWidth: 620, minHeight: 480 }),
+      useContentSize: !savedExploreBounds,
+      minWidth: 620,
+      minHeight: 480,
+      title: "Explore Flash games",
+      icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+      autoHideMenuBar: true,
+      backgroundColor: "#101318",
+      webPreferences: {
+        preload: path.join(__dirname, "preload.cjs"),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+      },
+    });
+    if (savedExploreBounds?.maximized) exploreWindow.maximize();
+    trackWindowBounds(exploreWindow, () => windowState.explore, (bounds) => {
+      windowState.explore = bounds;
+    });
+    exploreWindow.on("closed", () => {
+      if (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) exploreDetailsWindow.close();
+      exploreWindow = null;
+    });
+    if (isDev) exploreWindow.loadURL("http://127.0.0.1:5173/?explore=1");
+    else exploreWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query: { explore: "1" } });
+  });
+  ipcMain.handle("explore:list", async (event, query, page, pageSize, sortMode, ascending) => {
+    if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) throw new Error("Explore window required");
+    if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    const db = await readDb();
+    return silvergames.listGames(query, page, pageSize, sortMode, ascending, db.games);
+  });
+  ipcMain.handle("explore:openSite", (event) => {
+    if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
+    if (exploreWindow && senderWindow === exploreWindow) {
+      return shell.openExternal("https://www.silvergames.com/en/");
+    }
+    if (exploreDetailsWindow && senderWindow === exploreDetailsWindow && exploreDetailsGameSlug) {
+      return shell.openExternal(`https://www.silvergames.com/en/${exploreDetailsGameSlug}`);
+    }
+    throw new Error("Explore window required");
+  });
+  ipcMain.handle("explore:openDetails", async (event, id) => {
+    if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) throw new Error("Explore window required");
+    if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    const game = await silvergames.getCatalogGame(id);
+    if (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) {
+      if (exploreDetailsGameId === id) {
+        exploreDetailsWindow.focus();
+        return;
+      }
+    } else {
+      const savedDetailsBounds = windowState.exploreDetails;
+      exploreDetailsWindow = new BrowserWindow({
+        ...restoreBounds(savedDetailsBounds, { width: 540, height: 720, minWidth: 420, minHeight: 520 }),
+        minWidth: 420,
+        minHeight: 520,
+        parent: exploreWindow,
+        title: game.title,
+        icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+        autoHideMenuBar: true,
+        backgroundColor: "#101318",
+        webPreferences: {
+          preload: path.join(__dirname, "preload.cjs"),
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: false,
+        },
+      });
+      if (savedDetailsBounds?.maximized) exploreDetailsWindow.maximize();
+      trackWindowBounds(exploreDetailsWindow, () => windowState.exploreDetails, (bounds) => {
+        windowState.exploreDetails = bounds;
+      });
+      exploreDetailsWindow.on("closed", () => {
+        exploreDetailsWindow = null;
+        exploreDetailsGameId = null;
+        exploreDetailsGameSlug = null;
+        if (exploreWindow && !exploreWindow.isDestroyed() && exploreWindow.isVisible()) {
+          exploreWindow.focus();
+        }
+      });
+    }
+    exploreDetailsGameId = id;
+    exploreDetailsGameSlug = game.slug;
+    exploreDetailsWindow.setTitle(game.title);
+    if (isDev) await exploreDetailsWindow.loadURL(`http://127.0.0.1:5173/?exploreGame=${id}`);
+    else await exploreDetailsWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query: { exploreGame: String(id) } });
+    exploreDetailsWindow.focus();
+  });
+  ipcMain.handle("explore:getDetails", async (event, id) => {
+    if (!exploreDetailsWindow || BrowserWindow.fromWebContents(event.sender) !== exploreDetailsWindow || id !== exploreDetailsGameId) {
+      throw new Error("Explore game-info window required");
+    }
+    if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    const db = await readDb();
+    return silvergames.getGameDetails(id, db.games);
+  });
+  ipcMain.handle("explore:getImportProgress", (event) => {
+    const job = Array.from(exploreImportJobs.values()).find((entry) => entry.window.webContents === event.sender);
+    if (!job) throw new Error("Explore import progress window required");
+    return job.progress;
+  });
+  ipcMain.handle("explore:import", async (event, id, language) => {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!senderWindow || (senderWindow !== exploreWindow && (senderWindow !== exploreDetailsWindow || id !== exploreDetailsGameId))) {
+      throw new Error("Explore window required");
+    }
+    if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    if (pendingExploreImports.has(id)) throw new Error("This game is already being imported.");
+    pendingExploreImports.add(id);
+    try {
+      const job = await openExploreImportProgress(id, language, senderWindow);
+      const game = await silvergames.getCatalogGame(id);
+      updateExploreImportProgress(job, { title: game.title });
+      if (silvergames.isInLibrary(game, (await readDb()).games)) {
+        return { imported: false, alreadyInLibrary: true, title: game.title };
+      }
+      const [{ data }, cover, metadata] = await Promise.all([
+        silvergames.downloadGame(id, game, ({ receivedBytes, totalBytes }) => {
+          updateExploreImportProgress(job, {
+            stage: "downloading", receivedBytes, totalBytes,
+            percent: totalBytes ? Math.min(80, receivedBytes / totalBytes * 80) : null,
+          });
+        }), silvergames.downloadCover(game), silvergames.getGameMetadata(game),
+      ]);
+      updateExploreImportProgress(job, { stage: "saving", percent: 85 });
+      const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-explore-"));
+      try {
+        const filePath = path.join(temporaryDirectory, `${game.slug}.swf`);
+        await fs.writeFile(filePath, data);
+        const result = await importSwfFiles([filePath], language);
+        if (result.imported.length) {
+          await updateGame(result.imported[0].id, { title: game.title }, language);
+          const db = await readDb();
+          const importedGame = db.games.find((entry) => entry.id === result.imported[0].id);
+          importedGame.silvergamesId = game.id;
+          importedGame.tags = Array.from(new Set(game.tags.filter((tag) => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean)));
+          importedGame.description = metadata.description;
+          if (metadata.sourceRating !== null) importedGame.sourceRating = metadata.sourceRating;
+          if (metadata.sourceRatingCount !== null) importedGame.sourceRatingCount = metadata.sourceRatingCount;
+          updateExploreImportProgress(job, { percent: 95 });
+          await persistCoverBuffer(importedGame, cover, ".webp", "explore");
+          await writeDb(db);
+          if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("library:exploreImported", importedGame.title);
+          notifyExploreLibraryChanged();
+        } else if (result.skipped[0]?.game) {
+          const db = await readDb();
+          const existing = db.games.find((entry) => entry.id === result.skipped[0].game.id);
+          if (existing && existing.silvergamesId == null) {
+            existing.silvergamesId = game.id;
+            await writeDb(db);
+            notifyExploreLibraryChanged();
+          }
+        }
+        updateExploreImportProgress(job, { percent: 100 });
+        return { imported: result.imported.length > 0, alreadyInLibrary: result.skipped.length > 0, title: game.title };
+      } finally {
+        await fs.rm(temporaryDirectory, { recursive: true, force: true });
+      }
+    } finally {
+      pendingExploreImports.delete(id);
+      const job = exploreImportJobs.get(id);
+      exploreImportJobs.delete(id);
+      if (job && !job.window.isDestroyed()) job.window.destroy();
+    }
+  });
   ipcMain.handle("player:open", (_event, game, language) => openPlayerWindow(game, language));
   ipcMain.handle("player:getRunning", () => Array.from(playerWindows.keys()));
   ipcMain.handle("player:close", (_event, gameId) => {
@@ -1235,23 +1947,49 @@ app.whenReady().then(async () => {
     return playerWindow.isFullScreen();
   });
   ipcMain.handle("library:read", readLibrary);
+  ipcMain.handle("library:copyPublicResourceUrl", async (_event, gameId, value) => {
+    if (!isSafeGameId(gameId) || typeof value !== "string") throw new Error("Invalid public resource URL");
+    const url = normalizePublicResourceUrl(value);
+    const game = (await readDb()).games.find((item) => item.id === gameId);
+    if (!game || !game.publicResourceUrls?.includes(url)) throw new Error("Public resource URL not found for game");
+    clipboard.writeText(url);
+  });
+  ipcMain.handle("library:openGameFolder", async (_event, gameId) => {
+    if (!isSafeGameId(gameId)) throw new Error("Invalid game id");
+    const game = (await readDb()).games.find((item) => item.id === gameId);
+    if (!game) throw new Error("找不到游戏");
+    const error = await shell.openPath(getGamePaths(gamesRoot, game).directory);
+    if (error) throw new Error(error);
+  });
   ipcMain.handle("library:getGameTheme", (_event, gameId) => extractGameTheme(gameId));
   ipcMain.handle("library:chooseCustomMusic", (_event, gameId, language) => chooseCustomMusic(gameId, language));
   ipcMain.handle("library:removeCustomMusic", (_event, gameId) => removeCustomMusic(gameId));
   ipcMain.handle("library:getMusicCandidates", (_event, gameId) => listMusicCandidates(gameId));
   ipcMain.handle("library:setDefaultMusic", (_event, gameId, index) => setDefaultMusic(gameId, index));
-  ipcMain.handle("library:chooseAndImport", (event, language) =>
-    runImport(event, (options) => chooseAndImport(language, options)),
-  );
-  ipcMain.handle("library:importPaths", (event, filePaths, language) =>
-    runImport(event, (options) => importSwfFiles(filePaths, language, options)),
-  );
+  ipcMain.handle("library:chooseAndImport", async (event, language) => {
+    const result = await runImport(event, (options) => chooseAndImport(language, options));
+    if (result.imported?.length) notifyExploreLibraryChanged();
+    return result;
+  });
+  ipcMain.handle("library:importPaths", async (event, filePaths, language) => {
+    const result = await runImport(event, (options) => importSwfFiles(filePaths, language, options));
+    if (result.imported?.length) notifyExploreLibraryChanged();
+    return result;
+  });
   ipcMain.handle("library:cancelImport", (event) => {
     const job = activeImports.get(event.sender.id);
     if (job) job.cancelled = true;
   });
-  ipcMain.handle("library:updateGame", (_event, gameId, patch, language) => updateGame(gameId, patch, language));
-  ipcMain.handle("library:deleteGame", (_event, gameId, removeFiles) => deleteGame(gameId, removeFiles));
+  ipcMain.handle("library:updateGame", async (_event, gameId, patch, language) => {
+    const result = await updateGame(gameId, patch, language);
+    if (typeof patch?.title === "string") notifyExploreLibraryChanged();
+    return result;
+  });
+  ipcMain.handle("library:deleteGame", async (_event, gameId, removeFiles) => {
+    const result = await deleteGame(gameId, removeFiles);
+    notifyExploreLibraryChanged();
+    return result;
+  });
   ipcMain.handle("library:recordPlay", (_event, gameId) => recordPlay(gameId));
   ipcMain.handle("library:saveCover", (_event, gameId, dataUrl) => saveCoverFromDataUrl(gameId, dataUrl));
   ipcMain.handle("library:chooseCoverImage", (_event, gameId, language) => chooseCoverImage(gameId, language));
@@ -1262,6 +2000,7 @@ app.whenReady().then(async () => {
   );
 
   createWindow();
+  isAppInitializing = false;
 
   app.on("activate", () => {
     if (!mainWindow || mainWindow.isDestroyed()) createWindow();
@@ -1269,9 +2008,12 @@ app.whenReady().then(async () => {
 });
 
 app.on("window-all-closed", () => {
+  if (isAppInitializing) return;
   if (assetServer) {
     assetServer.close();
     assetServer = null;
   }
   if (process.platform !== "darwin") app.quit();
 });
+
+app.on("before-quit", () => { void destroyGameStorageMigrationWindow(true); });

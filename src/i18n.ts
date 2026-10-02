@@ -2,6 +2,20 @@ import { majorMessages, type MajorLanguage } from "./i18n-major";
 
 export type Language = "en" | "zh" | MajorLanguage;
 
+export const datePlaceholderLabels: Record<Language, string> = {
+  en: "YYYY-MM-DD",
+  zh: "YYYY-MM-DD",
+  es: "AAAA-MM-DD",
+  fr: "AAAA-MM-JJ",
+  de: "JJJJ-MM-TT",
+  "pt-BR": "AAAA-MM-DD",
+  ja: "YYYY-MM-DD",
+  ko: "YYYY-MM-DD",
+  hi: "YYYY-MM-DD",
+  ar: "YYYY-MM-DD",
+  ru: "ГГГГ-ММ-ДД",
+};
+
 const baseMessages = {
   zh: {
     never: "从未",
@@ -219,10 +233,26 @@ const baseMessages = {
 
 type LocaleMessages = { [Key in keyof typeof baseMessages.en]: string };
 
-export const messages: Record<Language, LocaleMessages> = {
-  ...baseMessages,
-  ...majorMessages,
+const automaticCoverCapturedLabels: Record<Language, string> = {
+  en: "Captured automatically",
+  zh: "自动截图",
+  es: "Capturada automáticamente",
+  fr: "Capturée automatiquement",
+  de: "Automatisch erfasst",
+  "pt-BR": "Capturada automaticamente",
+  ja: "自動キャプチャ",
+  ko: "자동 캡처됨",
+  hi: "स्वचालित रूप से कैप्चर किया गया",
+  ar: "لقطة تلقائية",
+  ru: "Создана автоматически",
 };
+
+export const messages = Object.fromEntries(
+  Object.entries({ ...baseMessages, ...majorMessages }).map(([language, locale]) => [
+    language,
+    { ...locale, coverCaptured: automaticCoverCapturedLabels[language as Language] },
+  ]),
+) as Record<Language, LocaleMessages>;
 
 export const importCountLabels: Record<Language, { imported: string; skipped: string }> = {
   en: { imported: "Imported:", skipped: "Skipped:" },
@@ -337,6 +367,20 @@ export const closeBlockedLabels: Record<Language, string> = {
   ru: "Нельзя закрыть Flash Royale, пока запущена игра. Сначала остановите игру.",
 };
 
+export const exploreCloseBlockedLabels: Record<Language, string> = {
+  en: "Flash Royale cannot be closed while Explore is open. Close the Explore window first.",
+  zh: "探索窗口打开时无法关闭 Flash Royale。请先关闭探索窗口。",
+  es: "No se puede cerrar Flash Royale mientras Explorar está abierto. Cierra primero la ventana de Explorar.",
+  fr: "Impossible de fermer Flash Royale tant qu’Explorer est ouvert. Fermez d’abord la fenêtre Explorer.",
+  de: "Flash Royale kann nicht geschlossen werden, solange Explore geöffnet ist. Schließe zuerst das Explore-Fenster.",
+  "pt-BR": "Não é possível fechar o Flash Royale enquanto Explorar está aberto. Feche primeiro a janela de Explorar.",
+  ja: "探索が開いている間は Flash Royale を閉じられません。先に探索ウィンドウを閉じてください。",
+  ko: "탐색 창이 열려 있으면 Flash Royale를 닫을 수 없습니다. 먼저 탐색 창을 닫으세요.",
+  hi: "एक्सप्लोर खुला होने पर Flash Royale बंद नहीं किया जा सकता। पहले एक्सप्लोर विंडो बंद करें।",
+  ar: "لا يمكن إغلاق Flash Royale أثناء فتح الاستكشاف. أغلق نافذة الاستكشاف أولًا.",
+  ru: "Нельзя закрыть Flash Royale, пока открыт поиск игр. Сначала закройте окно поиска игр.",
+};
+
 export const toastLabels: Record<Language, { appStarted: string; gameStarted: string; gameStopped: string; coversFinished: string; coverCreated: string }> = {
   en: { appStarted: "App started", gameStarted: "Game started: {title}", gameStopped: "Game stopped: {title}", coversFinished: "Automatic cover creation finished", coverCreated: "Automatic cover created: {title}" },
   zh: { appStarted: "应用已启动", gameStarted: "游戏已启动：{title}", gameStopped: "游戏已停止：{title}", coversFinished: "自动封面生成已完成", coverCreated: "已自动生成封面：{title}" },
@@ -382,6 +426,48 @@ export const importProgressLabels: Record<
   ru: { title: "Импорт игр…", fileCount: "Файл {current} из {total}", cancelling: "Отмена…", done: "Импорт завершён", cancelled: "Импорт отменён", added: "Добавлено ({count})", skipped: "Пропущено ({count})", none: "Нет", ok: "OK" },
 };
 
+export const exploreImportStageLabels: Record<Language, { preparing: string; downloading: string; saving: string }> = {
+  en: { preparing: "Preparing import...", downloading: "Downloading game...", saving: "Saving to library..." },
+  zh: { preparing: "正在准备导入...", downloading: "正在下载游戏...", saving: "正在保存到游戏库..." },
+  es: { preparing: "Preparando importación...", downloading: "Descargando juego...", saving: "Guardando en la biblioteca..." },
+  fr: { preparing: "Préparation de l’importation...", downloading: "Téléchargement du jeu...", saving: "Enregistrement dans la bibliothèque..." },
+  de: { preparing: "Import wird vorbereitet...", downloading: "Spiel wird heruntergeladen...", saving: "Spiel wird gespeichert..." },
+  "pt-BR": { preparing: "Preparando importação...", downloading: "Baixando jogo...", saving: "Salvando na biblioteca..." },
+  ja: { preparing: "インポートを準備中...", downloading: "ゲームをダウンロード中...", saving: "ライブラリに保存中..." },
+  ko: { preparing: "가져오기 준비 중...", downloading: "게임 다운로드 중...", saving: "라이브러리에 저장 중..." },
+  hi: { preparing: "आयात की तैयारी...", downloading: "गेम डाउनलोड हो रहा है...", saving: "लाइब्रेरी में सहेज रहे हैं..." },
+  ar: { preparing: "جارٍ التحضير للاستيراد...", downloading: "جارٍ تنزيل اللعبة...", saving: "جارٍ الحفظ في المكتبة..." },
+  ru: { preparing: "Подготовка импорта...", downloading: "Загрузка игры...", saving: "Сохранение в библиотеку..." },
+};
+
+export const exploreImportTitleLabels: Record<Language, string> = {
+  en: "Importing {title}",
+  zh: "正在导入 {title}",
+  es: "Importando {title}",
+  fr: "Importation de {title}",
+  de: "{title} wird importiert",
+  "pt-BR": "Importando {title}",
+  ja: "{title} をインポート中",
+  ko: "{title} 가져오는 중",
+  hi: "{title} आयात हो रहा है",
+  ar: "جارٍ استيراد {title}",
+  ru: "Импорт {title}",
+};
+
+export const libraryMigrationLabels: Record<Language, { title: string; preparing: string; status: string }> = {
+  en: { title: "Updating game folders", preparing: "Preparing your library...", status: "Game {current} of {total}: {title}" },
+  zh: { title: "正在更新游戏文件夹", preparing: "正在准备游戏库...", status: "游戏 {current}/{total}：{title}" },
+  es: { title: "Actualizando las carpetas de juegos", preparing: "Preparando la biblioteca...", status: "Juego {current} de {total}: {title}" },
+  fr: { title: "Mise à jour des dossiers de jeux", preparing: "Préparation de la bibliothèque...", status: "Jeu {current} sur {total} : {title}" },
+  de: { title: "Spieleordner werden aktualisiert", preparing: "Bibliothek wird vorbereitet...", status: "Spiel {current} von {total}: {title}" },
+  "pt-BR": { title: "Atualizando pastas dos jogos", preparing: "Preparando sua biblioteca...", status: "Jogo {current} de {total}: {title}" },
+  ja: { title: "ゲームフォルダーを更新中", preparing: "ライブラリを準備中...", status: "ゲーム {current}/{total}: {title}" },
+  ko: { title: "게임 폴더 업데이트 중", preparing: "라이브러리 준비 중...", status: "게임 {current}/{total}: {title}" },
+  hi: { title: "गेम फ़ोल्डर अपडेट हो रहे हैं", preparing: "आपकी लाइब्रेरी तैयार हो रही है...", status: "गेम {current}/{total}: {title}" },
+  ar: { title: "جارٍ تحديث مجلدات الألعاب", preparing: "جارٍ تجهيز المكتبة...", status: "اللعبة {current} من {total}: {title}" },
+  ru: { title: "Обновление папок игр", preparing: "Подготовка библиотеки...", status: "Игра {current} из {total}: {title}" },
+};
+
 export const stopPlayingLabels: Record<Language, string> = {
   en: "Stop Playing",
   zh: "停止游戏",
@@ -424,6 +510,34 @@ export const settingsInfoLabels: Record<Language, { about: string; version: stri
   ru: { about: "Об этом приложении", version: "Версия", author: "Автор", github: "Репозиторий GitHub", ruffleVersion: "Версия Ruffle", originallyMadeBy: "Это приложение изначально создано пользователем xevil3301.", openOriginalAuthorRepository: "Открыть репозиторий GitHub пользователя xevil3301" },
 };
 
+export const updateLabels: Record<Language, { check: string; checking: string; availableToast: string; currentToast: string; failedToast: string; title: string; currentVersion: string; changelog: string; noChangelog: string; cancel: string; ok: string; openFailed: string }> = {
+  en: { check: "Check for updates", checking: "Checking for updates...", availableToast: "Flash Royale {version} is available", currentToast: "Flash Royale is up to date", failedToast: "Could not check for updates", title: "Flash Royale {version} is available", currentVersion: "Current version: {version}", changelog: "Changelog", noChangelog: "No release notes were provided.", cancel: "Cancel", ok: "OK", openFailed: "Could not open the release page" },
+  zh: { check: "检查更新", checking: "正在检查更新...", availableToast: "Flash Royale {version} 已发布", currentToast: "Flash Royale 已是最新版本", failedToast: "无法检查更新", title: "Flash Royale {version} 已发布", currentVersion: "当前版本：{version}", changelog: "更新日志", noChangelog: "此版本没有发布说明。", cancel: "取消", ok: "确定", openFailed: "无法打开发布页面" },
+  es: { check: "Buscar actualizaciones", checking: "Buscando actualizaciones...", availableToast: "Flash Royale {version} está disponible", currentToast: "Flash Royale está actualizado", failedToast: "No se pudieron buscar actualizaciones", title: "Flash Royale {version} está disponible", currentVersion: "Versión actual: {version}", changelog: "Cambios", noChangelog: "No se publicaron notas de esta versión.", cancel: "Cancelar", ok: "Aceptar", openFailed: "No se pudo abrir la página de la versión" },
+  fr: { check: "Rechercher des mises à jour", checking: "Recherche de mises à jour...", availableToast: "Flash Royale {version} est disponible", currentToast: "Flash Royale est à jour", failedToast: "Impossible de rechercher des mises à jour", title: "Flash Royale {version} est disponible", currentVersion: "Version actuelle : {version}", changelog: "Journal des modifications", noChangelog: "Aucune note de version n’a été publiée.", cancel: "Annuler", ok: "OK", openFailed: "Impossible d’ouvrir la page de la version" },
+  de: { check: "Nach Updates suchen", checking: "Suche nach Updates...", availableToast: "Flash Royale {version} ist verfügbar", currentToast: "Flash Royale ist auf dem neuesten Stand", failedToast: "Updates konnten nicht gesucht werden", title: "Flash Royale {version} ist verfügbar", currentVersion: "Aktuelle Version: {version}", changelog: "Änderungsprotokoll", noChangelog: "Für diese Version gibt es keine Versionshinweise.", cancel: "Abbrechen", ok: "OK", openFailed: "Versionsseite konnte nicht geöffnet werden" },
+  "pt-BR": { check: "Verificar atualizações", checking: "Verificando atualizações...", availableToast: "Flash Royale {version} está disponível", currentToast: "Flash Royale está atualizado", failedToast: "Não foi possível verificar atualizações", title: "Flash Royale {version} está disponível", currentVersion: "Versão atual: {version}", changelog: "Novidades", noChangelog: "Não há notas para esta versão.", cancel: "Cancelar", ok: "OK", openFailed: "Não foi possível abrir a página da versão" },
+  ja: { check: "更新を確認", checking: "更新を確認中...", availableToast: "Flash Royale {version} が利用できます", currentToast: "Flash Royale は最新です", failedToast: "更新を確認できませんでした", title: "Flash Royale {version} が利用できます", currentVersion: "現在のバージョン: {version}", changelog: "変更内容", noChangelog: "リリースノートはありません。", cancel: "キャンセル", ok: "OK", openFailed: "リリースページを開けませんでした" },
+  ko: { check: "업데이트 확인", checking: "업데이트 확인 중...", availableToast: "Flash Royale {version}을(를) 사용할 수 있습니다", currentToast: "Flash Royale이 최신 버전입니다", failedToast: "업데이트를 확인할 수 없습니다", title: "Flash Royale {version}을(를) 사용할 수 있습니다", currentVersion: "현재 버전: {version}", changelog: "변경 사항", noChangelog: "릴리스 노트가 없습니다.", cancel: "취소", ok: "확인", openFailed: "릴리스 페이지를 열 수 없습니다" },
+  hi: { check: "अपडेट जाँचें", checking: "अपडेट जाँचे जा रहे हैं...", availableToast: "Flash Royale {version} उपलब्ध है", currentToast: "Flash Royale नवीनतम है", failedToast: "अपडेट नहीं जाँचे जा सके", title: "Flash Royale {version} उपलब्ध है", currentVersion: "वर्तमान संस्करण: {version}", changelog: "बदलाव", noChangelog: "इस रिलीज़ के लिए कोई नोट उपलब्ध नहीं है।", cancel: "रद्द करें", ok: "ठीक है", openFailed: "रिलीज़ पेज नहीं खुल सका" },
+  ar: { check: "التحقق من التحديثات", checking: "جارٍ التحقق من التحديثات...", availableToast: "يتوفر Flash Royale {version}", currentToast: "Flash Royale هو الإصدار الأحدث", failedToast: "تعذّر التحقق من التحديثات", title: "يتوفر Flash Royale {version}", currentVersion: "الإصدار الحالي: {version}", changelog: "سجل التغييرات", noChangelog: "لا توجد ملاحظات لهذا الإصدار.", cancel: "إلغاء", ok: "موافق", openFailed: "تعذّر فتح صفحة الإصدار" },
+  ru: { check: "Проверить обновления", checking: "Проверка обновлений...", availableToast: "Доступна Flash Royale {version}", currentToast: "Flash Royale обновлена до последней версии", failedToast: "Не удалось проверить обновления", title: "Доступна Flash Royale {version}", currentVersion: "Текущая версия: {version}", changelog: "Список изменений", noChangelog: "Для этой версии нет примечаний.", cancel: "Отмена", ok: "ОК", openFailed: "Не удалось открыть страницу релиза" },
+};
+
+export const updateActionLabels: Record<Language, string> = {
+  en: "Update",
+  zh: "更新",
+  es: "Actualizar",
+  fr: "Mettre à jour",
+  de: "Aktualisieren",
+  "pt-BR": "Atualizar",
+  ja: "更新",
+  ko: "업데이트",
+  hi: "अपडेट करें",
+  ar: "تحديث",
+  ru: "Обновить",
+};
+
 export const generalSettingsLabels: Record<Language, { general: string; startInFullscreen: string; minimizeToTrayOnGameLaunch: string; minimizeToTrayOnMinimize: string; nextLaunch: string }> = {
   en: { general: "General", startInFullscreen: "Start app in fullscreen", minimizeToTrayOnGameLaunch: "Minimize to notification area on game launch", minimizeToTrayOnMinimize: "Minimize main window to notification area", nextLaunch: "Fullscreen takes effect the next time the app starts." },
   zh: { general: "常规", startInFullscreen: "启动时全屏", minimizeToTrayOnGameLaunch: "启动游戏时最小化到通知区域", minimizeToTrayOnMinimize: "将主窗口最小化到通知区域", nextLaunch: "全屏设置将在下次启动应用时生效。" },
@@ -436,6 +550,76 @@ export const generalSettingsLabels: Record<Language, { general: string; startInF
   hi: { general: "सामान्य", startInFullscreen: "ऐप को पूर्ण स्क्रीन में शुरू करें", minimizeToTrayOnGameLaunch: "गेम शुरू होने पर सूचना क्षेत्र में छोटा करें", minimizeToTrayOnMinimize: "मुख्य विंडो को सूचना क्षेत्र में छोटा करें", nextLaunch: "पूर्ण स्क्रीन सेटिंग अगली बार ऐप शुरू होने पर लागू होगी।" },
   ar: { general: "عام", startInFullscreen: "بدء التطبيق بملء الشاشة", minimizeToTrayOnGameLaunch: "تصغير إلى منطقة الإعلام عند تشغيل لعبة", minimizeToTrayOnMinimize: "تصغير النافذة الرئيسية إلى منطقة الإعلام", nextLaunch: "سيتم تطبيق إعداد ملء الشاشة عند تشغيل التطبيق في المرة القادمة." },
   ru: { general: "Общие", startInFullscreen: "Запускать приложение в полноэкранном режиме", minimizeToTrayOnGameLaunch: "Сворачивать в область уведомлений при запуске игры", minimizeToTrayOnMinimize: "Сворачивать главное окно в область уведомлений", nextLaunch: "Полноэкранный режим будет включён при следующем запуске приложения." },
+};
+
+export const exploreSettingsLabels: Record<Language, { enable: string; disabled: string; offline: string; checking: string; open: string }> = {
+  en: { enable: "Enable Explore (requires internet)", disabled: "Explore is disabled in settings", offline: "Explore unavailable: no internet connection to Silvergames", checking: "Checking Silvergames connection", open: "Explore Flash games" },
+  zh: { enable: "启用探索（需要网络）", disabled: "探索已在设置中关闭", offline: "无法连接 Silvergames，请检查网络", checking: "正在检查 Silvergames 连接", open: "探索 Flash 游戏" },
+  es: { enable: "Activar Explorar (requiere internet)", disabled: "Explorar está desactivado en ajustes", offline: "No hay conexión a Silvergames", checking: "Comprobando la conexión a Silvergames", open: "Explorar juegos Flash" },
+  fr: { enable: "Activer Explorer (internet requis)", disabled: "Explorer est désactivé dans les paramètres", offline: "Impossible de se connecter à Silvergames", checking: "Vérification de la connexion à Silvergames", open: "Explorer les jeux Flash" },
+  de: { enable: "Explore aktivieren (Internet erforderlich)", disabled: "Explore ist in den Einstellungen deaktiviert", offline: "Keine Verbindung zu Silvergames", checking: "Verbindung zu Silvergames wird geprüft", open: "Flash-Spiele entdecken" },
+  "pt-BR": { enable: "Ativar Explorar (requer internet)", disabled: "Explorar está desativado nas configurações", offline: "Sem conexão com Silvergames", checking: "Verificando conexão com Silvergames", open: "Explorar jogos Flash" },
+  ja: { enable: "探索を有効にする（インターネットが必要）", disabled: "設定で探索が無効です", offline: "Silvergames に接続できません", checking: "Silvergames への接続を確認中", open: "Flash ゲームを探す" },
+  ko: { enable: "탐색 사용 (인터넷 필요)", disabled: "설정에서 탐색이 꺼져 있습니다", offline: "Silvergames에 연결할 수 없습니다", checking: "Silvergames 연결 확인 중", open: "Flash 게임 탐색" },
+  hi: { enable: "एक्सप्लोर चालू करें (इंटरनेट आवश्यक)", disabled: "सेटिंग्स में एक्सप्लोर बंद है", offline: "Silvergames से कनेक्शन नहीं है", checking: "Silvergames कनेक्शन जाँच रहे हैं", open: "Flash गेम खोजें" },
+  ar: { enable: "تفعيل الاستكشاف (يتطلب الإنترنت)", disabled: "الاستكشاف معطل في الإعدادات", offline: "لا يوجد اتصال بـ Silvergames", checking: "جارٍ التحقق من الاتصال بـ Silvergames", open: "استكشاف ألعاب Flash" },
+  ru: { enable: "Включить поиск игр (нужен интернет)", disabled: "Поиск игр отключён в настройках", offline: "Нет соединения с Silvergames", checking: "Проверка соединения с Silvergames", open: "Поиск Flash-игр" },
+};
+
+export const sourceMetadataLabels: Record<Language, { description: string; rating: string; votes: string; ageRating: string; version: string; openGameFolder: string }> = {
+  en: { description: "Description", rating: "Silvergames rating", votes: "votes", ageRating: "Age rating", version: "Version", openGameFolder: "Open the game folder for {title}" },
+  zh: { description: "描述", rating: "Silvergames 评分", votes: "票", ageRating: "适龄", version: "版本", openGameFolder: "打开「{title}」的游戏文件夹" },
+  es: { description: "Descripción", rating: "Valoración en Silvergames", votes: "votos", ageRating: "Edad recomendada", version: "Versión", openGameFolder: "Abrir la carpeta del juego {title}" },
+  fr: { description: "Description", rating: "Note Silvergames", votes: "votes", ageRating: "Âge recommandé", version: "Version", openGameFolder: "Ouvrir le dossier du jeu {title}" },
+  de: { description: "Beschreibung", rating: "Silvergames-Bewertung", votes: "Stimmen", ageRating: "Altersempfehlung", version: "Version", openGameFolder: "Den Spielordner von {title} öffnen" },
+  "pt-BR": { description: "Descrição", rating: "Avaliação no Silvergames", votes: "votos", ageRating: "Faixa etária", version: "Versão", openGameFolder: "Abrir a pasta do jogo {title}" },
+  ja: { description: "説明", rating: "Silvergames 評価", votes: "票", ageRating: "対象年齢", version: "バージョン", openGameFolder: "「{title}」のゲームフォルダーを開く" },
+  ko: { description: "설명", rating: "Silvergames 평점", votes: "표", ageRating: "권장 연령", version: "버전", openGameFolder: "{title} 게임 폴더 열기" },
+  hi: { description: "विवरण", rating: "Silvergames रेटिंग", votes: "वोट", ageRating: "आयु रेटिंग", version: "संस्करण", openGameFolder: "{title} का गेम फ़ोल्डर खोलें" },
+  ar: { description: "الوصف", rating: "تقييم Silvergames", votes: "أصوات", ageRating: "التصنيف العمري", version: "الإصدار", openGameFolder: "فتح مجلد اللعبة {title}" },
+  ru: { description: "Описание", rating: "Рейтинг Silvergames", votes: "голосов", ageRating: "Возрастной рейтинг", version: "Версия", openGameFolder: "Открыть папку игры «{title}»" },
+};
+
+export const exploreCoverLabels: Record<Language, string> = {
+  en: "Imported from catalog",
+  zh: "从游戏目录导入",
+  es: "Importada del catálogo",
+  fr: "Importée depuis le catalogue",
+  de: "Aus dem Katalog importiert",
+  "pt-BR": "Importada do catálogo",
+  ja: "カタログからインポート",
+  ko: "카탈로그에서 가져옴",
+  hi: "कैटलॉग से आयातित",
+  ar: "مستوردة من الكتالوج",
+  ru: "Импортирована из каталога",
+};
+
+export const userRatingLabels: Record<Language, { title: string; clear: string }> = {
+  en: { title: "Your rating", clear: "Clear rating" },
+  zh: { title: "我的评分", clear: "清除评分" },
+  es: { title: "Tu valoración", clear: "Borrar valoración" },
+  fr: { title: "Votre note", clear: "Effacer la note" },
+  de: { title: "Deine Bewertung", clear: "Bewertung löschen" },
+  "pt-BR": { title: "Sua avaliação", clear: "Limpar avaliação" },
+  ja: { title: "自分の評価", clear: "評価を消去" },
+  ko: { title: "내 평점", clear: "평점 지우기" },
+  hi: { title: "आपकी रेटिंग", clear: "रेटिंग हटाएँ" },
+  ar: { title: "تقييمك", clear: "مسح التقييم" },
+  ru: { title: "Ваша оценка", clear: "Сбросить оценку" },
+};
+
+export const compatibilitySettingsLabels: Record<Language, { standalone: string; fixScaling: string; online: string; resources: string; reopen: string; invalidResource: string; blockResource: string; unblockResource: string; copyResource: string; resourceCopied: string; noResources: string }> = {
+  en: { standalone: "Standalone compatibility", fixScaling: "Fix scaling / zoom", online: "Allow online features", resources: "Discovered public resources", reopen: "Reopen this game's player to apply this setting", invalidResource: "Only public HTTP or HTTPS resources without credentials or query strings can be relayed.", blockResource: "Block", unblockResource: "Unblock", copyResource: "Copy link", resourceCopied: "Copied to clipboard", noResources: "Resources appear here as the game loads them." },
+  zh: { standalone: "独立播放器兼容模式", fixScaling: "修复缩放比例", online: "允许在线功能", resources: "自动发现的公开资源", reopen: "重新打开此游戏的播放器以应用此设置", invalidResource: "仅可中继不含凭据或查询参数的公开 HTTP 或 HTTPS 资源。", blockResource: "屏蔽", unblockResource: "取消屏蔽", copyResource: "复制链接", resourceCopied: "已复制到剪贴板", noResources: "游戏加载资源后，资源会显示在这里。" },
+  es: { standalone: "Compatibilidad con reproductor independiente", fixScaling: "Corregir escala / zoom", online: "Permitir funciones en línea", resources: "Recursos públicos detectados", reopen: "Vuelve a abrir el reproductor de este juego para aplicar este ajuste", invalidResource: "Solo se pueden retransmitir recursos HTTP o HTTPS públicos sin credenciales ni parámetros de consulta.", blockResource: "Bloquear", unblockResource: "Permitir", copyResource: "Copiar enlace", resourceCopied: "Copiado al portapapeles", noResources: "Los recursos aparecerán aquí cuando el juego los cargue." },
+  fr: { standalone: "Compatibilité avec le lecteur autonome", fixScaling: "Corriger l’échelle / le zoom", online: "Autoriser les fonctions en ligne", resources: "Ressources publiques détectées", reopen: "Rouvrez le lecteur de ce jeu pour appliquer ce paramètre", invalidResource: "Seules les ressources HTTP ou HTTPS publiques sans identifiants ni paramètres peuvent être relayées.", blockResource: "Bloquer", unblockResource: "Débloquer", copyResource: "Copier le lien", resourceCopied: "Copié dans le presse-papiers", noResources: "Les ressources apparaîtront ici lorsque le jeu les chargera." },
+  de: { standalone: "Kompatibilität mit eigenständigem Player", fixScaling: "Skalierung / Zoom korrigieren", online: "Online-Funktionen erlauben", resources: "Erkannte öffentliche Ressourcen", reopen: "Den Player dieses Spiels erneut öffnen, um diese Einstellung anzuwenden", invalidResource: "Nur öffentliche HTTP- oder HTTPS-Ressourcen ohne Zugangsdaten oder Abfrageparameter können weitergeleitet werden.", blockResource: "Blockieren", unblockResource: "Freigeben", copyResource: "Link kopieren", resourceCopied: "In die Zwischenablage kopiert", noResources: "Ressourcen werden hier angezeigt, sobald das Spiel sie lädt." },
+  "pt-BR": { standalone: "Compatibilidade com player independente", fixScaling: "Corrigir escala / zoom", online: "Permitir funções online", resources: "Recursos públicos detectados", reopen: "Reabra o player deste jogo para aplicar esta configuração", invalidResource: "Somente recursos HTTP ou HTTPS públicos sem credenciais ou parâmetros podem ser retransmitidos.", blockResource: "Bloquear", unblockResource: "Desbloquear", copyResource: "Copiar link", resourceCopied: "Copiado para a área de transferência", noResources: "Os recursos aparecerão aqui quando o jogo carregá-los." },
+  ja: { standalone: "単体プレイヤー互換モード", fixScaling: "拡大縮小を補正", online: "オンライン機能を許可", resources: "検出された公開リソース", reopen: "この設定を適用するには、このゲームのプレイヤーを開き直してください", invalidResource: "認証情報やクエリパラメーターのない公開 HTTP/HTTPS リソースのみ中継できます。", blockResource: "ブロック", unblockResource: "許可", copyResource: "リンクをコピー", resourceCopied: "クリップボードにコピーしました", noResources: "ゲームがリソースを読み込むと、ここに表示されます。" },
+  ko: { standalone: "독립 플레이어 호환 모드", fixScaling: "배율 / 확대 보정", online: "온라인 기능 허용", resources: "검색된 공개 리소스", reopen: "이 설정을 적용하려면 이 게임의 플레이어를 다시 여세요", invalidResource: "인증 정보나 쿼리 문자열이 없는 공개 HTTP 또는 HTTPS 리소스만 중계할 수 있습니다.", blockResource: "차단", unblockResource: "허용", copyResource: "링크 복사", resourceCopied: "클립보드에 복사됨", noResources: "게임이 리소스를 불러오면 여기에 표시됩니다." },
+  hi: { standalone: "स्वतंत्र प्लेयर संगतता", fixScaling: "स्केलिंग / ज़ूम ठीक करें", online: "ऑनलाइन सुविधाएँ अनुमति दें", resources: "पहचाने गए सार्वजनिक संसाधन", reopen: "यह सेटिंग लागू करने के लिए इस गेम का प्लेयर फिर खोलें", invalidResource: "केवल बिना प्रमाण-पत्र या क्वेरी वाले सार्वजनिक HTTP या HTTPS संसाधन रिले किए जा सकते हैं।", blockResource: "ब्लॉक करें", unblockResource: "अनब्लॉक करें", copyResource: "लिंक कॉपी करें", resourceCopied: "क्लिपबोर्ड पर कॉपी किया गया", noResources: "गेम द्वारा संसाधन लोड करने पर वे यहाँ दिखेंगे।" },
+  ar: { standalone: "توافق المشغل المستقل", fixScaling: "إصلاح التحجيم / التكبير", online: "السماح بالميزات عبر الإنترنت", resources: "الموارد العامة المكتشفة", reopen: "أعد فتح مشغل هذه اللعبة لتطبيق هذا الإعداد", invalidResource: "يمكن ترحيل موارد HTTP أو HTTPS العامة فقط دون بيانات اعتماد أو معاملات استعلام.", blockResource: "حظر", unblockResource: "إلغاء الحظر", copyResource: "نسخ الرابط", resourceCopied: "تم النسخ إلى الحافظة", noResources: "ستظهر الموارد هنا عند تحميلها بواسطة اللعبة." },
+  ru: { standalone: "Совместимость с автономным плеером", fixScaling: "Исправить масштабирование / масштаб", online: "Разрешить онлайн-функции", resources: "Обнаруженные общедоступные ресурсы", reopen: "Откройте плеер этой игры заново, чтобы применить эту настройку", invalidResource: "Можно передавать только общедоступные HTTP- или HTTPS-ресурсы без учётных данных и параметров запроса.", blockResource: "Заблокировать", unblockResource: "Разблокировать", copyResource: "Копировать ссылку", resourceCopied: "Скопировано в буфер обмена", noResources: "Ресурсы появятся здесь, когда игра их загрузит." },
 };
 
 export const confirmationActionLabels: Record<Language, { cancel: string; delete: string; deleteFiles: string; keepFiles: string }> = {
