@@ -5,7 +5,10 @@ contextBridge.exposeInMainWorld("flashApi", {
   getAssetBaseUrl: () => ipcRenderer.invoke("library:getAssetBaseUrl"),
   getAppInfo: () => ipcRenderer.invoke("app:getInfo"),
   checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
+  getCheckForUpdatesOnStart: () => ipcRenderer.invoke("app:getCheckForUpdatesOnStart"),
+  setCheckForUpdatesOnStart: (enabled) => ipcRenderer.invoke("app:setCheckForUpdatesOnStart", enabled),
   openUpdatePage: (releaseUrl) => ipcRenderer.invoke("app:openUpdatePage", releaseUrl),
+  installUpdate: (version, unblock) => ipcRenderer.invoke("app:installUpdate", version, unblock),
   getStartInFullscreen: () => ipcRenderer.invoke("app:getStartInFullscreen"),
   setStartInFullscreen: (enabled) => ipcRenderer.invoke("app:setStartInFullscreen", enabled),
   getMinimizeToTrayOnGameLaunch: () => ipcRenderer.invoke("app:getMinimizeToTrayOnGameLaunch"),
@@ -13,6 +16,8 @@ contextBridge.exposeInMainWorld("flashApi", {
   getMinimizeToTrayOnMinimize: () => ipcRenderer.invoke("app:getMinimizeToTrayOnMinimize"),
   setMinimizeToTrayOnMinimize: (enabled) => ipcRenderer.invoke("app:setMinimizeToTrayOnMinimize", enabled),
   getExploreAvailability: () => ipcRenderer.invoke("app:getExploreAvailability"),
+  getAndkonEnabled: () => ipcRenderer.invoke("app:getAndkonEnabled"),
+  setAndkonEnabled: (enabled) => ipcRenderer.invoke("app:setAndkonEnabled", enabled),
   setExploreEnabled: (enabled) => ipcRenderer.invoke("app:setExploreEnabled", enabled),
   onAppVisibilityChanged: (callback) => {
     const listener = (_event, visible) => callback(visible);
@@ -21,15 +26,16 @@ contextBridge.exposeInMainWorld("flashApi", {
   },
   copyPublicResourceUrl: (gameId, url) => ipcRenderer.invoke("library:copyPublicResourceUrl", gameId, url),
   openGameFolder: (gameId) => ipcRenderer.invoke("library:openGameFolder", gameId),
+  getSwfMetadata: (gameId) => ipcRenderer.invoke("library:getSwfMetadata", gameId),
   openRepository: () => ipcRenderer.invoke("app:openRepository"),
   openOriginalAuthorRepository: () => ipcRenderer.invoke("app:openOriginalAuthorRepository"),
   openExplore: () => ipcRenderer.invoke("app:openExplore"),
-  listExploreGames: (query, page, pageSize, sortMode, ascending) =>
-    ipcRenderer.invoke("explore:list", query, page, pageSize, sortMode, ascending),
-  openExploreSite: () => ipcRenderer.invoke("explore:openSite"),
-  openExploreDetails: (id) => ipcRenderer.invoke("explore:openDetails", id),
-  getExploreGameDetails: (id) => ipcRenderer.invoke("explore:getDetails", id),
-  importExploreGame: (id, language) => ipcRenderer.invoke("explore:import", id, language),
+  listExploreGames: (query, page, pageSize, sortMode, ascending, source) =>
+    ipcRenderer.invoke("explore:list", query, page, pageSize, sortMode, ascending, source),
+  openExploreSite: (source) => ipcRenderer.invoke("explore:openSite", source),
+  openExploreDetails: (id, source) => ipcRenderer.invoke("explore:openDetails", id, source),
+  getExploreGameDetails: (id, source) => ipcRenderer.invoke("explore:getDetails", id, source),
+  importExploreGame: (id, language, source) => ipcRenderer.invoke("explore:import", id, language, source),
   getExploreImportProgress: () => ipcRenderer.invoke("explore:getImportProgress"),
   onExploreImportProgress: (callback) => {
     const listener = (_event, progress) => callback(progress);
@@ -53,6 +59,7 @@ contextBridge.exposeInMainWorld("flashApi", {
     return () => ipcRenderer.removeListener("library:exploreChanged", listener);
   },
   openPlayer: (game, language) => ipcRenderer.invoke("player:open", game, language),
+  openOnlineOnlyGame: (gameId, language) => ipcRenderer.invoke("player:openOnlineOnly", gameId, language),
   closePlayer: (gameId) => ipcRenderer.invoke("player:close", gameId),
   getRunningPlayers: () => ipcRenderer.invoke("player:getRunning"),
   onCloseBlocked: (callback) => {

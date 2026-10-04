@@ -42,6 +42,7 @@ function getGamePaths(gamesRoot, game) {
     coverDirectory,
     coverPath: (extension = ".svg") => path.join(coverDirectory, `cover${extension}`),
     settingsPath: path.join(directory, "settings.json"),
+    swfMetadataPath: path.join(directory, "swf-metadata.json"),
     savesDirectory: path.join(directory, "saves"),
     musicDirectory,
     defaultMusicDirectory,
@@ -69,7 +70,7 @@ async function moveMissingContents(sourceDirectory, targetDirectory) {
   }
 }
 
-async function migrateGameStorage(gamesRoot, legacyCoversRoot, game, previousGame = game, coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".svg"]) {
+async function migrateGameStorage(gamesRoot, legacyCoversRoot, game, previousGame = game, coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"]) {
   const oldFolder = savedFolderName(previousGame || {})
     ? path.join(gamesRoot, savedFolderName(previousGame))
     : path.join(gamesRoot, game.id);
@@ -87,24 +88,26 @@ async function migrateGameStorage(gamesRoot, legacyCoversRoot, game, previousGam
   await fs.mkdir(paths.customMusicDirectory, { recursive: true });
 
   const oldSwfPath = previousGame?.filePath;
-  const swfCandidates = [
-    oldSwfPath && path.join(paths.directory, path.basename(oldSwfPath)),
-    path.join(paths.directory, "game.swf"),
-    oldSwfPath,
-  ].filter(Boolean);
-  if (!(await exists(paths.swfPath))) {
-    const source = await swfCandidates.reduce(async (found, candidate) => (await found) || (await exists(candidate) ? candidate : null), Promise.resolve(null));
-    if (!source) throw new Error(`Missing SWF for ${game.title}`);
-    if (path.resolve(source) === path.resolve(oldSwfPath || "")) {
-      const sourceDirectory = path.resolve(path.dirname(source));
-      if (sourceDirectory === path.resolve(paths.directory)) await fs.rename(source, paths.swfPath);
-      else await fs.copyFile(source, paths.swfPath);
-    } else {
-      await fs.rename(source, paths.swfPath);
+  if (!game.onlineOnly) {
+    const swfCandidates = [
+      oldSwfPath && path.join(paths.directory, path.basename(oldSwfPath)),
+      path.join(paths.directory, "game.swf"),
+      oldSwfPath,
+    ].filter(Boolean);
+    if (!(await exists(paths.swfPath))) {
+      const source = await swfCandidates.reduce(async (found, candidate) => (await found) || (await exists(candidate) ? candidate : null), Promise.resolve(null));
+      if (!source) throw new Error(`Missing SWF for ${game.title}`);
+      if (path.resolve(source) === path.resolve(oldSwfPath || "")) {
+        const sourceDirectory = path.resolve(path.dirname(source));
+        if (sourceDirectory === path.resolve(paths.directory)) await fs.rename(source, paths.swfPath);
+        else await fs.copyFile(source, paths.swfPath);
+      } else {
+        await fs.rename(source, paths.swfPath);
+      }
     }
   }
   game.folderName = paths.folderName;
-  game.filePath = paths.swfPath;
+  game.filePath = game.onlineOnly ? "" : paths.swfPath;
 
   let coverSource = previousGame?.coverPath && await exists(previousGame.coverPath) ? previousGame.coverPath : null;
   if (!coverSource && legacyCoversRoot) {

@@ -1,6 +1,6 @@
 {
   "name": "flash-royale",
-  "version": "0.8.9",
+  "version": "0.9.6",
   "private": true,
   "description": "Local Flash game library manager powered by Electron, React, and Ruffle.",
   "author": "MCC321-QC",
@@ -36,6 +36,7 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
+      "!electron/*.test.*",
       "assets/**/*",
       "public/ruffle/**/*",
       "package.json"

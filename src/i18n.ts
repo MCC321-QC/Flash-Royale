@@ -482,6 +482,20 @@ export const stopPlayingLabels: Record<Language, string> = {
   ru: "Остановить игру",
 };
 
+export const gamePanelLabels: Record<Language, { info: string; settings: string; back: string; on: string; off: string; stage: string }> = {
+  en: { info: "Game info", settings: "Game settings", back: "Back to game info", on: "Enabled", off: "Disabled", stage: "Stage size" },
+  zh: { info: "游戏信息", settings: "游戏设置", back: "返回游戏信息", on: "已启用", off: "已禁用", stage: "舞台尺寸" },
+  es: { info: "Información del juego", settings: "Ajustes del juego", back: "Volver a la información", on: "Activado", off: "Desactivado", stage: "Tamaño del escenario" },
+  fr: { info: "Informations du jeu", settings: "Paramètres du jeu", back: "Retour aux informations du jeu", on: "Activé", off: "Désactivé", stage: "Dimensions de la scène" },
+  de: { info: "Spielinformationen", settings: "Spieleinstellungen", back: "Zurück zu den Spielinformationen", on: "Aktiviert", off: "Deaktiviert", stage: "Bühnengröße" },
+  "pt-BR": { info: "Informações do jogo", settings: "Configurações do jogo", back: "Voltar às informações", on: "Ativado", off: "Desativado", stage: "Tamanho do palco" },
+  ja: { info: "ゲーム情報", settings: "ゲーム設定", back: "ゲーム情報に戻る", on: "有効", off: "無効", stage: "ステージサイズ" },
+  ko: { info: "게임 정보", settings: "게임 설정", back: "게임 정보로 돌아가기", on: "사용", off: "사용 안 함", stage: "스테이지 크기" },
+  hi: { info: "गेम की जानकारी", settings: "गेम सेटिंग्स", back: "गेम की जानकारी पर वापस जाएँ", on: "सक्रिय", off: "निष्क्रिय", stage: "स्टेज आकार" },
+  ar: { info: "معلومات اللعبة", settings: "إعدادات اللعبة", back: "العودة إلى معلومات اللعبة", on: "مفعّل", off: "معطّل", stage: "حجم المسرح" },
+  ru: { info: "Информация об игре", settings: "Настройки игры", back: "Вернуться к информации об игре", on: "Включено", off: "Отключено", stage: "Размер сцены" },
+};
+
 export const detailPanelLabels: Record<Language, { show: string; hide: string; resize: string }> = {
   en: { show: "Show game details", hide: "Hide game details", resize: "Resize game details panel" },
   zh: { show: "显示游戏详情", hide: "隐藏游戏详情", resize: "调整游戏详情面板宽度" },
@@ -538,6 +552,104 @@ export const updateActionLabels: Record<Language, string> = {
   ru: "Обновить",
 };
 
+export const portableUpdateLabels: Record<Language, { install: string; busy: string; consent: string; warning: string; failed: string }> = {
+  en: { install: "Install and restart", busy: "Downloading and verifying update...", consent: "Unblock the verified update files (remove Mark of the Web)", warning: "The app will close and restart. Your library is preserved. Close games and Explore first. Unblocking does not bypass Smart App Control or replace code signing.", failed: "Could not install the update" },
+  zh: { install: "安装并重启", busy: "正在下载并验证更新...", consent: "解除已验证更新文件的阻止（移除网络来源标记）", warning: "应用将关闭并重启，游戏库会保留。请先关闭游戏和探索。解除阻止不会绕过智能应用控制，也不能替代代码签名。", failed: "无法安装更新" },
+  es: { install: "Instalar y reiniciar", busy: "Descargando y verificando la actualización...", consent: "Desbloquear los archivos verificados (quitar la marca de Internet)", warning: "La aplicación se cerrará y reiniciará. Se conservará la biblioteca. Cierra los juegos y Explorar primero. Desbloquear no evita Smart App Control ni sustituye la firma de código.", failed: "No se pudo instalar la actualización" },
+  fr: { install: "Installer et redémarrer", busy: "Téléchargement et vérification de la mise à jour...", consent: "Débloquer les fichiers vérifiés (retirer la marque de provenance Internet)", warning: "L’application va se fermer et redémarrer. La bibliothèque sera conservée. Fermez les jeux et Explorer d’abord. Le déblocage ne contourne pas Smart App Control et ne remplace pas la signature du code.", failed: "Impossible d’installer la mise à jour" },
+  de: { install: "Installieren und neu starten", busy: "Update wird heruntergeladen und geprüft...", consent: "Geprüfte Update-Dateien entsperren (Internet-Herkunftsmarkierung entfernen)", warning: "Die App wird geschlossen und neu gestartet. Die Bibliothek bleibt erhalten. Zuerst Spiele und das Entdecken-Fenster schließen. Entsperren umgeht Smart App Control nicht und ersetzt keine Codesignatur.", failed: "Update konnte nicht installiert werden" },
+  "pt-BR": { install: "Instalar e reiniciar", busy: "Baixando e verificando a atualização...", consent: "Desbloquear arquivos verificados (remover a marca da Internet)", warning: "O app será fechado e reiniciado. A biblioteca será preservada. Feche os jogos e Explorar primeiro. Desbloquear não contorna o Smart App Control nem substitui a assinatura de código.", failed: "Não foi possível instalar a atualização" },
+  ja: { install: "インストールして再起動", busy: "更新をダウンロードして検証中...", consent: "検証済みの更新ファイルのブロックを解除（ネット由来のマークを削除）", warning: "アプリを終了して再起動します。ライブラリは保持されます。先にゲームと探索を閉じてください。ブロック解除は Smart App Control の回避やコード署名の代わりにはなりません。", failed: "更新をインストールできませんでした" },
+  ko: { install: "설치 및 재시작", busy: "업데이트 다운로드 및 검증 중...", consent: "검증된 업데이트 파일 차단 해제 (인터넷 출처 표시 제거)", warning: "앱을 종료하고 다시 시작합니다. 라이브러리는 유지됩니다. 먼저 게임과 탐색을 닫으세요. 차단 해제는 Smart App Control을 우회하거나 코드 서명을 대체하지 않습니다.", failed: "업데이트를 설치할 수 없습니다" },
+  hi: { install: "इंस्टॉल करें और पुनः शुरू करें", busy: "अपडेट डाउनलोड और सत्यापित हो रहा है...", consent: "सत्यापित अपडेट फ़ाइलों का अवरोध हटाएँ (इंटरनेट स्रोत चिह्न हटाएँ)", warning: "ऐप बंद होकर फिर शुरू होगा। लाइब्रेरी सुरक्षित रहेगी। पहले गेम और खोज विंडो बंद करें। अवरोध हटाना Smart App Control को बायपास नहीं करता और कोड हस्ताक्षर का विकल्प नहीं है।", failed: "अपडेट इंस्टॉल नहीं हो सका" },
+  ar: { install: "تثبيت وإعادة تشغيل", busy: "جارٍ تنزيل التحديث والتحقق منه...", consent: "إلغاء حظر ملفات التحديث التي تم التحقق منها (إزالة علامة مصدر الإنترنت)", warning: "سيتم إغلاق التطبيق وإعادة تشغيله مع الاحتفاظ بالمكتبة. أغلق الألعاب والاستكشاف أولاً. إلغاء الحظر لا يتجاوز Smart App Control ولا يحل محل توقيع الكود.", failed: "تعذّر تثبيت التحديث" },
+  ru: { install: "Установить и перезапустить", busy: "Загрузка и проверка обновления...", consent: "Разблокировать проверенные файлы обновления (удалить метку Интернета)", warning: "Приложение закроется и перезапустится. Библиотека сохранится. Сначала закройте игры и поиск игр. Разблокировка не обходит Smart App Control и не заменяет подпись кода.", failed: "Не удалось установить обновление" },
+};
+
+export const showOnlineOnlyOfflineLabels: Record<Language, string> = {
+  en: "Show online only game even when offline",
+  zh: "离线时仍显示仅限在线游戏",
+  es: "Mostrar juegos solo en línea incluso sin conexión",
+  fr: "Afficher les jeux en ligne même hors connexion",
+  de: "Online-Spiele auch offline anzeigen",
+  "pt-BR": "Mostrar jogos online mesmo sem conexão",
+  ja: "オフラインでもオンライン専用ゲームを表示",
+  ko: "오프라인에서도 온라인 전용 게임 표시",
+  hi: "ऑफलाइन होने पर भी केवल ऑनलाइन गेम दिखाएँ",
+  ar: "عرض الألعاب المتصلة حتى دون اتصال بالإنترنت",
+  ru: "Показывать онлайн-игры даже без интернета",
+};
+
+export const gameCardTagsLabels: Record<Language, string> = {
+  en: "Enable tags in gamecard",
+  zh: "在游戏卡片中显示标签",
+  es: "Mostrar etiquetas en las tarjetas de juegos",
+  fr: "Afficher les tags sur les cartes de jeux",
+  de: "Tags auf Spielkarten anzeigen",
+  "pt-BR": "Mostrar tags nos cartões de jogos",
+  ja: "ゲームカードにタグを表示",
+  ko: "게임 카드에 태그 표시",
+  hi: "गेम कार्ड में टैग दिखाएँ",
+  ar: "عرض الوسوم في بطاقات الألعاب",
+  ru: "Показывать теги на карточках игр",
+};
+
+export const andkonSettingsLabels: Record<Language, { enable: string; warning: string }> = {
+  en: { enable: "Enable Andkon.com catalogue", warning: "Low compatibility: many games are domain-locked and cannot be played offline." },
+  zh: { enable: "启用 Andkon.com 游戏目录", warning: "兼容性较低：许多游戏限制运行域名，无法离线游玩。" },
+  es: { enable: "Activar el catálogo de Andkon.com", warning: "Compatibilidad baja: muchos juegos están restringidos al dominio y no funcionan sin conexión." },
+  fr: { enable: "Activer le catalogue Andkon.com", warning: "Faible compatibilité : de nombreux jeux sont limités au domaine et ne fonctionnent pas hors ligne." },
+  de: { enable: "Andkon.com-Katalog aktivieren", warning: "Geringe Kompatibilität: Viele Spiele sind an die Domain gebunden und funktionieren nicht offline." },
+  "pt-BR": { enable: "Ativar catálogo Andkon.com", warning: "Baixa compatibilidade: muitos jogos são restritos ao domínio e não funcionam offline." },
+  ja: { enable: "Andkon.com カタログを有効にする", warning: "互換性が低く、多くのゲームはドメイン制限によりオフラインで遊べません。" },
+  ko: { enable: "Andkon.com 카탈로그 활성화", warning: "호환성이 낮습니다. 많은 게임이 도메인 제한으로 오프라인에서 실행되지 않습니다." },
+  hi: { enable: "Andkon.com कैटलॉग सक्षम करें", warning: "कम संगतता: कई गेम डोमेन तक सीमित हैं और ऑफलाइन नहीं खेले जा सकते।" },
+  ar: { enable: "تفعيل كتالوج Andkon.com", warning: "توافق منخفض: العديد من الألعاب مقيدة بالنطاق ولا تعمل دون اتصال." },
+  ru: { enable: "Включить каталог Andkon.com", warning: "Низкая совместимость: многие игры привязаны к домену и не работают без интернета." },
+};
+
+export const silvergamesAddedDateLabels: Record<Language, string> = {
+  en: "Added to SilverGames",
+  zh: "添加到 SilverGames",
+  es: "Añadido a SilverGames",
+  fr: "Ajouté sur SilverGames",
+  de: "Zu SilverGames hinzugefügt",
+  "pt-BR": "Adicionado ao SilverGames",
+  ja: "SilverGames に追加",
+  ko: "SilverGames 등록일",
+  hi: "SilverGames पर जोड़ा गया",
+  ar: "تاريخ الإضافة إلى SilverGames",
+  ru: "Добавлено на SilverGames",
+};
+
+export const y8MetadataLabels: Record<Language, { likes: string; added: string; onlineOnly: string; addOnlineOnly: string }> = {
+  en: { likes: "Likes", added: "Added to Y8", onlineOnly: "Online only", addOnlineOnly: "Add online-only game" },
+  zh: { likes: "点赞", added: "添加到 Y8", onlineOnly: "仅限在线", addOnlineOnly: "添加仅限在线游戏" },
+  es: { likes: "Me gusta", added: "Añadido a Y8", onlineOnly: "Solo en línea", addOnlineOnly: "Añadir juego solo en línea" },
+  fr: { likes: "Mentions J’aime", added: "Ajouté sur Y8", onlineOnly: "En ligne uniquement", addOnlineOnly: "Ajouter le jeu en ligne" },
+  de: { likes: "Gefällt mir", added: "Zu Y8 hinzugefügt", onlineOnly: "Nur online", addOnlineOnly: "Online-Spiel hinzufügen" },
+  "pt-BR": { likes: "Curtidas", added: "Adicionado ao Y8", onlineOnly: "Somente online", addOnlineOnly: "Adicionar jogo somente online" },
+  ja: { likes: "いいね", added: "Y8 に追加", onlineOnly: "オンライン専用", addOnlineOnly: "オンライン専用ゲームを追加" },
+  ko: { likes: "좋아요", added: "Y8 등록일", onlineOnly: "온라인 전용", addOnlineOnly: "온라인 전용 게임 추가" },
+  hi: { likes: "पसंद", added: "Y8 पर जोड़ा गया", onlineOnly: "केवल ऑनलाइन", addOnlineOnly: "केवल ऑनलाइन गेम जोड़ें" },
+  ar: { likes: "الإعجابات", added: "تاريخ الإضافة إلى Y8", onlineOnly: "عبر الإنترنت فقط", addOnlineOnly: "إضافة لعبة عبر الإنترنت فقط" },
+  ru: { likes: "Отметки «Нравится»", added: "Добавлено на Y8", onlineOnly: "Только онлайн", addOnlineOnly: "Добавить онлайн-игру" },
+};
+
+export const startupUpdateCheckLabels: Record<Language, string> = {
+  en: "Check for updates on app start",
+  zh: "启动应用时检查更新",
+  es: "Buscar actualizaciones al iniciar la aplicación",
+  fr: "Rechercher des mises à jour au démarrage",
+  de: "Beim App-Start nach Updates suchen",
+  "pt-BR": "Verificar atualizações ao iniciar o app",
+  ja: "アプリ起動時に更新を確認",
+  ko: "앱 시작 시 업데이트 확인",
+  hi: "ऐप शुरू होने पर अपडेट जाँचें",
+  ar: "التحقق من التحديثات عند بدء التطبيق",
+  ru: "Проверять обновления при запуске приложения",
+};
+
 export const generalSettingsLabels: Record<Language, { general: string; startInFullscreen: string; minimizeToTrayOnGameLaunch: string; minimizeToTrayOnMinimize: string; nextLaunch: string }> = {
   en: { general: "General", startInFullscreen: "Start app in fullscreen", minimizeToTrayOnGameLaunch: "Minimize to notification area on game launch", minimizeToTrayOnMinimize: "Minimize main window to notification area", nextLaunch: "Fullscreen takes effect the next time the app starts." },
   zh: { general: "常规", startInFullscreen: "启动时全屏", minimizeToTrayOnGameLaunch: "启动游戏时最小化到通知区域", minimizeToTrayOnMinimize: "将主窗口最小化到通知区域", nextLaunch: "全屏设置将在下次启动应用时生效。" },
@@ -552,32 +664,32 @@ export const generalSettingsLabels: Record<Language, { general: string; startInF
   ru: { general: "Общие", startInFullscreen: "Запускать приложение в полноэкранном режиме", minimizeToTrayOnGameLaunch: "Сворачивать в область уведомлений при запуске игры", minimizeToTrayOnMinimize: "Сворачивать главное окно в область уведомлений", nextLaunch: "Полноэкранный режим будет включён при следующем запуске приложения." },
 };
 
-export const exploreSettingsLabels: Record<Language, { enable: string; disabled: string; offline: string; checking: string; open: string }> = {
-  en: { enable: "Enable Explore (requires internet)", disabled: "Explore is disabled in settings", offline: "Explore unavailable: no internet connection to Silvergames", checking: "Checking Silvergames connection", open: "Explore Flash games" },
-  zh: { enable: "启用探索（需要网络）", disabled: "探索已在设置中关闭", offline: "无法连接 Silvergames，请检查网络", checking: "正在检查 Silvergames 连接", open: "探索 Flash 游戏" },
-  es: { enable: "Activar Explorar (requiere internet)", disabled: "Explorar está desactivado en ajustes", offline: "No hay conexión a Silvergames", checking: "Comprobando la conexión a Silvergames", open: "Explorar juegos Flash" },
-  fr: { enable: "Activer Explorer (internet requis)", disabled: "Explorer est désactivé dans les paramètres", offline: "Impossible de se connecter à Silvergames", checking: "Vérification de la connexion à Silvergames", open: "Explorer les jeux Flash" },
-  de: { enable: "Explore aktivieren (Internet erforderlich)", disabled: "Explore ist in den Einstellungen deaktiviert", offline: "Keine Verbindung zu Silvergames", checking: "Verbindung zu Silvergames wird geprüft", open: "Flash-Spiele entdecken" },
-  "pt-BR": { enable: "Ativar Explorar (requer internet)", disabled: "Explorar está desativado nas configurações", offline: "Sem conexão com Silvergames", checking: "Verificando conexão com Silvergames", open: "Explorar jogos Flash" },
-  ja: { enable: "探索を有効にする（インターネットが必要）", disabled: "設定で探索が無効です", offline: "Silvergames に接続できません", checking: "Silvergames への接続を確認中", open: "Flash ゲームを探す" },
-  ko: { enable: "탐색 사용 (인터넷 필요)", disabled: "설정에서 탐색이 꺼져 있습니다", offline: "Silvergames에 연결할 수 없습니다", checking: "Silvergames 연결 확인 중", open: "Flash 게임 탐색" },
-  hi: { enable: "एक्सप्लोर चालू करें (इंटरनेट आवश्यक)", disabled: "सेटिंग्स में एक्सप्लोर बंद है", offline: "Silvergames से कनेक्शन नहीं है", checking: "Silvergames कनेक्शन जाँच रहे हैं", open: "Flash गेम खोजें" },
-  ar: { enable: "تفعيل الاستكشاف (يتطلب الإنترنت)", disabled: "الاستكشاف معطل في الإعدادات", offline: "لا يوجد اتصال بـ Silvergames", checking: "جارٍ التحقق من الاتصال بـ Silvergames", open: "استكشاف ألعاب Flash" },
-  ru: { enable: "Включить поиск игр (нужен интернет)", disabled: "Поиск игр отключён в настройках", offline: "Нет соединения с Silvergames", checking: "Проверка соединения с Silvergames", open: "Поиск Flash-игр" },
+export const exploreSettingsLabels: Record<Language, { enable: string; disabled: string; offline: string; checking: string; open: string; button: string }> = {
+  en: { enable: "Enable Explore (requires internet)", disabled: "Explore is disabled in settings", offline: "Explore unavailable: no internet connection to Silvergames", checking: "Checking Silvergames connection", open: "Explore Flash games", button: "Explore" },
+  zh: { enable: "启用探索（需要网络）", disabled: "探索已在设置中关闭", offline: "无法连接 Silvergames，请检查网络", checking: "正在检查 Silvergames 连接", open: "探索 Flash 游戏", button: "探索" },
+  es: { enable: "Activar Explorar (requiere internet)", disabled: "Explorar está desactivado en ajustes", offline: "No hay conexión a Silvergames", checking: "Comprobando la conexión a Silvergames", open: "Explorar juegos Flash", button: "Explorar" },
+  fr: { enable: "Activer Explorer (internet requis)", disabled: "Explorer est désactivé dans les paramètres", offline: "Impossible de se connecter à Silvergames", checking: "Vérification de la connexion à Silvergames", open: "Explorer les jeux Flash", button: "Explorer" },
+  de: { enable: "Flash-Spiele entdecken (Internet erforderlich)", disabled: "Flash-Spiele entdecken ist in den Einstellungen deaktiviert", offline: "Keine Verbindung zu Silvergames", checking: "Verbindung zu Silvergames wird geprüft", open: "Flash-Spiele entdecken", button: "Entdecken" },
+  "pt-BR": { enable: "Ativar Explorar (requer internet)", disabled: "Explorar está desativado nas configurações", offline: "Sem conexão com Silvergames", checking: "Verificando conexão com Silvergames", open: "Explorar jogos Flash", button: "Explorar" },
+  ja: { enable: "探索を有効にする（インターネットが必要）", disabled: "設定で探索が無効です", offline: "Silvergames に接続できません", checking: "Silvergames への接続を確認中", open: "Flash ゲームを探す", button: "探索" },
+  ko: { enable: "탐색 사용 (인터넷 필요)", disabled: "설정에서 탐색이 꺼져 있습니다", offline: "Silvergames에 연결할 수 없습니다", checking: "Silvergames 연결 확인 중", open: "Flash 게임 탐색", button: "탐색" },
+  hi: { enable: "एक्सप्लोर चालू करें (इंटरनेट आवश्यक)", disabled: "सेटिंग्स में एक्सप्लोर बंद है", offline: "Silvergames से कनेक्शन नहीं है", checking: "Silvergames कनेक्शन जाँच रहे हैं", open: "Flash गेम खोजें", button: "खोजें" },
+  ar: { enable: "تفعيل الاستكشاف (يتطلب الإنترنت)", disabled: "الاستكشاف معطل في الإعدادات", offline: "لا يوجد اتصال بـ Silvergames", checking: "جارٍ التحقق من الاتصال بـ Silvergames", open: "استكشاف ألعاب Flash", button: "استكشف" },
+  ru: { enable: "Включить поиск игр (нужен интернет)", disabled: "Поиск игр отключён в настройках", offline: "Нет соединения с Silvergames", checking: "Проверка соединения с Silvergames", open: "Поиск Flash-игр", button: "Обзор" },
 };
 
-export const sourceMetadataLabels: Record<Language, { description: string; rating: string; votes: string; ageRating: string; version: string; openGameFolder: string }> = {
-  en: { description: "Description", rating: "Silvergames rating", votes: "votes", ageRating: "Age rating", version: "Version", openGameFolder: "Open the game folder for {title}" },
-  zh: { description: "描述", rating: "Silvergames 评分", votes: "票", ageRating: "适龄", version: "版本", openGameFolder: "打开「{title}」的游戏文件夹" },
-  es: { description: "Descripción", rating: "Valoración en Silvergames", votes: "votos", ageRating: "Edad recomendada", version: "Versión", openGameFolder: "Abrir la carpeta del juego {title}" },
-  fr: { description: "Description", rating: "Note Silvergames", votes: "votes", ageRating: "Âge recommandé", version: "Version", openGameFolder: "Ouvrir le dossier du jeu {title}" },
-  de: { description: "Beschreibung", rating: "Silvergames-Bewertung", votes: "Stimmen", ageRating: "Altersempfehlung", version: "Version", openGameFolder: "Den Spielordner von {title} öffnen" },
-  "pt-BR": { description: "Descrição", rating: "Avaliação no Silvergames", votes: "votos", ageRating: "Faixa etária", version: "Versão", openGameFolder: "Abrir a pasta do jogo {title}" },
-  ja: { description: "説明", rating: "Silvergames 評価", votes: "票", ageRating: "対象年齢", version: "バージョン", openGameFolder: "「{title}」のゲームフォルダーを開く" },
-  ko: { description: "설명", rating: "Silvergames 평점", votes: "표", ageRating: "권장 연령", version: "버전", openGameFolder: "{title} 게임 폴더 열기" },
-  hi: { description: "विवरण", rating: "Silvergames रेटिंग", votes: "वोट", ageRating: "आयु रेटिंग", version: "संस्करण", openGameFolder: "{title} का गेम फ़ोल्डर खोलें" },
-  ar: { description: "الوصف", rating: "تقييم Silvergames", votes: "أصوات", ageRating: "التصنيف العمري", version: "الإصدار", openGameFolder: "فتح مجلد اللعبة {title}" },
-  ru: { description: "Описание", rating: "Рейтинг Silvergames", votes: "голосов", ageRating: "Возрастной рейтинг", version: "Версия", openGameFolder: "Открыть папку игры «{title}»" },
+export const sourceMetadataLabels: Record<Language, { description: string; instructionsControls: string; authorInfo: string; gameDetails: string; rating: string; votes: string; ageRating: string; uploadDate: string; version: string; swfVersion: string; dimensions: string; frameRate: string; fileSize: string; openGameFolder: string; noTags: string; noCategories: string; showMore: string; showLess: string }> = {
+  en: { description: "Description", instructionsControls: "Instructions & Controls", authorInfo: "Author Info", gameDetails: "Game Details", rating: "Silvergames rating", votes: "votes", ageRating: "Age rating", uploadDate: "Upload date", version: "Version", swfVersion: "SWF version", dimensions: "Dimensions", frameRate: "Frame rate", fileSize: "File size", openGameFolder: "Open the game folder for {title}", noTags: "No tags", noCategories: "No categories", showMore: "Show more", showLess: "Show less" },
+  zh: { description: "描述", instructionsControls: "操作说明与控制方式", authorInfo: "作者信息", gameDetails: "游戏详情", rating: "Silvergames 评分", votes: "票", ageRating: "适龄", uploadDate: "上传日期", version: "版本", swfVersion: "SWF 版本", dimensions: "尺寸", frameRate: "帧率", fileSize: "文件大小", openGameFolder: "打开「{title}」的游戏文件夹", noTags: "暂无标签", noCategories: "暂无分类", showMore: "显示更多", showLess: "收起" },
+  es: { description: "Descripción", instructionsControls: "Instrucciones y controles", authorInfo: "Información del autor", gameDetails: "Detalles del juego", rating: "Valoración en Silvergames", votes: "votos", ageRating: "Edad recomendada", uploadDate: "Fecha de subida", version: "Versión", swfVersion: "Versión SWF", dimensions: "Dimensiones", frameRate: "Frecuencia de fotogramas", fileSize: "Tamaño del archivo", openGameFolder: "Abrir la carpeta del juego {title}", noTags: "Sin etiquetas", noCategories: "Sin categorías", showMore: "Mostrar más", showLess: "Mostrar menos" },
+  fr: { description: "Description", instructionsControls: "Instructions et commandes", authorInfo: "Informations sur l’auteur", gameDetails: "Détails du jeu", rating: "Note Silvergames", votes: "votes", ageRating: "Âge recommandé", uploadDate: "Date d’envoi", version: "Version", swfVersion: "Version SWF", dimensions: "Dimensions", frameRate: "Fréquence d’images", fileSize: "Taille du fichier", openGameFolder: "Ouvrir le dossier du jeu {title}", noTags: "Aucun tag", noCategories: "Aucune catégorie", showMore: "Afficher plus", showLess: "Afficher moins" },
+  de: { description: "Beschreibung", instructionsControls: "Anleitung und Steuerung", authorInfo: "Autoreninfo", gameDetails: "Spieldetails", rating: "Silvergames-Bewertung", votes: "Stimmen", ageRating: "Altersempfehlung", uploadDate: "Upload-Datum", version: "Version", swfVersion: "SWF-Version", dimensions: "Abmessungen", frameRate: "Bildrate", fileSize: "Dateigröße", openGameFolder: "Den Spielordner von {title} öffnen", noTags: "Keine Tags", noCategories: "Keine Kategorien", showMore: "Mehr anzeigen", showLess: "Weniger anzeigen" },
+  "pt-BR": { description: "Descrição", instructionsControls: "Instruções e controles", authorInfo: "Informações do autor", gameDetails: "Detalhes do jogo", rating: "Avaliação no Silvergames", votes: "votos", ageRating: "Faixa etária", uploadDate: "Data de envio", version: "Versão", swfVersion: "Versão SWF", dimensions: "Dimensões", frameRate: "Taxa de quadros", fileSize: "Tamanho do arquivo", openGameFolder: "Abrir a pasta do jogo {title}", noTags: "Sem tags", noCategories: "Sem categorias", showMore: "Mostrar mais", showLess: "Mostrar menos" },
+  ja: { description: "説明", instructionsControls: "操作方法", authorInfo: "作者情報", gameDetails: "ゲームの詳細", rating: "Silvergames 評価", votes: "票", ageRating: "対象年齢", uploadDate: "アップロード日", version: "バージョン", swfVersion: "SWF バージョン", dimensions: "サイズ", frameRate: "フレームレート", fileSize: "ファイルサイズ", openGameFolder: "「{title}」のゲームフォルダーを開く", noTags: "タグはありません", noCategories: "カテゴリはありません", showMore: "続きを読む", showLess: "短く表示" },
+  ko: { description: "설명", instructionsControls: "조작 방법", authorInfo: "제작자 정보", gameDetails: "게임 세부 정보", rating: "Silvergames 평점", votes: "표", ageRating: "권장 연령", uploadDate: "업로드 날짜", version: "버전", swfVersion: "SWF 버전", dimensions: "크기", frameRate: "프레임 속도", fileSize: "파일 크기", openGameFolder: "{title} 게임 폴더 열기", noTags: "태그 없음", noCategories: "카테고리 없음", showMore: "더 보기", showLess: "간략히" },
+  hi: { description: "विवरण", instructionsControls: "निर्देश और नियंत्रण", authorInfo: "लेखक की जानकारी", gameDetails: "गेम विवरण", rating: "Silvergames रेटिंग", votes: "वोट", ageRating: "आयु रेटिंग", uploadDate: "अपलोड तिथि", version: "संस्करण", swfVersion: "SWF संस्करण", dimensions: "आयाम", frameRate: "फ़्रेम दर", fileSize: "फ़ाइल आकार", openGameFolder: "{title} का गेम फ़ोल्डर खोलें", noTags: "कोई टैग नहीं", noCategories: "कोई श्रेणी नहीं", showMore: "और दिखाएँ", showLess: "कम दिखाएँ" },
+  ar: { description: "الوصف", instructionsControls: "التعليمات وعناصر التحكم", authorInfo: "معلومات المؤلف", gameDetails: "تفاصيل اللعبة", rating: "تقييم Silvergames", votes: "أصوات", ageRating: "التصنيف العمري", uploadDate: "تاريخ الرفع", version: "الإصدار", swfVersion: "إصدار SWF", dimensions: "الأبعاد", frameRate: "معدل الإطارات", fileSize: "حجم الملف", openGameFolder: "فتح مجلد اللعبة {title}", noTags: "لا توجد وسوم", noCategories: "لا توجد فئات", showMore: "عرض المزيد", showLess: "عرض أقل" },
+  ru: { description: "Описание", instructionsControls: "Инструкции и управление", authorInfo: "Информация об авторе", gameDetails: "Информация об игре", rating: "Рейтинг Silvergames", votes: "голосов", ageRating: "Возрастной рейтинг", uploadDate: "Дата загрузки", version: "Версия", swfVersion: "Версия SWF", dimensions: "Размеры", frameRate: "Частота кадров", fileSize: "Размер файла", openGameFolder: "Открыть папку игры «{title}»", noTags: "Нет тегов", noCategories: "Нет категорий", showMore: "Показать ещё", showLess: "Свернуть" },
 };
 
 export const exploreCoverLabels: Record<Language, string> = {
@@ -594,6 +706,20 @@ export const exploreCoverLabels: Record<Language, string> = {
   ru: "Импортирована из каталога",
 };
 
+export const exploreDuplicateLabels: Record<Language, { badge: string; of: string; title: string; message: string }> = {
+  en: { badge: "Duplicate", of: "Duplicate of {title}", title: "Game not added", message: "{title} was not added because it is a duplicate of {duplicate}, which is already in your library." },
+  zh: { badge: "重复", of: "与 {title} 重复", title: "未添加游戏", message: "未添加 {title}，因为它与游戏库中已有的 {duplicate} 是同一个游戏文件。" },
+  es: { badge: "Duplicado", of: "Duplicado de {title}", title: "Juego no añadido", message: "No se añadió {title} porque es un duplicado de {duplicate}, que ya está en tu biblioteca." },
+  fr: { badge: "Doublon", of: "Doublon de {title}", title: "Jeu non ajouté", message: "{title} n’a pas été ajouté, car il s’agit d’un doublon de {duplicate}, déjà présent dans votre bibliothèque." },
+  de: { badge: "Duplikat", of: "Duplikat von {title}", title: "Spiel nicht hinzugefügt", message: "{title} wurde nicht hinzugefügt, weil es ein Duplikat von {duplicate} ist, das bereits in deiner Bibliothek vorhanden ist." },
+  "pt-BR": { badge: "Duplicado", of: "Duplicado de {title}", title: "Jogo não adicionado", message: "{title} não foi adicionado porque é uma cópia de {duplicate}, que já está na sua biblioteca." },
+  ja: { badge: "重複", of: "{title} と重複", title: "ゲームは追加されませんでした", message: "{title} は、ライブラリにある {duplicate} と同じゲームファイルのため追加されませんでした。" },
+  ko: { badge: "중복", of: "{title}의 중복", title: "게임이 추가되지 않았습니다", message: "{title}은(는) 라이브러리에 이미 있는 {duplicate}와(과) 동일한 게임 파일이므로 추가되지 않았습니다." },
+  hi: { badge: "डुप्लिकेट", of: "{title} का डुप्लिकेट", title: "गेम नहीं जोड़ा गया", message: "{title} नहीं जोड़ा गया क्योंकि यह {duplicate} का डुप्लिकेट है, जो आपकी लाइब्रेरी में पहले से है।" },
+  ar: { badge: "مكررة", of: "نسخة مكررة من {title}", title: "لم تتم إضافة اللعبة", message: "لم تتم إضافة {title} لأنها نسخة مكررة من {duplicate} الموجودة بالفعل في مكتبتك." },
+  ru: { badge: "Дубликат", of: "Дубликат {title}", title: "Игра не добавлена", message: "{title} не добавлена, потому что это дубликат {duplicate}, которая уже есть в вашей библиотеке." },
+};
+
 export const userRatingLabels: Record<Language, { title: string; clear: string }> = {
   en: { title: "Your rating", clear: "Clear rating" },
   zh: { title: "我的评分", clear: "清除评分" },
@@ -606,6 +732,20 @@ export const userRatingLabels: Record<Language, { title: string; clear: string }
   hi: { title: "आपकी रेटिंग", clear: "रेटिंग हटाएँ" },
   ar: { title: "تقييمك", clear: "مسح التقييم" },
   ru: { title: "Ваша оценка", clear: "Сбросить оценку" },
+};
+
+export const scalingPerformanceHints: Record<Language, string> = {
+  en: "May increase CPU/GPU usage and reduce performance.",
+  zh: "可能增加 CPU/GPU 使用率并降低性能。",
+  es: "Puede aumentar el uso de CPU/GPU y reducir el rendimiento.",
+  fr: "Peut augmenter l’utilisation du processeur et du GPU et réduire les performances.",
+  de: "Kann die CPU/GPU-Auslastung erhöhen und die Leistung verringern.",
+  "pt-BR": "Pode aumentar o uso de CPU/GPU e reduzir o desempenho.",
+  ja: "CPU/GPU の使用率が上がり、動作が遅くなる場合があります。",
+  ko: "CPU/GPU 사용량이 증가하고 성능이 저하될 수 있습니다.",
+  hi: "CPU/GPU का उपयोग बढ़ सकता है और प्रदर्शन कम हो सकता है।",
+  ar: "قد يزيد استخدام المعالج ومعالج الرسومات ويقلل الأداء.",
+  ru: "Может увеличить нагрузку на CPU/GPU и снизить производительность.",
 };
 
 export const compatibilitySettingsLabels: Record<Language, { standalone: string; fixScaling: string; online: string; resources: string; reopen: string; invalidResource: string; blockResource: string; unblockResource: string; copyResource: string; resourceCopied: string; noResources: string }> = {

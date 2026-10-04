@@ -2,6 +2,14 @@ import type { Language } from "./i18n";
 
 export type CoverStatus = "fallback" | "captured" | "custom" | "explore";
 
+export interface SwfMetadata {
+  swfVersion: number | null;
+  stageWidth: number | null;
+  stageHeight: number | null;
+  frameRate: number | null;
+  fileSizeBytes: number | null;
+}
+
 export interface Game {
   id: string;
   title: string;
@@ -11,6 +19,8 @@ export interface Game {
   coverPath: string;
   coverUrl: string;
   swfUrl: string;
+  onlineOnly?: boolean;
+  onlineUrl?: string;
   tags: string[];
   category: string;
   description?: string;
@@ -36,6 +46,13 @@ export interface Game {
   lastPlayedAt: string | null;
   hash: string;
   silvergamesId?: number;
+  silvergamesIds?: number[];
+  silvergamesDuplicateIds?: number[];
+  andkonPagePath?: string;
+  y8Slug?: string;
+  y8Slugs?: string[];
+  y8DuplicateSlugs?: string[];
+  sourceRatingSource?: ExploreSource;
   sourceRating?: number;
   sourceRatingCount?: number;
   userRating?: number;
@@ -52,6 +69,7 @@ export type PlayerWindowData = Pick<Game, "id" | "title" | "swfUrl" | "stageWidt
   originalFileName?: string;
   publicResourceUrls?: string[];
   publicResourceRelayUrls?: string[];
+  onlineOnly?: boolean;
 };
 
 export interface AppInfo {
@@ -67,6 +85,7 @@ export interface UpdateCheckResult {
   latestVersion: string;
   changelog: string;
   releaseUrl: string;
+  automaticUpdateAvailable?: boolean;
 }
 
 export interface UpdateCheckResult {
@@ -81,7 +100,6 @@ export interface LibraryState {
   libraryRoot: string;
   games: Game[];
 }
-
 export interface ImportResult extends LibraryState {
   imported?: Game[];
   skipped?: Array<{ path: string; reason: string; game?: Game }>;
@@ -110,14 +128,21 @@ export interface GameStorageMigrationProgress {
   percent: number;
 }
 
+export type ExploreSource = "silvergames" | "andkon" | "y8";
+
 export interface ExploreGame {
-  id: number;
+  id: number | string;
+  source: ExploreSource;
   slug: string;
   title: string;
   imageUrl: string;
   tags: string[];
   sourceRating: number | null;
   imported: boolean;
+  duplicateOf: string | null;
+  likes?: string | null;
+  onlineOnly?: boolean;
+  onlineUrl?: string;
 }
 
 export interface ExplorePage {
@@ -125,15 +150,30 @@ export interface ExplorePage {
   page: number;
   totalPages: number;
   total: number;
+  totalIsPageCount?: boolean;
+  hasNext?: boolean;
 }
 
-export interface ExploreDetailsGame extends Pick<ExploreGame, "id" | "slug" | "title" | "imageUrl" | "tags" | "imported" | "sourceRating"> {
+export interface ExploreDetailsGame extends Pick<ExploreGame, "id" | "source" | "slug" | "title" | "imageUrl" | "tags" | "imported" | "sourceRating" | "duplicateOf" | "onlineOnly" | "onlineUrl">, SwfMetadata {
+  fallbackImageUrl: string;
+  libraryGameId: string | null;
+  libraryGameTitle: string | null;
   description: string;
+  instructions: string;
+  authorInfo: string;
   sourceRatingCount: number | null;
   ageRating: string | null;
+  uploadDate: string | null;
+  siteRating?: number | null;
+  ratingScale?: number;
+  sitePlayCount?: number | null;
+  likes?: string | null;
+  category?: string;
+  developer?: string;
+  addedDate?: string | null;
 }
 
-export type ExploreSortMode = "rating" | "name";
+export type ExploreSortMode = "rating" | "name" | "popularity" | "date";
 
 export interface GamePatch {
   title?: string;
@@ -163,6 +203,9 @@ export interface FlashApi {
   getAppInfo(): Promise<AppInfo | null>;
   checkForUpdates(): Promise<UpdateCheckResult>;
   openUpdatePage(releaseUrl: string): Promise<void>;
+  installUpdate(version: string, unblock: boolean): Promise<void>;
+  getCheckForUpdatesOnStart(): Promise<boolean>;
+  setCheckForUpdatesOnStart(enabled: boolean): Promise<boolean>;
   checkForUpdates(): Promise<UpdateCheckResult>;
   openUpdatePage(releaseUrl: string): Promise<void>;
   getStartInFullscreen(): Promise<boolean>;
@@ -172,18 +215,21 @@ export interface FlashApi {
   getMinimizeToTrayOnMinimize(): Promise<boolean>;
   setMinimizeToTrayOnMinimize(enabled: boolean): Promise<boolean>;
   getExploreAvailability(): Promise<{ enabled: boolean; online: boolean }>;
+  getAndkonEnabled(): Promise<boolean>;
+  setAndkonEnabled(enabled: boolean): Promise<boolean>;
   setExploreEnabled(enabled: boolean): Promise<boolean>;
   onAppVisibilityChanged(callback: (visible: boolean) => void): () => void;
   copyPublicResourceUrl(gameId: string, url: string): Promise<void>;
   openGameFolder(gameId: string): Promise<void>;
+  getSwfMetadata(gameId: string): Promise<SwfMetadata | null>;
   openRepository(): Promise<void>;
   openOriginalAuthorRepository(): Promise<void>;
   openExplore(): Promise<void>;
-  listExploreGames(query: string, page: number, pageSize: number, sortMode: ExploreSortMode, ascending: boolean): Promise<ExplorePage>;
-  openExploreSite(): Promise<void>;
-  openExploreDetails(id: number): Promise<void>;
-  getExploreGameDetails(id: number): Promise<ExploreDetailsGame>;
-  importExploreGame(id: number, language: Language): Promise<{ imported: boolean; alreadyInLibrary: boolean; title: string }>;
+  listExploreGames(query: string, page: number, pageSize: number, sortMode: ExploreSortMode, ascending: boolean, source?: ExploreSource): Promise<ExplorePage>;
+  openExploreSite(source?: ExploreSource): Promise<void>;
+  openExploreDetails(id: ExploreGame["id"], source?: ExploreSource): Promise<void>;
+  getExploreGameDetails(id: ExploreGame["id"], source?: ExploreSource): Promise<ExploreDetailsGame>;
+  importExploreGame(id: ExploreGame["id"], language: Language, source?: ExploreSource): Promise<{ imported: boolean; alreadyInLibrary: boolean; title: string; duplicateOf?: string | null }>;
   getExploreImportProgress(): Promise<ExploreImportProgressState>;
   onExploreImportProgress(callback: (progress: ExploreImportProgressState) => void): () => void;
   getGameStorageMigrationProgress(): Promise<GameStorageMigrationProgress>;
@@ -191,6 +237,7 @@ export interface FlashApi {
   onExploreImported(callback: (title: string) => void): () => void;
   onExploreLibraryChanged(callback: () => void): () => void;
   openPlayer(game: PlayerWindowData, language: Language): Promise<void>;
+  openOnlineOnlyGame(gameId: string, language: Language): Promise<void>;
   closePlayer(gameId: string): Promise<void>;
   getRunningPlayers(): Promise<string[]>;
   onCloseBlocked(callback: (reason: "game" | "explore") => void): () => void;

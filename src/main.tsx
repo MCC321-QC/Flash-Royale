@@ -6,6 +6,7 @@ import { ExploreImportProgress } from "./ExploreImportProgress";
 import { GameStorageMigrationProgress } from "./GameStorageMigrationProgress";
 import { messages, readLanguage } from "./i18n";
 import type { Language } from "./i18n";
+import type { ExploreSource } from "./types";
 import type { PlayerWindowData } from "./types";
 import "./styles.css";
 
@@ -26,7 +27,13 @@ if (!window.flashApi) {
     getAssetBaseUrl: async () => window.location.origin,
     getAppInfo: async () => null,
     checkForUpdates: async () => ({ status: "error", currentVersion: "", latestVersion: "", changelog: "", releaseUrl: "" }),
+    getCheckForUpdatesOnStart: async () => localStorage.getItem("flashmanager.checkForUpdatesOnStart") !== "false",
+    setCheckForUpdatesOnStart: async (enabled) => {
+      localStorage.setItem("flashmanager.checkForUpdatesOnStart", String(enabled));
+      return enabled;
+    },
     openUpdatePage: async () => {},
+    installUpdate: async () => { throw new Error("Automatic updates require the packaged Windows app"); },
     getStartInFullscreen: async () => localStorage.getItem("flashmanager.startInFullscreen") === "true",
     setStartInFullscreen: async (enabled) => {
       localStorage.setItem("flashmanager.startInFullscreen", String(enabled));
@@ -47,9 +54,15 @@ if (!window.flashApi) {
       localStorage.setItem("flashroyale.exploreEnabled", String(enabled));
       return enabled;
     },
+    getAndkonEnabled: async () => localStorage.getItem("flashroyale.andkonEnabled") === "true",
+    setAndkonEnabled: async (enabled) => {
+      localStorage.setItem("flashroyale.andkonEnabled", String(enabled));
+      return enabled;
+    },
     onAppVisibilityChanged: () => () => {},
     copyPublicResourceUrl: async () => {},
     openGameFolder: async () => {},
+    getSwfMetadata: async () => null,
     openRepository: async () => {},
     openOriginalAuthorRepository: async () => {},
     openExplore: async () => { throw new Error(messages[readLanguage()].electronOnlyPlay); },
@@ -65,6 +78,9 @@ if (!window.flashApi) {
     onExploreImported: () => () => {},
     onExploreLibraryChanged: () => () => {},
     openPlayer: async () => {
+      throw new Error(messages[readLanguage()].electronOnlyPlay);
+    },
+    openOnlineOnlyGame: async () => {
       throw new Error(messages[readLanguage()].electronOnlyPlay);
     },
     closePlayer: async () => {},
@@ -120,8 +136,13 @@ if (new URLSearchParams(window.location.search).has("explore")) {
   document.body.classList.add("explore-window-body");
 }
 
-const exploreGameId = Number(new URLSearchParams(window.location.search).get("exploreGame"));
-const isExploreDetails = Number.isSafeInteger(exploreGameId) && exploreGameId > 0;
+const exploreParams = new URLSearchParams(window.location.search);
+const exploreGameSource: ExploreSource = exploreParams.get("exploreSource") === "y8" ? "y8" : exploreParams.get("exploreSource") === "andkon" ? "andkon" : "silvergames";
+const exploreGameValue = exploreParams.get("exploreGame") || "";
+const exploreGameId: number | string = exploreGameSource !== "silvergames" ? exploreGameValue : Number(exploreGameValue);
+const isExploreDetails = exploreGameSource === "y8" ? /^[a-z0-9_-]+$/.test(exploreGameValue) : exploreGameSource === "andkon"
+  ? typeof exploreGameId === "string" && exploreGameId.startsWith("/arcade/")
+  : typeof exploreGameId === "number" && Number.isSafeInteger(exploreGameId) && exploreGameId > 0;
 if (isExploreDetails) document.body.classList.add("explore-window-body");
 const importParams = new URLSearchParams(window.location.search);
 const isExploreImport = importParams.has("exploreImport");
@@ -143,7 +164,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     ) : isExploreImport ? (
       <ExploreImportProgress language={progressLanguage} />
     ) : isExploreDetails ? (
-      <ExploreDetails gameId={exploreGameId} />
+      <ExploreDetails gameId={exploreGameId} source={exploreGameSource} />
     ) : new URLSearchParams(window.location.search).has("explore") ? (
       <Explore />
     ) : (

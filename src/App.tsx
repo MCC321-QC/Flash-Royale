@@ -1,7 +1,9 @@
 import Fuse from "fuse.js";
+import { andkonSettingsLabels, gameCardTagsLabels, portableUpdateLabels, showOnlineOnlyOfflineLabels, startupUpdateCheckLabels } from "./i18n";
 import {
   ArrowDown,
   ArrowDownUp,
+  ArrowLeft,
   ArrowUp,
   Ban,
   CalendarDays,
@@ -42,10 +44,11 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import flashRoyaleLogo from "../assets/new-flash-royale-logo.png";
 import { StarRating } from "./StarRating";
+import { ConfirmationDialog } from "./ConfirmationDialog";
 import { exploreCloseBlockedLabels } from "./i18n";
-import { compatibilitySettingsLabels } from "./i18n";
+import { compatibilitySettingsLabels, gamePanelLabels, scalingPerformanceHints } from "./i18n";
 import { cardSizeLabels, cardSizeToggleLabels, confirmationActionLabels, datePlaceholderLabels, detailPanelLabels, exploreCoverLabels, exploreSettingsLabels, gameSettingsLabels, generalSettingsLabels, importCountLabels, messages, playerControlLabels, playTimeLabels, readLanguage, renameActionLabels, settingsInfoLabels, sortLabels, sourceMetadataLabels, stopPlayingLabels, themeLabels, toastLabels, translateError, importProgressLabels, musicLabels, coverCaptureLabels, closeBlockedLabels, updateActionLabels, updateLabels, userRatingLabels, type Language } from "./i18n";
-import type { AppInfo, FlashApi, Game, GamePatch, ImportProgress, ImportResult, LibraryState, PlayerWindowData, UpdateCheckResult } from "./types";
+import type { AppInfo, FlashApi, Game, GamePatch, ImportProgress, ImportResult, LibraryState, PlayerWindowData, SwfMetadata, UpdateCheckResult } from "./types";
 
 type Filter =
   | { type: "all" }
@@ -119,6 +122,13 @@ function formatPlayDuration(value: number, language: Language) {
   if (hours > 0) return `${hours} ${units.hour} ${minutes} ${units.minute}`;
   if (minutes > 0) return `${minutes} ${units.minute}`;
   return `${seconds}${units.second}`;
+}
+
+function formatSwfFileSize(bytes: number, language: Language) {
+  const formatter = new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
+  if (bytes >= 1024 * 1024) return `${formatter.format(bytes / (1024 * 1024))} MB`;
+  if (bytes >= 1024) return `${formatter.format(bytes / 1024)} KB`;
+  return `${bytes.toLocaleString(language)} B`;
 }
 
 function formatSessionDuration(value: number, language: Language) {
@@ -243,6 +253,11 @@ function displayCategory(category: string, language: Language) {
     return messages[language].uncategorized;
   }
   return category;
+}
+
+function sourceRatingLabel(game: Game, language: Language) {
+  const label = sourceMetadataLabels[language].rating;
+  return game.sourceRatingSource === "y8" ? label.replace(/silvergames/i, "Y8") : label;
 }
 
 function formatReleaseDate(value: string, language: Language) {
@@ -400,6 +415,16 @@ function Sidebar({
   language: Language;
 }) {
   const text = messages[language];
+  const [categoriesExpanded, setCategoriesExpanded] = useState(() => readStoredFlag("flashmanager.categoriesExpanded"));
+  const [tagsExpanded, setTagsExpanded] = useState(() => readStoredFlag("flashmanager.tagsExpanded"));
+  useEffect(() => {
+    try {
+      localStorage.setItem("flashmanager.categoriesExpanded", String(categoriesExpanded));
+      localStorage.setItem("flashmanager.tagsExpanded", String(tagsExpanded));
+    } catch (error) {
+      console.error("Could not save sidebar expansion preferences", error);
+    }
+  }, [categoriesExpanded, tagsExpanded]);
   const categories = useMemo(() => {
     const counts = new Map<string, number>();
     for (const game of games) counts.set(game.category, (counts.get(game.category) || 0) + 1);
@@ -442,51 +467,55 @@ function Sidebar({
         </button>
       </nav>
 
-      <div className="side-heading">
-        <span>{text.categories}</span>
-      </div>
-      <div className="side-list">
-        {categories.map(([category, count]) => (
-          <div className="side-row" key={category}>
-            <button
-              className={filter.type === "category" && filter.value === category ? "active" : ""}
-              onClick={() => setFilter({ type: "category", value: category })}
-              title={displayCategory(category, language)}
-            >
-              <span>{displayCategory(category, language)}</span>
-              <em>{count}</em>
-            </button>
-            <button className="icon small rename-button" title={text.renameCategory} onClick={() => onRenameCategory(category)}>
-              <Pencil size={14} />
-            </button>
-          </div>
-        ))}
-      </div>
+      <button className="side-heading side-heading-toggle" type="button" aria-expanded={categoriesExpanded} onClick={() => setCategoriesExpanded(!categoriesExpanded)}>
+        <span>{text.categories}</span><ChevronDown className={categoriesExpanded ? "is-expanded" : undefined} size={14} aria-hidden="true" />
+      </button>
+      {categoriesExpanded && (categories.length > 0
+        ? <div className="side-list">
+          {categories.map(([category, count]) => (
+            <div className="side-row" key={category}>
+              <button
+                className={filter.type === "category" && filter.value === category ? "active" : ""}
+                onClick={() => setFilter({ type: "category", value: category })}
+                title={displayCategory(category, language)}
+              >
+                <span>{displayCategory(category, language)}</span>
+                <em>{count}</em>
+              </button>
+              <button className="icon small rename-button" title={text.renameCategory} onClick={() => onRenameCategory(category)}>
+                <Pencil size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        : <div className="side-empty">{sourceMetadataLabels[language].noCategories}</div>)}
 
-      <div className="side-heading">
-        <span>{text.tags}</span>
-      </div>
-      <div className="tag-list">
-        {tags.map(([tag, count]) => (
-          <div className="tag-row" key={tag}>
-            <button
-              className={filter.type === "tag" && filter.value === tag ? "active tag-pill" : "tag-pill"}
-              onClick={() => setFilter({ type: "tag", value: tag })}
-              title={tag}
-            >
-              <Tags size={13} />
-              <span>{tag}</span>
-              <em>{count}</em>
-            </button>
-            <button className="icon small rename-button" title={text.renameTag} onClick={() => onRenameTag(tag)}>
-              <Pencil size={14} />
-            </button>
-            <button className="icon small danger hover-reveal" title={text.deleteTag} onClick={() => onDeleteTag(tag)}>
-              <X size={14} />
-            </button>
-          </div>
-        ))}
-      </div>
+      <button className="side-heading side-heading-toggle" type="button" aria-expanded={tagsExpanded} onClick={() => setTagsExpanded(!tagsExpanded)}>
+        <span>{text.tags}</span><ChevronDown className={tagsExpanded ? "is-expanded" : undefined} size={14} aria-hidden="true" />
+      </button>
+      {tagsExpanded && (tags.length > 0
+        ? <div className="tag-list">
+          {tags.map(([tag, count]) => (
+            <div className="tag-row" key={tag}>
+              <button
+                className={filter.type === "tag" && filter.value === tag ? "active tag-pill" : "tag-pill"}
+                onClick={() => setFilter({ type: "tag", value: tag })}
+                title={tag}
+              >
+                <Tags size={13} />
+                <span>{tag}</span>
+                <em>{count}</em>
+              </button>
+              <button className="icon small rename-button" title={text.renameTag} onClick={() => onRenameTag(tag)}>
+                <Pencil size={14} />
+              </button>
+              <button className="icon small danger hover-reveal" title={text.deleteTag} onClick={() => onDeleteTag(tag)}>
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        : <div className="side-empty">{sourceMetadataLabels[language].noTags}</div>)}
 
       <button className="settings-trigger" onClick={onOpenSettings}>
         <Settings size={17} />
@@ -502,16 +531,20 @@ function GameCard({
   onSelect,
   language,
   showFavoriteBadge,
+  showTags,
 }: {
   game: Game;
   selected: boolean;
   onSelect: () => void;
   language: Language;
   showFavoriteBadge: boolean;
+  showTags: boolean;
 }) {
   const text = messages[language];
   const timeText = playTimeLabels[language];
   const visibleRating = game.userRating ?? game.sourceRating;
+  const category = displayCategory(game.category, language);
+  const hasCategory = Boolean(category) && category !== text.uncategorized;
   const metadata = [
     game.releaseDate ? `${text.release}: ${formatReleaseDate(game.releaseDate, language)}` : null,
     game.developer ? `${text.developer}: ${game.developer}` : null,
@@ -522,7 +555,7 @@ function GameCard({
 
   return (
     <button
-      className={selected ? "game-card selected" : "game-card"}
+      className={`${selected ? "game-card selected" : "game-card"}${game.onlineOnly ? " online-only" : ""}`}
       onClick={onSelect}
     >
       <div className="cover-wrap">
@@ -534,20 +567,20 @@ function GameCard({
         )}
         {visibleRating !== undefined && Number.isFinite(visibleRating) && (
           <span className="cover-rating">
-            <StarRating rating={visibleRating} label={game.userRating !== undefined ? userRatingLabels[language].title : sourceMetadataLabels[language].rating} language={language} compact />
+            <StarRating rating={visibleRating} label={game.userRating !== undefined ? userRatingLabels[language].title : sourceRatingLabel(game, language)} language={language} compact />
           </span>
         )}
       </div>
       <div
         className="game-card-body"
-        style={{ gridTemplateRows: `34px 16px repeat(${metadata.length}, 16px)${game.tags.length ? " auto" : ""}` }}
+        style={{ gridTemplateRows: `34px${hasCategory ? " 16px" : ""} repeat(${metadata.length}, 16px)${showTags && game.tags.length ? " auto" : ""}` }}
       >
         <strong title={game.title}>{game.title}</strong>
-        <span title={displayCategory(game.category, language)}>{displayCategory(game.category, language)}</span>
+        {hasCategory && <span title={category}>{category}</span>}
         {metadata.map((value) => (
           <span className="game-card-metadata" key={value} title={value}>{value}</span>
         ))}
-        {game.tags.length > 0 && (
+        {showTags && game.tags.length > 0 && (
           <div className="mini-tags">
             {game.tags.map((tag) => (
               <em key={tag} title={tag}>{tag}</em>
@@ -623,6 +656,7 @@ function DetailsPanel({
   onRecaptureCover,
   isCapturingCover,
   language,
+  onBack,
 }: {
   game: Game | null;
   categories: string[];
@@ -640,6 +674,7 @@ function DetailsPanel({
   onRecaptureCover: (game: Game) => void;
   isCapturingCover: boolean;
   language: Language;
+  onBack: () => void;
 }) {
   const text = messages[language];
   const reopenTooltip = isRunning ? compatibilitySettingsLabels[language].reopen : undefined;
@@ -759,6 +794,12 @@ function DetailsPanel({
 
   return (
     <aside className="details">
+      <header className="game-panel-heading">
+        <button className="icon" type="button" title={gamePanelLabels[language].back} aria-label={gamePanelLabels[language].back} onClick={onBack}>
+          <ArrowLeft size={18} />
+        </button>
+        <h2>{gamePanelLabels[language].settings}</h2>
+      </header>
       <CoverImage className="detail-cover" game={game} language={language} />
       <div className="detail-actions">
         <PlayToggleButton isRunning={isRunning} onClick={() => onPlay(game)} language={language} />
@@ -782,9 +823,10 @@ function DetailsPanel({
           <span>{gameSettingsLabels[language].fullscreenByDefault}</span>
         </label>
         <label className="fullscreen-setting" title={reopenTooltip}>
-          <input type="checkbox" checked={draft.fixScaling} onChange={(event) => updateDraft({ fixScaling: event.target.checked })} />
+          <input type="checkbox" checked={draft.fixScaling} aria-describedby="scaling-performance-hint" onChange={(event) => updateDraft({ fixScaling: event.target.checked })} />
           <span>{compatibilitySettingsLabels[language].fixScaling}</span>
         </label>
+        <small className="scaling-performance-hint" id="scaling-performance-hint">{scalingPerformanceHints[language]}</small>
         <label className="fullscreen-setting" title={reopenTooltip}>
           <input type="checkbox" checked={draft.standaloneCompatibility} onChange={(event) => updateDraft({ standaloneCompatibility: event.target.checked })} />
           <span>{compatibilitySettingsLabels[language].standalone}</span>
@@ -1034,12 +1076,155 @@ function DetailsPanel({
         <span>{sortLabels[language].dateAdded}: {formatDate(game.createdAt, language)}</span>
         <span>{text.cover}: {coverStatusLabel(game.coverStatus, language)}</span>
         {game.sourceRating !== undefined && (
-          <span>{sourceMetadataLabels[language].rating}: {game.sourceRating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5{game.sourceRatingCount !== undefined && ` (${game.sourceRatingCount.toLocaleString(language)} ${sourceMetadataLabels[language].votes})`}</span>
+          <span>{sourceRatingLabel(game, language)}: {game.sourceRating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5{game.sourceRatingCount !== undefined && ` (${game.sourceRatingCount.toLocaleString(language)} ${sourceMetadataLabels[language].votes})`}</span>
         )}
         <span title={musicDescription}>{musicLabels[language].music}: {musicDescription}</span>
       </div>
     </aside>
   );
+}
+
+function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescription, hasMusic, musicTracks, onSettings }: {
+  game: Game;
+  language: Language;
+  isRunning: boolean;
+  onPlay: (game: Game) => void;
+  onPatch: (gameId: string, patch: GamePatch) => void;
+  musicDescription: string;
+  hasMusic: boolean;
+  musicTracks: number[];
+  onSettings: () => void;
+}) {
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  const [swfMetadata, setSwfMetadata] = useState<SwfMetadata | null>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const text = messages[language];
+  const labels = gamePanelLabels[language];
+  const stateLabel = (enabled: boolean) => enabled ? labels.on : labels.off;
+  const facts = [
+    [text.category, displayCategory(game.category, language) || text.uncategorized],
+    ...(game.releaseDate ? [[text.releaseDate, formatReleaseDate(game.releaseDate, language)]] : []),
+    ...(game.developer ? [[text.developer, game.developer]] : []),
+    ...(game.publisher ? [[text.publisher, game.publisher]] : []),
+    ...(game.version ? [[sourceMetadataLabels[language].version, game.version]] : []),
+    [text.plays, game.playCount ? `${game.playCount} ${text.times}` : text.never],
+    [playTimeLabels[language].playTime, game.totalPlaySeconds ? formatPlayDuration(game.totalPlaySeconds, language) : text.notPlayed],
+    [text.lastPlayed, formatDate(game.lastPlayedAt, language)],
+    [sortLabels[language].dateAdded, formatDate(game.createdAt, language)],
+    [text.cover, coverStatusLabel(game.coverStatus, language)],
+    [musicLabels[language].music, musicDescription],
+  ];
+  const swfMetadataChips: { value: string; title: string }[] = [];
+  if (swfMetadata?.swfVersion !== null && swfMetadata?.swfVersion !== undefined) {
+    const value = `SWF ${swfMetadata.swfVersion}`;
+    swfMetadataChips.push({ value, title: `${sourceMetadataLabels[language].swfVersion}: ${swfMetadata.swfVersion}` });
+  }
+  if (swfMetadata?.stageWidth && swfMetadata.stageHeight) {
+    const value = `${swfMetadata.stageWidth} × ${swfMetadata.stageHeight} px`;
+    swfMetadataChips.push({ value, title: `${sourceMetadataLabels[language].dimensions}: ${value}` });
+  }
+  if (swfMetadata?.frameRate !== null && swfMetadata?.frameRate !== undefined) {
+    const value = `${swfMetadata.frameRate.toLocaleString(language, { maximumFractionDigits: 2 })} FPS`;
+    swfMetadataChips.push({ value, title: `${sourceMetadataLabels[language].frameRate}: ${value}` });
+  }
+  if (swfMetadata?.fileSizeBytes) {
+    const value = formatSwfFileSize(swfMetadata.fileSizeBytes, language);
+    swfMetadataChips.push({ value, title: `${sourceMetadataLabels[language].fileSize}: ${value}` });
+  }
+  const settings = [
+    [gameSettingsLabels[language].fullscreenByDefault, stateLabel(Boolean(game.fullscreenByDefault))],
+    [compatibilitySettingsLabels[language].fixScaling, stateLabel(Boolean(game.fixScaling))],
+    [compatibilitySettingsLabels[language].standalone, stateLabel(Boolean(game.standaloneCompatibility))],
+    [compatibilitySettingsLabels[language].online, stateLabel(game.allowOnlineFeatures !== false)],
+    ...(hasMusic ? [[gameSettingsLabels[language].repeatMusic, stateLabel(game.repeatMusic !== false)]] : []),
+  ];
+
+  useEffect(() => {
+    let active = true;
+    setSwfMetadata(null);
+    void window.flashApi.getSwfMetadata(game.id)
+      .then((metadata) => { if (active) setSwfMetadata(metadata); })
+      .catch(() => { if (active) setSwfMetadata(null); });
+    return () => { active = false; };
+  }, [game.id]);
+
+  useEffect(() => {
+    const paragraph = descriptionRef.current;
+    if (!paragraph) {
+      setDescriptionOverflows(false);
+      return;
+    }
+    if (descriptionExpanded) return;
+
+    const updateOverflow = () => setDescriptionOverflows(paragraph.scrollHeight > paragraph.clientHeight + 1);
+    updateOverflow();
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(paragraph);
+    return () => observer.disconnect();
+  }, [game.description, descriptionExpanded]);
+
+  return (
+    <aside className="details game-info-panel" aria-label={labels.info}>
+      <header className="game-panel-heading">
+        <h2 title={game.title}>{game.title}</h2>
+        <button className="icon" type="button" title={labels.settings} aria-label={labels.settings} onClick={onSettings}><Settings size={18} /></button>
+      </header>
+      <CoverImage className="detail-cover" game={game} language={language} />
+      <div className="detail-actions">
+        <PlayToggleButton isRunning={isRunning} onClick={() => onPlay(game)} language={language} />
+        <div className="detail-icon-actions">
+          <button className="icon" type="button" title={text.selectedFavorite} aria-label={text.selectedFavorite} aria-pressed={game.favorite} onClick={() => onPatch(game.id, { favorite: !game.favorite })}>
+            <Heart size={18} fill={game.favorite ? "currentColor" : "none"} />
+          </button>
+          <button className="icon" type="button" title={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} aria-label={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} onClick={() => void window.flashApi.openGameFolder(game.id).catch(() => {})}><FolderOpen size={18} /></button>
+        </div>
+      </div>
+      {(game.userRating !== undefined || game.sourceRating !== undefined || game.description) && (
+        <section className="game-info-section game-info-rating-description">
+          {(game.userRating !== undefined || game.sourceRating !== undefined) && <div className="game-info-ratings">
+            {game.sourceRating !== undefined && <div>
+              <h3>{sourceRatingLabel(game, language)}</h3>
+              <StarRating rating={game.sourceRating} label={sourceRatingLabel(game, language)} language={language} />
+              {game.sourceRatingCount !== undefined && <span>{game.sourceRatingCount.toLocaleString(language)} {sourceMetadataLabels[language].votes}</span>}
+            </div>}
+            {game.userRating !== undefined && <div><h3>{userRatingLabels[language].title}</h3><StarRating rating={game.userRating} label={userRatingLabels[language].title} language={language} /></div>}
+          </div>}
+          {game.description && <div className="game-info-description">
+            <h3>{sourceMetadataLabels[language].description}</h3>
+            <p ref={descriptionRef} className={descriptionExpanded ? "game-info-description-text" : "game-info-description-text is-collapsed"}>{game.description}</p>
+            {(descriptionOverflows || descriptionExpanded) && <button className="game-info-disclosure" type="button" onClick={() => setDescriptionExpanded(!descriptionExpanded)}>
+              {descriptionExpanded ? sourceMetadataLabels[language].showLess : sourceMetadataLabels[language].showMore}
+              <ChevronDown className={descriptionExpanded ? "is-expanded" : undefined} size={14} aria-hidden="true" />
+            </button>}
+          </div>}
+        </section>
+      )}
+      <section className="game-info-section">
+        <h3>{sourceMetadataLabels[language].gameDetails}</h3>
+        <dl className="game-info-facts">
+        {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        {!game.onlineOnly && <div><dt>{text.file}</dt><dd>
+          <button className="game-info-file" type="button" title={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} onClick={() => void window.flashApi.openGameFolder(game.id).catch(() => {})}>
+            <span>{game.storageFileName || game.originalFileName}</span><ExternalLink size={12} aria-hidden="true" />
+          </button>
+        </dd></div>}
+        </dl>
+        {swfMetadataChips.length > 0 && <div className="game-info-metadata">{swfMetadataChips.map(({ value, title }) => <span key={value} title={title}>{value}</span>)}</div>}
+      </section>
+      {game.notes && <section className="game-info-section"><h3>{text.notes}</h3><p>{game.notes}</p></section>}
+      {musicTracks.length > 0 && <section className="game-info-section"><h3>{musicLabels[language].defaultMusic}</h3><ul className="game-info-tracks">{musicTracks.map((duration, index) => <li key={index} className={index === (game.defaultMusicIndex ?? 0) ? "selected" : undefined}>{musicLabels[language].track.replace("{n}", String(index + 1))} · {formatTrackDuration(duration)}</li>)}</ul></section>}
+      <section className="game-info-section"><h3>{labels.settings}</h3><dl className="game-info-facts">{settings.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
+      {Boolean(game.publicResourceUrls?.length) && <section className="game-info-section"><h3>{compatibilitySettingsLabels[language].resources}</h3><ul className="game-info-resources">{game.publicResourceUrls?.map(url => <li key={url}><span title={url}>{url}</span><span>{stateLabel(!game.blockedPublicResourceUrls?.includes(url))}</span></li>)}</ul></section>}
+    </aside>
+  );
+}
+
+function GameDetailsSidebar(props: Omit<Parameters<typeof DetailsPanel>[0], "onBack">) {
+  const [showSettings, setShowSettings] = useState(false);
+  if (!props.game || showSettings) return <DetailsPanel {...props} onBack={() => setShowSettings(false)} />;
+  return <GameInfoPanel game={props.game} language={props.language} isRunning={props.isRunning} onPlay={props.onPlay} onPatch={props.onPatch}
+    musicDescription={props.musicDescription} hasMusic={props.hasMusic} musicTracks={props.musicTracks} onSettings={() => setShowSettings(true)} />;
 }
 
 export function PlayerModal({
@@ -1590,6 +1775,25 @@ export function App() {
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const sortControlRef = useRef<HTMLDivElement>(null);
   const [showCardSize, setShowCardSize] = useState(false);
+  const [showGameCardTags, setShowGameCardTags] = useState(() => {
+    try { return localStorage.getItem("flashmanager.showGameCardTags") !== "false"; }
+    catch { return true; }
+  });
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [showOnlineOnlyOffline, setShowOnlineOnlyOffline] = useState(() => {
+    try { return localStorage.getItem("flashmanager.showOnlineOnlyOffline") === "true"; }
+    catch { return false; }
+  });
+
+  useEffect(() => {
+    const updateConnectivity = () => setIsOnline(navigator.onLine);
+    window.addEventListener("online", updateConnectivity);
+    window.addEventListener("offline", updateConnectivity);
+    return () => {
+      window.removeEventListener("online", updateConnectivity);
+      window.removeEventListener("offline", updateConnectivity);
+    };
+  }, []);
   const [cardSizeIndex, setCardSizeIndex] = useState(() => {
     try {
       const stored = localStorage.getItem("flashmanager.cardSizeIndex");
@@ -1616,9 +1820,14 @@ export function App() {
   const [language, setLanguage] = useState<Language>(readLanguage);
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [updateDialog, setUpdateDialog] = useState<UpdateCheckResult | null>(null);
+  const [unblockUpdate, setUnblockUpdate] = useState(false);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [updateInstallError, setUpdateInstallError] = useState("");
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
   const updateCheckInFlightRef = useRef(false);
   const startupUpdateCheckRef = useRef(false);
+  const [checkForUpdatesOnStart, setCheckForUpdatesOnStart] = useState<boolean | null>(null);
+  const [isSavingStartupUpdateCheck, setIsSavingStartupUpdateCheck] = useState(false);
   const [runningGameIds, setRunningGameIds] = useState<string[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [startInFullscreen, setStartInFullscreen] = useState(false);
@@ -1627,10 +1836,10 @@ export function App() {
   const [exploreAvailability, setExploreAvailability] = useState({ enabled: true, online: false });
   const [checkingExplore, setCheckingExplore] = useState(true);
   const [explorePreferenceLoaded, setExplorePreferenceLoaded] = useState(false);
+  const [andkonEnabled, setAndkonEnabled] = useState(false);
   const exploreCheckRef = useRef(0);
   const [confirmation, setConfirmation] = useState<ConfirmationRequest | null>(null);
   const [textPrompt, setTextPrompt] = useState<TextPromptRequest | null>(null);
-  const cancelConfirmationButtonRef = useRef<HTMLButtonElement>(null);
   const promptInputRef = useRef<HTMLInputElement>(null);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const text = messages[language];
@@ -1670,6 +1879,8 @@ export function App() {
     try {
       const result = await window.flashApi.checkForUpdates();
       if (result.status === "available") {
+        setUnblockUpdate(false);
+        setUpdateInstallError("");
         setUpdateDialog(result);
         setToast(updateLabels[language].availableToast.replace("{version}", result.latestVersion));
       } else if (manual) {
@@ -1694,14 +1905,26 @@ export function App() {
     setToast({ type: "exploreImported", title });
   }), []);
 
+  useEffect(() => window.flashApi.onExploreLibraryChanged(() => {
+    window.flashApi.readLibrary().then(setLibrary).catch(() => {});
+  }), []);
+
   useEffect(() => {
     window.flashApi.getAppInfo().then(setAppInfo).catch(() => setAppInfo(null));
   }, []);
 
   useEffect(() => {
-    if (startupUpdateCheckRef.current) return;
-    startupUpdateCheckRef.current = true;
-    void runUpdateCheck(false);
+    let active = true;
+    void window.flashApi.getCheckForUpdatesOnStart().then((enabled) => {
+      if (!active) return;
+      setCheckForUpdatesOnStart(enabled);
+      if (startupUpdateCheckRef.current) return;
+      startupUpdateCheckRef.current = true;
+      if (enabled) void runUpdateCheck(false);
+    }).catch((error) => {
+      if (active) setToast(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+    });
+    return () => { active = false; };
   }, []);
 
   const refreshExploreAvailability = async () => {
@@ -1721,6 +1944,7 @@ export function App() {
 
   useEffect(() => {
     void refreshExploreAvailability();
+    void window.flashApi.getAndkonEnabled().then(setAndkonEnabled).catch(() => {});
     const refresh = () => { void refreshExploreAvailability(); };
     const interval = window.setInterval(refresh, 30000);
     window.addEventListener("focus", refresh);
@@ -1824,15 +2048,6 @@ export function App() {
     };
   }, [settingsOpen]);
 
-  useEffect(() => {
-    if (!confirmation) return;
-    cancelConfirmationButtonRef.current?.focus();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") resolveConfirmation(false);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [confirmation]);
 
   useEffect(() => {
     if (!isTextPromptOpen) return;
@@ -1848,13 +2063,16 @@ export function App() {
   useEffect(() => {
     if (!updateDialog) return;
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setUpdateDialog(null);
+      if (event.key === "Escape" && !isInstallingUpdate) setUpdateDialog(null);
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [updateDialog]);
+  }, [updateDialog, isInstallingUpdate]);
 
   const selectedGame = library.games.find((game) => game.id === selectedId) || null;
+  useEffect(() => {
+    if (!isOnline && !showOnlineOnlyOffline && selectedGame?.onlineOnly) setSelectedId(null);
+  }, [isOnline, showOnlineOnlyOffline, selectedGame?.onlineOnly]);
   const [isThemeEnabled, setIsThemeEnabled] = useState(() => readStoredFlag("flashmanager.themeEnabled"));
   const [themeVolume, setThemeVolume] = useState(() => {
     try {
@@ -2020,6 +2238,7 @@ export function App() {
   const visibleGames = useMemo(() => {
     const source = query.trim() ? fuse.search(query.trim()).map((result) => result.item) : library.games;
     const filtered = source.filter((game) => {
+      if (game.onlineOnly && !isOnline && !showOnlineOnlyOffline) return false;
       if (filter.type === "favorites") return game.favorite;
       if (filter.type === "category") return game.category === filter.value;
       if (filter.type === "tag") return game.tags.includes(filter.value);
@@ -2039,7 +2258,7 @@ export function App() {
     return [...filtered].sort(
       (first, second) => direction * (sortValue(first) - sortValue(second)) || compareTitle(first, second),
     );
-  }, [filter, fuse, language, library.games, query, sortAscending, sortMode]);
+  }, [filter, fuse, isOnline, language, library.games, query, showOnlineOnlyOffline, sortAscending, sortMode]);
 
   useEffect(() => {
     if (!sortMenuOpen) return;
@@ -2114,6 +2333,20 @@ export function App() {
     } catch (error) {
       setStartInFullscreen(previous);
       setToast(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+    }
+  };
+
+  const updateCheckForUpdatesOnStart = async (enabled: boolean) => {
+    const previous = checkForUpdatesOnStart;
+    setCheckForUpdatesOnStart(enabled);
+    setIsSavingStartupUpdateCheck(true);
+    try {
+      setCheckForUpdatesOnStart(await window.flashApi.setCheckForUpdatesOnStart(enabled));
+    } catch (error) {
+      setCheckForUpdatesOnStart(previous);
+      setToast(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+    } finally {
+      setIsSavingStartupUpdateCheck(false);
     }
   };
 
@@ -2237,17 +2470,21 @@ export function App() {
 
   const playGame = async (game: Game) => {
     try {
-      await window.flashApi.openPlayer(
-        {
-          id: game.id,
-          title: game.title,
-          swfUrl: game.swfUrl,
-          stageWidth: game.stageWidth,
-          stageHeight: game.stageHeight,
-          fullscreenByDefault: Boolean(game.fullscreenByDefault),
-        },
-        language,
-      );
+      if (game.onlineOnly) {
+        await window.flashApi.openOnlineOnlyGame(game.id, language);
+      } else {
+        await window.flashApi.openPlayer(
+          {
+            id: game.id,
+            title: game.title,
+            swfUrl: game.swfUrl,
+            stageWidth: game.stageWidth,
+            stageHeight: game.stageHeight,
+            fullscreenByDefault: Boolean(game.fullscreenByDefault),
+          },
+          language,
+        );
+      }
     } catch {
       setToast(text.gameLoadFailed);
       return;
@@ -2479,7 +2716,7 @@ export function App() {
                   disabled={!exploreAvailability.online || checkingExplore}
                 >
                   <Compass size={18} />
-                  Explore
+                  {exploreLabels.button}
                 </button>
               </span>
             )}
@@ -2513,6 +2750,46 @@ export function App() {
           <div>
             <strong>{library.games.length}</strong>
             <span>{text.gamesInLibrary}</span>
+          </div>
+          <div className="sort-control" ref={sortControlRef}>
+            <button
+              className={sortMenuOpen ? "icon active" : "icon"}
+              onClick={() => setSortMenuOpen((open) => !open)}
+              title={`${sortLabels[language].sort}: ${sortLabels[language][sortMode]}`}
+              aria-label={`${sortLabels[language].sort}: ${sortLabels[language][sortMode]}`}
+              aria-haspopup="menu"
+              aria-expanded={sortMenuOpen}
+            >
+              <ArrowDownUp size={18} />
+            </button>
+            {sortMenuOpen && (
+              <div className="sort-menu" role="menu" aria-label={sortLabels[language].sort}>
+                {sortModes.map((mode) => (
+                  <div className="sort-menu-option" role="none" key={mode}>
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={mode === sortMode}
+                      className={mode === sortMode ? "category-option active" : "category-option"}
+                      onClick={() => chooseSortMode(mode)}
+                    >
+                      <span>{sortLabels[language][mode]}</span>
+                    </button>
+                    {mode === sortMode && (
+                      <button
+                        type="button"
+                        className="icon small sort-direction"
+                        title={sortAscending ? sortLabels[language].ascending : sortLabels[language].descending}
+                        aria-label={sortAscending ? sortLabels[language].ascending : sortLabels[language].descending}
+                        onClick={toggleSortDirection}
+                      >
+                        {sortAscending ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="library-view-controls">
             <div className="theme-control">
@@ -2550,46 +2827,6 @@ export function App() {
                       onChange={(event) => changeThemeVolume(Number(event.target.value) / 100)}
                     />
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="sort-control" ref={sortControlRef}>
-              <button
-                className={sortMenuOpen ? "icon active" : "icon"}
-                onClick={() => setSortMenuOpen((open) => !open)}
-                title={`${sortLabels[language].sort}: ${sortLabels[language][sortMode]}`}
-                aria-label={`${sortLabels[language].sort}: ${sortLabels[language][sortMode]}`}
-                aria-haspopup="menu"
-                aria-expanded={sortMenuOpen}
-              >
-                <ArrowDownUp size={18} />
-              </button>
-              {sortMenuOpen && (
-                <div className="sort-menu" role="menu" aria-label={sortLabels[language].sort}>
-                  {sortModes.map((mode) => (
-                    <div className="sort-menu-option" role="none" key={mode}>
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={mode === sortMode}
-                        className={mode === sortMode ? "category-option active" : "category-option"}
-                        onClick={() => chooseSortMode(mode)}
-                      >
-                        <span>{sortLabels[language][mode]}</span>
-                      </button>
-                      {mode === sortMode && (
-                        <button
-                          type="button"
-                          className="icon small sort-direction"
-                          title={sortAscending ? sortLabels[language].ascending : sortLabels[language].descending}
-                          aria-label={sortAscending ? sortLabels[language].ascending : sortLabels[language].descending}
-                          onClick={toggleSortDirection}
-                        >
-                          {sortAscending ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                        </button>
-                      )}
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
@@ -2667,6 +2904,7 @@ export function App() {
               onSelect={() => setSelectedId(game.id)}
               language={language}
               showFavoriteBadge={filter.type !== "favorites"}
+              showTags={showGameCardTags}
             />
           ))}
           {visibleGames.length === 0 && (
@@ -2719,7 +2957,8 @@ export function App() {
       )}
 
       {showDetailsPanel && (
-        <DetailsPanel
+        <GameDetailsSidebar
+          key={selectedGame?.id || "empty"}
           game={selectedGame}
           categories={categoryOptions}
           onPatch={updateGame}
@@ -2796,6 +3035,15 @@ export function App() {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
+                  checked={checkForUpdatesOnStart === true}
+                  disabled={checkForUpdatesOnStart === null || isSavingStartupUpdateCheck}
+                  onChange={(event) => void updateCheckForUpdatesOnStart(event.target.checked)}
+                />
+                <span>{startupUpdateCheckLabels[language]}</span>
+              </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
                   checked={minimizeToTrayOnGameLaunch}
                   onChange={(event) => void updateMinimizeToTrayOnGameLaunch(event.target.checked)}
                 />
@@ -2812,11 +3060,42 @@ export function App() {
               <label className="settings-toggle">
                 <input
                   type="checkbox"
+                  checked={showGameCardTags}
+                  onChange={(event) => {
+                    const enabled = event.target.checked;
+                    setShowGameCardTags(enabled);
+                    try { localStorage.setItem("flashmanager.showGameCardTags", String(enabled)); } catch {}
+                  }}
+                />
+                <span>{gameCardTagsLabels[language]}</span>
+              </label>
+              <label className="settings-toggle">
+                <input
+                  type="checkbox"
                   checked={exploreAvailability.enabled}
                   onChange={(event) => void updateExploreEnabled(event.target.checked)}
                 />
                 <span>{exploreLabels.enable}</span>
               </label>
+              <label className="settings-toggle">
+                <input type="checkbox" checked={showOnlineOnlyOffline} onChange={(event) => {
+                  const enabled = event.target.checked;
+                  setShowOnlineOnlyOffline(enabled);
+                  try { localStorage.setItem("flashmanager.showOnlineOnlyOffline", String(enabled)); } catch {}
+                }} />
+                <span>{showOnlineOnlyOfflineLabels[language]}</span>
+              </label>
+              <label className="settings-toggle">
+                <input type="checkbox" checked={andkonEnabled} onChange={(event) => {
+                  const enabled = event.target.checked;
+                  void window.flashApi.setAndkonEnabled(enabled).then((saved) => {
+                    setAndkonEnabled(saved);
+                    void refreshExploreAvailability();
+                  }).catch(() => {});
+                }} />
+                <span>{andkonSettingsLabels[language].enable}</span>
+              </label>
+              <small>{andkonSettingsLabels[language].warning}</small>
             </section>
             {appInfo && (
               <section className="settings-about" aria-labelledby="settings-about-title">
@@ -2880,31 +3159,15 @@ export function App() {
       )}
 
       {confirmation && (
-        <div
-          className="modal-backdrop confirm-backdrop"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) resolveConfirmation(false);
-          }}
-        >
-          <section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-describedby="confirm-message">
-            <p id="confirm-message">{confirmation.message}</p>
-            <div className="confirm-actions">
-              <button ref={cancelConfirmationButtonRef} className="secondary" onClick={() => resolveConfirmation(false)}>
-                {confirmation.cancelLabel ?? confirmationActionLabels[language].cancel}
-              </button>
-              <button className="confirm-destructive" onClick={() => resolveConfirmation(true)}>
-                {confirmation.confirmLabel}
-              </button>
-            </div>
-          </section>
-        </div>
+        <ConfirmationDialog message={confirmation.message} confirmLabel={confirmation.confirmLabel}
+          cancelLabel={confirmation.cancelLabel ?? confirmationActionLabels[language].cancel} onResolve={resolveConfirmation} />
       )}
 
       {updateDialog?.status === "available" && (
         <div
           className="modal-backdrop confirm-backdrop"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setUpdateDialog(null);
+            if (!isInstallingUpdate && event.target === event.currentTarget) setUpdateDialog(null);
           }}
         >
           <section className="confirm-dialog update-dialog" role="alertdialog" aria-modal="true" aria-labelledby="update-dialog-title">
@@ -2912,20 +3175,41 @@ export function App() {
             <p className="update-current-version">{updateLabels[language].currentVersion.replace("{version}", updateDialog.currentVersion)}</p>
             <h3>{updateLabels[language].changelog}</h3>
             <pre className="update-changelog">{updateDialog.changelog.trim() || updateLabels[language].noChangelog}</pre>
+            {updateDialog.automaticUpdateAvailable && (
+              <>
+                <p>{portableUpdateLabels[language].warning}</p>
+                <label className="settings-toggle">
+                  <input type="checkbox" checked={unblockUpdate} disabled={isInstallingUpdate}
+                    onChange={(event) => setUnblockUpdate(event.target.checked)} />
+                  <span>{portableUpdateLabels[language].consent}</span>
+                </label>
+                {isInstallingUpdate && <p role="status">{portableUpdateLabels[language].busy}</p>}
+                {updateInstallError && <p role="alert">{portableUpdateLabels[language].failed}: {updateInstallError}</p>}
+              </>
+            )}
             <div className="confirm-actions">
-              <button type="button" className="secondary" autoFocus onClick={() => setUpdateDialog(null)}>
+              <button type="button" className="secondary" autoFocus disabled={isInstallingUpdate} onClick={() => setUpdateDialog(null)}>
                 {updateLabels[language].cancel}
               </button>
               <button
                 type="button"
                 className="primary"
+                disabled={isInstallingUpdate}
                 onClick={() => {
+                  if (updateDialog.automaticUpdateAvailable) {
+                    setIsInstallingUpdate(true);
+                    setUpdateInstallError("");
+                    void window.flashApi.installUpdate(updateDialog.latestVersion, unblockUpdate)
+                      .catch((error) => setUpdateInstallError(error instanceof Error ? error.message : String(error)))
+                      .finally(() => setIsInstallingUpdate(false));
+                    return;
+                  }
                   const releaseUrl = updateDialog.releaseUrl;
                   setUpdateDialog(null);
                   void window.flashApi.openUpdatePage(releaseUrl).catch(() => setToast(updateLabels[language].openFailed));
                 }}
               >
-                {updateActionLabels[language]}
+                {updateDialog.automaticUpdateAvailable ? portableUpdateLabels[language].install : updateActionLabels[language]}
               </button>
             </div>
           </section>

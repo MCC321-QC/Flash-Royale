@@ -6,9 +6,12 @@ const crypto = require("node:crypto");
 const http = require("node:http");
 const os = require("node:os");
 const zlib = require("node:zlib");
+const andkon = require("./andkon.cjs");
+const y8 = require("./y8.cjs");
 const silvergames = require("./silvergames.cjs");
+const portableUpdate = require("./portable-update.cjs");
 const { normalizePublicResourceUrl, normalizeDiscoveredPublicResourceUrl, readPublicResource } = require("./public-resources.cjs");
-const { gameFolderName, getGamePaths, migrateGameStorage, migrateLegacyLocalStorage } = require("./game-storage.cjs");
+const { gameFolderName, getGamePaths, migrateGameStorage, migrateLegacyLocalStorage, safeGameTitle } = require("./game-storage.cjs");
 
 const isDev = !app.isPackaged;
 const projectRoot = path.resolve(__dirname, "..");
@@ -39,6 +42,8 @@ let assetBaseUrl = "";
 let assetServer = null;
 let mainWindow = null;
 let isAppInitializing = true;
+let installingUpdate = false;
+let checkedUpdate = null;
 let gameStorageMigrationWindow = null;
 let gameStorageMigrationProgress = { current: 0, total: 0, gameTitle: "", percent: 0 };
 let gameStorageMigrationShownAt = 0;
@@ -46,9 +51,11 @@ let exploreWindow = null;
 let exploreDetailsWindow = null;
 let exploreDetailsGameId = null;
 let exploreDetailsGameSlug = null;
+let exploreDetailsSource = "silvergames";
 const pendingExploreImports = new Set();
 const exploreImportJobs = new Map();
 let exploreEnabled = true;
+let andkonEnabled = false;
 let startInFullscreen = false;
 let minimizeToTrayOnGameLaunch = true;
 let minimizeToTrayOnMinimize = true;
@@ -63,7 +70,7 @@ const playerWindows = new Map();
 const playerNetworkAccess = new Map();
 const guardedPlayerSessions = new WeakSet();
 
-const coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".svg"];
+const coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 
 const defaultDb = {
   games: [],
@@ -73,22 +80,28 @@ const defaultConfig = {
   libraryRoot,
   createdAt: new Date().toISOString(),
   startInFullscreen: false,
+  checkForUpdatesOnStart: true,
   minimizeToTrayOnGameLaunch: true,
   minimizeToTrayOnMinimize: true,
   exploreEnabled: true,
+  andkonEnabled: false,
 };
 
 async function getExploreAvailability() {
   if (!exploreEnabled) return { enabled: false, online: false };
-  try {
-    const response = await fetch("https://www.silvergames.com/search/core.json", {
-      method: "HEAD",
-      signal: AbortSignal.timeout(5000),
-    });
-    return { enabled: true, online: response.ok && new URL(response.url).origin === "https://www.silvergames.com" };
-  } catch {
-    return { enabled: true, online: false };
-  }
+  const availability = await Promise.all([
+    ["https://www.silvergames.com/search/core.json", "https://www.silvergames.com"],
+    ["https://www.y8.com/tags/flash", "https://www.y8.com"],
+    ...(andkonEnabled ? [["https://www.andkon.com/arcade/", "https://www.andkon.com"]] : []),
+  ].map(async ([url, origin]) => {
+    try {
+      const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
+      return response.ok && new URL(response.url).origin === origin;
+    } catch {
+      return false;
+    }
+  }));
+  return { enabled: true, online: availability.some(Boolean) };
 }
 
 function compareVersions(first, second) {
@@ -125,14 +138,20 @@ async function checkForUpdates() {
     if (releaseUrl.origin !== "https://github.com" || !releaseUrl.pathname.startsWith(`${repositoryPath}/releases/tag/`)) {
       throw new Error("Invalid GitHub release URL");
     }
+    const asset = portableUpdate.selectUpdateAsset(release, repositoryPath);
+    checkedUpdate = { version: latestVersion, asset };
     return {
       status: compareVersions(latestVersion, currentVersion) > 0 ? "available" : "current",
       currentVersion,
       latestVersion,
       changelog: String(release.body || "").slice(0, 20000),
       releaseUrl: releaseUrl.href,
+      automaticUpdateAvailable: process.platform === "win32" && app.isPackaged
+        && !process.env.PORTABLE_EXECUTABLE_DIR
+        && Boolean(asset),
     };
   } catch {
+    checkedUpdate = null;
     return { status: "error", currentVersion, latestVersion: "", changelog: "", releaseUrl: "" };
   }
 }
@@ -289,6 +308,7 @@ async function readSwfStageSize(filePath) {
 async function ensureGameStageSizes(db) {
   let changed = false;
   for (const game of db.games) {
+    if (game.onlineOnly) continue;
     if (Number(game.stageWidth) > 0 && Number(game.stageHeight) > 0) continue;
     const stageSize = await readSwfStageSize(game.filePath);
     game.stageWidth = stageSize?.width ?? null;
@@ -699,7 +719,9 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
     await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
     await fs.mkdir(paths.customMusicDirectory, { recursive: true });
     await fs.copyFile(absoluteSource, targetPath);
-    const stageSize = await readSwfStageSize(targetPath);
+    const swfData = await fs.readFile(targetPath);
+    const swfMetadata = silvergames.parseSwfMetadata(swfData, swfData.length);
+    await writeJson(paths.swfMetadataPath, swfMetadata);
 
     const game = {
       id,
@@ -720,8 +742,8 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
       lastPlayedAt: null,
       hash,
       coverStatus: "fallback",
-      stageWidth: stageSize?.width ?? null,
-      stageHeight: stageSize?.height ?? null,
+      stageWidth: swfMetadata.stageWidth,
+      stageHeight: swfMetadata.stageHeight,
     };
     game.coverPath = await createFallbackCover(game);
     await saveDetectedMusicTracks(game, await findMusicCandidates(game));
@@ -732,6 +754,65 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
 
   await writeDb(db);
   return { games: db.games.map(gameToClient), imported, skipped, cancelled };
+}
+
+async function importOnlineOnlyY8Game(sourceGame, cover, language) {
+  const text = getMainMessages(language);
+  await ensureLibrary();
+  const db = await readDb();
+  const status = y8.getLibraryStatus(sourceGame, db.games);
+  if (status.imported) return { imported: false, alreadyInLibrary: true, title: sourceGame.title, duplicateOf: status.duplicateOf };
+
+  const hash = crypto.createHash("sha256").update(`online-only:y8:${sourceGame.slug}`).digest("hex");
+  const id = makeGameId(hash);
+  const now = new Date().toISOString();
+  const paths = getGamePaths(gamesRoot, { id, title: sourceGame.title });
+  await fs.mkdir(paths.directory, { recursive: true });
+  await fs.mkdir(paths.savesDirectory, { recursive: true });
+  await migrateLegacyLocalStorage(paths.savesDirectory, null);
+  await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
+  await fs.mkdir(paths.customMusicDirectory, { recursive: true });
+
+  const game = {
+    id,
+    title: sourceGame.title,
+    folderName: paths.folderName,
+    originalFileName: `${safeGameTitle(sourceGame.title)}.url`,
+    filePath: "",
+    coverPath: "",
+    tags: Array.from(new Set([...(sourceGame.tags || []), "Online only"])),
+    category: sourceGame.category || text.uncategorized,
+    description: sourceGame.description || "",
+    developer: sourceGame.developer || "",
+    favorite: false,
+    notes: "",
+    createdAt: now,
+    updatedAt: now,
+    playCount: 0,
+    totalPlaySeconds: 0,
+    lastPlayedAt: null,
+    hash,
+    coverStatus: "fallback",
+    stageWidth: null,
+    stageHeight: null,
+    onlineOnly: true,
+    onlineUrl: `https://www.y8.com/games/${sourceGame.slug}`,
+    y8Slug: sourceGame.slug,
+    sourceRatingSource: "y8",
+    sourceRating: sourceGame.sourceRating ?? undefined,
+    sourceRatingCount: sourceGame.sourceRatingCount ?? undefined,
+  };
+
+  game.coverPath = await createFallbackCover(game);
+  await saveDetectedMusicTracks(game, []);
+  await writeGameSettings(game);
+  if (cover) {
+    try { await persistCoverBuffer(game, cover, ".webp", "explore"); }
+    catch (error) { await logExploreImportFailure(`y8:${sourceGame.slug}`, "cover save (using fallback)", error); }
+  }
+  db.games.unshift(game);
+  await writeDb(db);
+  return { imported: true, alreadyInLibrary: false, title: game.title, duplicateOf: null, game: gameToClient(game) };
 }
 
 async function saveCoverFromDataUrl(gameId, dataUrl) {
@@ -750,13 +831,13 @@ async function saveCoverFromDataUrl(gameId, dataUrl) {
   return gameToClient(game);
 }
 
-async function persistCoverBuffer(game, buffer, extension, status) {
-  if (!Buffer.isBuffer(buffer) || buffer.length < 1024) {
+async function persistCoverBuffer(game, buffer, extension, status, minimumSize = 1024) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < minimumSize) {
     throw new Error("封面图片数据太小，已保留原封面");
   }
   const safeExt = extension.toLowerCase();
-  if (![".png", ".jpg", ".jpeg", ".webp"].includes(safeExt)) {
-    throw new Error("仅支持 PNG、JPG、WEBP 封面");
+  if (![".png", ".jpg", ".jpeg", ".webp", ".gif"].includes(safeExt)) {
+    throw new Error("仅支持 PNG、JPG、WEBP、GIF 封面");
   }
   const paths = getGamePaths(gamesRoot, game);
   await fs.mkdir(paths.coverDirectory, { recursive: true });
@@ -764,7 +845,7 @@ async function persistCoverBuffer(game, buffer, extension, status) {
   const tempPath = `${coverPath}.tmp`;
   await fs.writeFile(tempPath, buffer);
   const stat = await fs.stat(tempPath);
-  if (stat.size < 1024) {
+  if (stat.size < minimumSize) {
     await fs.rm(tempPath, { force: true });
     throw new Error("封面图片无效，已保留原封面");
   }
@@ -1061,7 +1142,7 @@ function gameNeedsStorageMigration(game) {
   const targetPaths = getGamePaths(gamesRoot, { ...game, folderName: undefined });
   const coverDirectoryPrefix = `${path.resolve(targetPaths.coverDirectory)}${path.sep}`;
   return currentPaths.folderName !== targetPaths.folderName ||
-    path.resolve(game.filePath || "") !== path.resolve(targetPaths.swfPath) ||
+    (!game.onlineOnly && path.resolve(game.filePath || "") !== path.resolve(targetPaths.swfPath)) ||
     !game.coverPath || !path.resolve(game.coverPath).startsWith(coverDirectoryPrefix) ||
     !fssync.existsSync(targetPaths.settingsPath) ||
     !fssync.existsSync(path.join(targetPaths.savesDirectory, ".legacy-local-storage-migrated")) ||
@@ -1146,6 +1227,7 @@ function contentTypeFor(filePath) {
   if (ext === ".png") return "image/png";
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
   if (ext === ".svg") return "image/svg+xml";
   if (ext === ".js") return "text/javascript";
   if (ext === ".wasm") return "application/wasm";
@@ -1469,6 +1551,95 @@ async function openPlayerWindow(game, language = "en") {
   }
 }
 
+async function openOnlineOnlyGameWindow(gameId, language = "en") {
+  if (typeof gameId !== "string" || !isSafeGameId(gameId)) throw new Error("Invalid online game id");
+  const game = (await readDb()).games.find((entry) => entry.id === gameId);
+  if (!game?.onlineOnly || typeof game.y8Slug !== "string" || !/^[a-z0-9_-]+$/.test(game.y8Slug)) {
+    throw new Error("This is not a supported online-only Y8 game");
+  }
+  const existing = playerWindows.get(game.id);
+  if (existing && !existing.isDestroyed()) { existing.focus(); return; }
+
+  const allowedLanguages = ["en", "zh", "es", "fr", "de", "pt-BR", "ja", "ko", "hi", "ar", "ru"];
+  if (allowedLanguages.includes(language)) trayLanguage = language;
+  const sessionStartedAt = Date.now();
+  const bounds = windowState.players[game.id];
+  const gameWindow = new BrowserWindow({
+    ...restoreBounds(bounds, { width: 1180, height: 760, minWidth: 640, minHeight: 420 }),
+    minWidth: 640,
+    minHeight: 420,
+    resizable: true,
+    fullscreen: game.fullscreenByDefault === true,
+    title: game.title,
+    icon: path.join(__dirname, "..", "assets", "flash-royale-ruffle-player-logo-v2.png"),
+    autoHideMenuBar: true,
+    backgroundColor: "#0b0f14",
+    show: false,
+    webPreferences: {
+      session: session.fromPartition("persist:y8-online-games"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  playerWindows.set(game.id, gameWindow);
+  playerTitles.set(game.id, game.title);
+  broadcastRunningPlayers();
+  if (minimizeToTrayOnGameLaunch && mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) {
+    hiddenForGame = true;
+    mainWindow.hide();
+  }
+  trackWindowBounds(gameWindow, () => windowState.players[game.id], (nextBounds) => { windowState.players[game.id] = nextBounds; });
+  gameWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const target = new URL(url);
+      if (target.protocol === "https:" && (target.hostname === "y8.com" || target.hostname.endsWith(".y8.com"))) void shell.openExternal(target.href);
+    } catch {}
+    return { action: "deny" };
+  });
+  gameWindow.webContents.on("will-navigate", (event, targetUrl) => {
+    try {
+      const target = new URL(targetUrl);
+      if (target.protocol !== "https:" || (target.hostname !== "y8.com" && !target.hostname.endsWith(".y8.com"))) event.preventDefault();
+    } catch {
+      event.preventDefault();
+    }
+  });
+  let playTimeSaved = false;
+  let savingPlayTime = false;
+  gameWindow.on("close", (event) => {
+    if (playTimeSaved) return;
+    event.preventDefault();
+    if (savingPlayTime) return;
+    savingPlayTime = true;
+    const finishClose = () => {
+      playTimeSaved = true;
+      savingPlayTime = false;
+      if (!gameWindow.isDestroyed()) gameWindow.close();
+    };
+    recordPlayDuration(game.id, (Date.now() - sessionStartedAt) / 1000).then(finishClose, finishClose);
+  });
+  gameWindow.on("closed", () => {
+    if (playerWindows.get(game.id) === gameWindow) {
+      playerWindows.delete(game.id);
+      playerTitles.delete(game.id);
+    }
+    broadcastRunningPlayers();
+  });
+  try {
+    await gameWindow.loadURL(`https://www.y8.com/games/${game.y8Slug}`);
+    if (!gameWindow.isDestroyed()) {
+      if (bounds?.maximized && game.fullscreenByDefault !== true) gameWindow.maximize();
+      gameWindow.show();
+    }
+  } catch (error) {
+    if (playerWindows.get(game.id) === gameWindow) playerWindows.delete(game.id);
+    if (!gameWindow.isDestroyed()) gameWindow.destroy();
+    broadcastRunningPlayers();
+    throw error;
+  }
+}
+
 function broadcastRunningPlayers() {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("player:runningChanged", Array.from(playerWindows.keys()));
@@ -1485,7 +1656,16 @@ function notifyExploreLibraryChanged() {
   }
 }
 
-async function openExploreImportProgress(id, language, parentWindow) {
+async function logExploreImportFailure(gameId, stage, error) {
+  console.error(`Explore import ${gameId} (${stage}):`, error);
+  try {
+    const logPath = path.join(app.getPath("logs"), "explore-import.log");
+    await fs.mkdir(path.dirname(logPath), { recursive: true });
+    await fs.appendFile(logPath, `${new Date().toISOString()} game=${gameId} stage=${stage}\n${error instanceof Error ? error.stack || error.message : String(error)}\n`, "utf8");
+  } catch {}
+}
+
+async function openExploreImportProgress(id, language, parentWindow, jobKey = id) {
   const progressWindow = new BrowserWindow({
     width: 460,
     height: 120,
@@ -1525,7 +1705,7 @@ async function openExploreImportProgress(id, language, parentWindow) {
     parentWindow.removeListener("resize", centerOnParent);
   });
   const job = { window: progressWindow, progress: { title: "", stage: "preparing", percent: null, receivedBytes: 0, totalBytes: null } };
-  exploreImportJobs.set(id, job);
+  exploreImportJobs.set(jobKey, job);
   const query = { exploreImport: String(id), language: String(language) };
   if (isDev) await progressWindow.loadURL(`http://127.0.0.1:5173/?${new URLSearchParams(query)}`);
   else await progressWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query });
@@ -1673,6 +1853,7 @@ app.whenReady().then(async () => {
   minimizeToTrayOnGameLaunch = config.minimizeToTrayOnGameLaunch !== false;
   minimizeToTrayOnMinimize = config.minimizeToTrayOnMinimize !== false;
   exploreEnabled = config.exploreEnabled !== false;
+  andkonEnabled = config.andkonEnabled === true;
   windowState = readWindowState();
   await prepareGameSaveDirectories();
   const gamesNeedingMigration = await getGamesNeedingStorageMigration();
@@ -1700,6 +1881,42 @@ app.whenReady().then(async () => {
     ruffleVersion: String(rufflePackage.version || ""),
   }));
   ipcMain.handle("app:checkForUpdates", checkForUpdates);
+  ipcMain.handle("app:installUpdate", async (event, version, unblock) => {
+    if (event.sender !== mainWindow?.webContents || typeof version !== "string" || typeof unblock !== "boolean") {
+      throw new TypeError("Invalid update request");
+    }
+    if (installingUpdate) throw new Error("An update is already being prepared");
+    if (process.platform !== "win32" || !app.isPackaged || process.env.PORTABLE_EXECUTABLE_DIR) {
+      throw new Error("Automatic updates require the extracted Windows portable folder");
+    }
+    const assertIdle = () => {
+      if (playerWindows.size || exploreWindow || exploreDetailsWindow || activeImports.size || pendingExploreImports.size) {
+        throw new Error("Close games and Explore, and finish imports before updating");
+      }
+    };
+    assertIdle();
+    if (!checkedUpdate || checkedUpdate.version !== version || !checkedUpdate.asset
+      || compareVersions(version, appPackage.version) <= 0) throw new Error("Check for updates again before installing");
+    installingUpdate = true;
+    let prepared;
+    let helperStarted = false;
+    try {
+      prepared = await portableUpdate.prepareUpdate(checkedUpdate.asset, workspaceRoot, unblock);
+      assertIdle();
+      await playTimeWriteQueue;
+      await portableUpdate.launchUpdate(prepared);
+      helperStarted = true;
+      assertIdle();
+      await fs.writeFile(path.join(prepared.directory, "approved"), "");
+      app.quit();
+    } catch (error) {
+      installingUpdate = false;
+      // A launched helper may still be waiting for the parent to exit.
+      if (prepared) await fs.rm(path.join(prepared.directory, "approved"), { force: true });
+      if (prepared && !helperStarted) await fs.rm(prepared.directory, { recursive: true, force: true });
+      throw error;
+    }
+  });
   ipcMain.handle("app:openUpdatePage", async (_event, value) => {
     if (typeof value !== "string") throw new TypeError("Invalid release URL");
     const repository = new URL(String(appPackage.repository?.url || ""));
@@ -1714,6 +1931,16 @@ app.whenReady().then(async () => {
     const config = await readJson(configPath, defaultConfig);
     startInFullscreen = Boolean(config.startInFullscreen);
     return startInFullscreen;
+  });
+  ipcMain.handle("app:getCheckForUpdatesOnStart", async () => {
+    const config = await readJson(configPath, defaultConfig);
+    return config.checkForUpdatesOnStart !== false;
+  });
+  ipcMain.handle("app:setCheckForUpdatesOnStart", async (_event, enabled) => {
+    if (typeof enabled !== "boolean") throw new TypeError("Expected a boolean startup update-check preference");
+    const config = await readJson(configPath, defaultConfig);
+    await writeJson(configPath, { ...defaultConfig, ...config, checkForUpdatesOnStart: enabled });
+    return enabled;
   });
   ipcMain.handle("app:setStartInFullscreen", async (_event, enabled) => {
     if (typeof enabled !== "boolean") throw new TypeError("Expected a boolean fullscreen preference");
@@ -1747,6 +1974,17 @@ app.whenReady().then(async () => {
     return enabled;
   });
   ipcMain.handle("app:getExploreAvailability", getExploreAvailability);
+  ipcMain.handle("app:getAndkonEnabled", () => andkonEnabled);
+  ipcMain.handle("app:setAndkonEnabled", async (_event, enabled) => {
+    if (typeof enabled !== "boolean") throw new Error("Invalid Andkon preference");
+    const config = await readJson(configPath, defaultConfig);
+    config.andkonEnabled = enabled;
+    await writeJson(configPath, config);
+    andkonEnabled = enabled;
+    if (!enabled && exploreDetailsSource === "andkon" && exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) exploreDetailsWindow.close();
+    notifyExploreLibraryChanged();
+    return enabled;
+  });
   ipcMain.handle("app:setExploreEnabled", async (_event, enabled) => {
     if (typeof enabled !== "boolean") throw new TypeError("Expected a boolean Explore preference");
     const config = await readJson(configPath, defaultConfig);
@@ -1772,7 +2010,7 @@ app.whenReady().then(async () => {
       minWidth: 620,
       minHeight: 480,
       title: "Explore Flash games",
-      icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+      icon: path.join(__dirname, "..", "assets", "flash-royale-explore-logo.ico"),
       autoHideMenuBar: true,
       backgroundColor: "#101318",
       webPreferences: {
@@ -1793,29 +2031,41 @@ app.whenReady().then(async () => {
     if (isDev) exploreWindow.loadURL("http://127.0.0.1:5173/?explore=1");
     else exploreWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query: { explore: "1" } });
   });
-  ipcMain.handle("explore:list", async (event, query, page, pageSize, sortMode, ascending) => {
+  ipcMain.handle("explore:list", async (event, query, page, pageSize, sortMode, ascending, source = "silvergames") => {
     if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) throw new Error("Explore window required");
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    if (!["silvergames", "andkon", "y8"].includes(source)) throw new Error("Invalid Explore catalog");
+    if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
     const db = await readDb();
-    return silvergames.listGames(query, page, pageSize, sortMode, ascending, db.games);
+    const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
+    return provider.listGames(query, page, pageSize, sortMode, ascending, db.games);
   });
-  ipcMain.handle("explore:openSite", (event) => {
+  ipcMain.handle("explore:openSite", (event, source = "silvergames") => {
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
+    if (!["silvergames", "andkon", "y8"].includes(source)) throw new Error("Invalid Explore catalog");
+    if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
     if (exploreWindow && senderWindow === exploreWindow) {
-      return shell.openExternal("https://www.silvergames.com/en/");
+      return shell.openExternal(source === "y8" ? "https://www.y8.com/tags/flash" : source === "andkon" ? "https://www.andkon.com/arcade/" : "https://www.silvergames.com/en/");
     }
     if (exploreDetailsWindow && senderWindow === exploreDetailsWindow && exploreDetailsGameSlug) {
-      return shell.openExternal(`https://www.silvergames.com/en/${exploreDetailsGameSlug}`);
+      const url = exploreDetailsSource === "y8" ? `https://www.y8.com/games/${exploreDetailsGameSlug}` : exploreDetailsSource === "andkon"
+        ? new URL(exploreDetailsGameSlug, "https://www.andkon.com").href
+        : `https://www.silvergames.com/en/${exploreDetailsGameSlug}`;
+      return shell.openExternal(url);
     }
     throw new Error("Explore window required");
   });
-  ipcMain.handle("explore:openDetails", async (event, id) => {
+  ipcMain.handle("explore:openDetails", async (event, id, source = "silvergames") => {
     if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) throw new Error("Explore window required");
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
-    const game = await silvergames.getCatalogGame(id);
+    if (!["silvergames", "andkon", "y8"].includes(source)) throw new Error("Invalid Explore catalog");
+    if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
+    const catalogId = source === "silvergames" ? Number(id) : id;
+    const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
+    const game = await provider.getCatalogGame(catalogId);
     if (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) {
-      if (exploreDetailsGameId === id) {
+      if (exploreDetailsGameId === catalogId && exploreDetailsSource === source) {
         exploreDetailsWindow.focus();
         return;
       }
@@ -1827,7 +2077,7 @@ app.whenReady().then(async () => {
         minHeight: 520,
         parent: exploreWindow,
         title: game.title,
-        icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+        icon: path.join(__dirname, "..", "assets", "flash-royale-explore-info-logo.ico"),
         autoHideMenuBar: true,
         backgroundColor: "#101318",
         webPreferences: {
@@ -1845,96 +2095,167 @@ app.whenReady().then(async () => {
         exploreDetailsWindow = null;
         exploreDetailsGameId = null;
         exploreDetailsGameSlug = null;
+        exploreDetailsSource = "silvergames";
         if (exploreWindow && !exploreWindow.isDestroyed() && exploreWindow.isVisible()) {
           exploreWindow.focus();
         }
       });
     }
-    exploreDetailsGameId = id;
+    exploreDetailsGameId = catalogId;
     exploreDetailsGameSlug = game.slug;
+    exploreDetailsSource = source;
     exploreDetailsWindow.setTitle(game.title);
-    if (isDev) await exploreDetailsWindow.loadURL(`http://127.0.0.1:5173/?exploreGame=${id}`);
-    else await exploreDetailsWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query: { exploreGame: String(id) } });
+    const query = { exploreGame: String(catalogId), exploreSource: source };
+    if (isDev) await exploreDetailsWindow.loadURL(`http://127.0.0.1:5173/?${new URLSearchParams(query)}`);
+    else await exploreDetailsWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query });
     exploreDetailsWindow.focus();
   });
-  ipcMain.handle("explore:getDetails", async (event, id) => {
-    if (!exploreDetailsWindow || BrowserWindow.fromWebContents(event.sender) !== exploreDetailsWindow || id !== exploreDetailsGameId) {
+  ipcMain.handle("explore:getDetails", async (event, id, source = "silvergames") => {
+    if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
+    const catalogId = source === "silvergames" ? Number(id) : id;
+    if (!exploreDetailsWindow || BrowserWindow.fromWebContents(event.sender) !== exploreDetailsWindow || catalogId !== exploreDetailsGameId || source !== exploreDetailsSource) {
       throw new Error("Explore game-info window required");
     }
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
     const db = await readDb();
-    return silvergames.getGameDetails(id, db.games);
+    const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
+    return provider.getGameDetails(catalogId, db.games);
   });
   ipcMain.handle("explore:getImportProgress", (event) => {
     const job = Array.from(exploreImportJobs.values()).find((entry) => entry.window.webContents === event.sender);
     if (!job) throw new Error("Explore import progress window required");
     return job.progress;
   });
-  ipcMain.handle("explore:import", async (event, id, language) => {
+  ipcMain.handle("explore:import", async (event, id, language, source = "silvergames") => {
     const senderWindow = BrowserWindow.fromWebContents(event.sender);
-    if (!senderWindow || (senderWindow !== exploreWindow && (senderWindow !== exploreDetailsWindow || id !== exploreDetailsGameId))) {
+    if (!["silvergames", "andkon", "y8"].includes(source)) throw new Error("Invalid Explore catalog");
+    if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
+    const catalogId = source === "silvergames" ? Number(id) : id;
+    if (!senderWindow || (senderWindow !== exploreWindow && (senderWindow !== exploreDetailsWindow || catalogId !== exploreDetailsGameId || source !== exploreDetailsSource))) {
       throw new Error("Explore window required");
     }
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
-    if (pendingExploreImports.has(id)) throw new Error("This game is already being imported.");
-    pendingExploreImports.add(id);
+    const importKey = `${source}:${catalogId}`;
+    if (pendingExploreImports.has(importKey)) throw new Error("This game is already being imported.");
+    pendingExploreImports.add(importKey);
+    let importStage = "preparing";
     try {
-      const job = await openExploreImportProgress(id, language, senderWindow);
-      const game = await silvergames.getCatalogGame(id);
+      const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
+      const job = await openExploreImportProgress(catalogId, language, senderWindow, importKey);
+      const game = await provider.getCatalogGame(catalogId);
       updateExploreImportProgress(job, { title: game.title });
-      if (silvergames.isInLibrary(game, (await readDb()).games)) {
-        return { imported: false, alreadyInLibrary: true, title: game.title };
+      const currentDb = await readDb();
+      const status = provider.getLibraryStatus(game, currentDb.games);
+      if (status.imported) {
+        return { imported: false, alreadyInLibrary: true, title: game.title, duplicateOf: status.duplicateOf };
       }
-      const [{ data }, cover, metadata] = await Promise.all([
-        silvergames.downloadGame(id, game, ({ receivedBytes, totalBytes }) => {
+      if (source === "y8" && game.onlineOnly) {
+        importStage = "saving";
+        updateExploreImportProgress(job, { stage: "saving", percent: 20 });
+        const cover = await provider.downloadCover(game).catch(async (error) => {
+          await logExploreImportFailure(importKey, "cover download (using fallback)", error);
+          return null;
+        });
+        const result = await importOnlineOnlyY8Game(game, cover, language);
+        updateExploreImportProgress(job, { percent: 100 });
+        if (result.imported) {
+          if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("library:exploreImported", result.title);
+          notifyExploreLibraryChanged();
+        }
+        return result;
+      }
+      importStage = "downloading";
+      const [download, cover, metadata] = await Promise.all([
+        provider.downloadGame(catalogId, game, ({ receivedBytes, totalBytes }) => {
           updateExploreImportProgress(job, {
             stage: "downloading", receivedBytes, totalBytes,
             percent: totalBytes ? Math.min(80, receivedBytes / totalBytes * 80) : null,
           });
-        }), silvergames.downloadCover(game), silvergames.getGameMetadata(game),
+        }), provider.downloadCover(game).catch(async (error) => {
+          await logExploreImportFailure(importKey, "cover download (using fallback)", error);
+          return null;
+        }), source === "andkon" ? provider.getGameDetails(catalogId, currentDb.games) : provider.getGameMetadata(game),
       ]);
+      importStage = "saving";
       updateExploreImportProgress(job, { stage: "saving", percent: 85 });
       const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-explore-"));
       try {
-        const filePath = path.join(temporaryDirectory, `${game.slug}.swf`);
-        await fs.writeFile(filePath, data);
+        const filePath = path.join(temporaryDirectory, `${safeGameTitle(game.title)}.swf`);
+        await fs.writeFile(filePath, download.data);
         const result = await importSwfFiles([filePath], language);
+        let duplicateOf = null;
         if (result.imported.length) {
           await updateGame(result.imported[0].id, { title: game.title }, language);
           const db = await readDb();
           const importedGame = db.games.find((entry) => entry.id === result.imported[0].id);
-          importedGame.silvergamesId = game.id;
+          if (source === "silvergames") importedGame.silvergamesId = game.id;
+          else if (source === "andkon") importedGame.andkonPagePath = game.pagePath;
+          else importedGame.y8Slug = game.slug;
           importedGame.tags = Array.from(new Set(game.tags.filter((tag) => typeof tag === "string").map((tag) => tag.trim()).filter(Boolean)));
-          importedGame.description = metadata.description;
-          if (metadata.sourceRating !== null) importedGame.sourceRating = metadata.sourceRating;
-          if (metadata.sourceRatingCount !== null) importedGame.sourceRatingCount = metadata.sourceRatingCount;
+          importedGame.description = source === "andkon" ? "" : metadata.description || "";
+          if (source === "andkon") importedGame.notes = metadata.instructions || "";
+          if (metadata.sourceRating !== null && metadata.sourceRating !== undefined) importedGame.sourceRating = metadata.sourceRating;
+          if (metadata.sourceRating !== null && metadata.sourceRating !== undefined) importedGame.sourceRatingSource = source;
+          if (metadata.sourceRatingCount !== null && metadata.sourceRatingCount !== undefined) importedGame.sourceRatingCount = metadata.sourceRatingCount;
+          if (source === "y8") {
+            if (metadata.category) importedGame.category = metadata.category;
+            if (metadata.developer) importedGame.developer = metadata.developer;
+          }
           updateExploreImportProgress(job, { percent: 95 });
-          await persistCoverBuffer(importedGame, cover, ".webp", "explore");
+          if (cover) {
+            try {
+              if (source === "andkon") {
+                await persistCoverBuffer(importedGame, cover, ".gif", "explore", 1);
+              } else {
+                await persistCoverBuffer(importedGame, cover, ".webp", "explore");
+              }
+            } catch (error) {
+              await logExploreImportFailure(importKey, "cover conversion (using fallback)", error);
+            }
+          }
           await writeDb(db);
           if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("library:exploreImported", importedGame.title);
           notifyExploreLibraryChanged();
         } else if (result.skipped[0]?.game) {
           const db = await readDb();
           const existing = db.games.find((entry) => entry.id === result.skipped[0].game.id);
-          if (existing && existing.silvergamesId == null) {
-            existing.silvergamesId = game.id;
+          if (existing) {
+            duplicateOf = existing.title;
+            if (source === "silvergames") {
+              existing.silvergamesDuplicateIds = Array.from(new Set([...(existing.silvergamesDuplicateIds || []), game.id]));
+              if (existing.silvergamesId == null) existing.silvergamesId = game.id;
+              existing.silvergamesIds = Array.from(new Set([
+                existing.silvergamesId,
+                ...(existing.silvergamesIds || []),
+                game.id,
+              ]));
+            } else if (source === "andkon") {
+              existing.andkonPagePath = game.pagePath;
+            } else {
+              existing.y8Slugs = Array.from(new Set([...(existing.y8Slugs || []), game.slug]));
+              existing.y8DuplicateSlugs = Array.from(new Set([...(existing.y8DuplicateSlugs || []), game.slug]));
+            }
             await writeDb(db);
             notifyExploreLibraryChanged();
           }
         }
         updateExploreImportProgress(job, { percent: 100 });
-        return { imported: result.imported.length > 0, alreadyInLibrary: result.skipped.length > 0, title: game.title };
+        return { imported: result.imported.length > 0, alreadyInLibrary: result.skipped.length > 0, title: game.title, duplicateOf };
       } finally {
         await fs.rm(temporaryDirectory, { recursive: true, force: true });
       }
+    } catch (error) {
+      await logExploreImportFailure(importKey, importStage, error);
+      throw error;
     } finally {
-      pendingExploreImports.delete(id);
-      const job = exploreImportJobs.get(id);
-      exploreImportJobs.delete(id);
+      pendingExploreImports.delete(importKey);
+      const job = exploreImportJobs.get(importKey);
+      exploreImportJobs.delete(importKey);
       if (job && !job.window.isDestroyed()) job.window.destroy();
     }
   });
   ipcMain.handle("player:open", (_event, game, language) => openPlayerWindow(game, language));
+  ipcMain.handle("player:openOnlineOnly", (_event, gameId, language) => openOnlineOnlyGameWindow(gameId, language));
   ipcMain.handle("player:getRunning", () => Array.from(playerWindows.keys()));
   ipcMain.handle("player:close", (_event, gameId) => {
     const playerWindow = playerWindows.get(gameId);
@@ -1960,6 +2281,29 @@ app.whenReady().then(async () => {
     if (!game) throw new Error("找不到游戏");
     const error = await shell.openPath(getGamePaths(gamesRoot, game).directory);
     if (error) throw new Error(error);
+  });
+  ipcMain.handle("library:getSwfMetadata", async (_event, gameId) => {
+    if (!isSafeGameId(gameId)) throw new Error("Invalid game id");
+    const game = (await readDb()).games.find((item) => item.id === gameId);
+    if (!game) throw new Error("找不到游戏");
+    const metadataPath = getGamePaths(gamesRoot, game).swfMetadataPath;
+    let metadata = await readJson(metadataPath, null);
+    if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+      try {
+        const swfData = await fs.readFile(game.filePath);
+        metadata = silvergames.parseSwfMetadata(swfData, swfData.length);
+        await writeJson(metadataPath, metadata);
+      } catch {
+        return null;
+      }
+    }
+    return {
+      swfVersion: Number.isInteger(metadata.swfVersion) ? metadata.swfVersion : null,
+      stageWidth: Number.isInteger(metadata.stageWidth) ? metadata.stageWidth : null,
+      stageHeight: Number.isInteger(metadata.stageHeight) ? metadata.stageHeight : null,
+      frameRate: Number.isFinite(metadata.frameRate) ? metadata.frameRate : null,
+      fileSizeBytes: Number.isSafeInteger(metadata.fileSizeBytes) && metadata.fileSizeBytes > 0 ? metadata.fileSizeBytes : null,
+    };
   });
   ipcMain.handle("library:getGameTheme", (_event, gameId) => extractGameTheme(gameId));
   ipcMain.handle("library:chooseCustomMusic", (_event, gameId, language) => chooseCustomMusic(gameId, language));
@@ -1988,6 +2332,7 @@ app.whenReady().then(async () => {
   ipcMain.handle("library:deleteGame", async (_event, gameId, removeFiles) => {
     const result = await deleteGame(gameId, removeFiles);
     notifyExploreLibraryChanged();
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("library:exploreChanged");
     return result;
   });
   ipcMain.handle("library:recordPlay", (_event, gameId) => recordPlay(gameId));
