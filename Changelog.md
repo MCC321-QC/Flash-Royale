@@ -7,6 +7,9 @@
 - Optimized each catalogue's cache and sort/filter options.
 - Added filter options in explore window such as Show online only games (Default to On) and categories if the catalogue permits it.
 - Removed Fix scaling / zoom, Standalone compatibility, allow online features and discovered public resources from the game detail panel of the main app window and game settings panel for Online-only games.
+- Added option to enable script execution only for the actual update process in the update window prompt disabled by default
+- Added both update window's options description
+- Added information for manual update and a button to open the release page
 
 ## v0.9.6
 
