@@ -44,6 +44,12 @@ npm.cmd run package:share
 
 Manual checks in Settings and startup checks use the same available-update dialog. Supported extracted Windows builds show the localized Install and restart action, optional file-unblocking consent, busy state, and retryable installation errors. Development builds, unsupported platforms, self-extracting portable executables, or releases without a supported verified archive use the release-page fallback. Games, Explore, and imports must be closed/finished before installation.
 
+The separate, initially unchecked Enable script execution option passes `-ExecutionPolicy Bypass` only to this update's PowerShell preparation, bootstrap, and installation processes. Its enabled/disabled choice persists in localStorage under `flashroyale.enableUpdateScriptExecution` across dialog openings and app restarts. It never runs `Set-ExecutionPolicy` or changes user/machine policy; it does not unblock runtime files or override organization-enforced policy, AppLocker, or Smart App Control. The separate file-unblocking consent still resets whenever an available-update dialog opens.
+
+Updater staging uses Electron's `original-fs` for real filesystem operations so staged `app.asar` files are not treated as virtual directories. The bundled PowerShell helper is read with the ASAR-aware filesystem. Preparation failures preserve their diagnostic directory and original error instead of letting cleanup hide it; cleanup after an unstarted helper retries transient locks and logs failures without replacing the installation error.
+
+The Windows helper is launched using PowerShell `Start-Process -WindowStyle Hidden`, not Node's detached console launch: detached hidden PowerShell can exit with code 0 before executing its script, while a console-sharing process can die when its launcher exits. A short bootstrap checks readiness and early exit for up to 15 seconds. A regression test verifies that the independent helper continues after its launcher exits. An exit before readiness remains an error even with code 0.
+
 Run `node --test electron\update-dialog.test.cjs electron\portable-update.test.cjs` to verify both dialog entry points, install dispatch, fallback behavior, and updater archive validation without installing an app update.
 
 ## Catalogue Network Usage
@@ -199,9 +205,7 @@ When saving a cover, the app writes a temporary file and checks its size before 
 
 `electron-builder` outputs to `release/win-unpacked`.
 
-`package:win` builds the frontend, runs electron-builder, and invokes `scripts/package-windows-release.cjs` to create `release/Flash-Royale-v<package.json version>-Windows.zip`. The ZIP contains the runtime directly at its root, includes hidden runtime files, and never copies the workspace library. Packaging fails if a library is found in the runtime output. Archives are written to a temporary file and replaced only after compression succeeds. The updater accepts both prefixed and unprefixed version tags/asset names.
-
-Packaging leaves source Mark of the Web streams untouched and never calls `Unblock-File`. ZIP compression cannot preserve individual NTFS alternate streams; browser download and Explorer extraction provide the standard archive/file marking behavior. Locally generated archives are not explicitly internet-marked. Verify names, runtime contents, source MOTW, and updater selection with `node --test scripts\package-windows-release.test.cjs electron\portable-update.test.cjs`.
+`package:win` builds the frontend and runs electron-builder to produce `release/win-unpacked`; it does not create a ZIP archive.
 
 `package:fast`:
 

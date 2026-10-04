@@ -21,7 +21,7 @@
     "postinstall": "node scripts/copy-ruffle.cjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
     "build": "tsc --noEmit && vite build",
-    "package:win": "npm run build && electron-builder --win dir && node scripts/package-windows-release.cjs",
+    "package:win": "npm run build && electron-builder --win dir",
     "package:portable": "npm run package:fast",
     "package:fast": "npm run build && electron-builder --win dir && node scripts/prepare-fast-package.cjs",
     "package:share": "npm run build && electron-builder --win dir && node scripts/package-share-folder.cjs",

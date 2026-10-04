@@ -897,7 +897,7 @@ button > svg {
   justify-content: center;
   gap: 8px;
   min-height: 40px;
-  padding: 0 14px;
+  padding: 8px 14px;
   min-width: 0;
   max-width: 100%;
   border: 0;
@@ -2249,7 +2249,7 @@ button > svg {
   min-height: 40px;
   align-items: center;
   justify-content: center;
-  padding: 0 14px;
+  padding: 8px 14px;
   border: 0;
   border-radius: 8px;
   color: #ffffff;
@@ -2498,12 +2498,32 @@ button > svg {
   accent-color: #73d2de;
 }
 
-.settings-general small {
+.settings-general small,
+.update-option-description,
+.update-manual-description {
   display: block;
   margin: 5px 0 0;
   color: #95a3b5;
   font-size: 12px;
   font-weight: 400;
+}
+
+.settings-general small,
+.update-option-description {
+  margin-inline-start: 26px;
+}
+
+.update-dialog .confirm-actions {
+  flex-wrap: nowrap;
+}
+
+.update-dialog .confirm-actions > button:not(.update-release-button):not(.primary) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.update-release-button {
+  margin-inline-end: auto;
 }
 
 .settings-field select:focus-visible {
@@ -2575,7 +2595,9 @@ button > svg {
 }
 
 .settings-about .update-check-button {
-  margin: 12px 0 4px;
+  display: flex;
+  width: fit-content;
+  margin: 12px auto 4px;
 }
 
 .settings-about-footer {
@@ -3021,11 +3043,13 @@ body.explore-window-body {
 .explore-search:focus-within { border-color: #74d1d8; }
 .explore-search input {
   width: 100%;
+  min-width: 0;
   height: 40px;
   border: 0;
   outline: 0;
   color: #eef2f7;
   background: transparent;
+  text-overflow: ellipsis;
 }
 
 .explore-results {

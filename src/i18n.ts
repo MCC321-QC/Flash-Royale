@@ -552,6 +552,20 @@ export const updateActionLabels: Record<Language, string> = {
   ru: "Обновить",
 };
 
+export const updateScriptExecutionLabels: Record<Language, { label: string; hint: string }> = {
+  en: { label: "Enable script execution (needed for auto update if blocked)", hint: "Allows the updater's PowerShell scripts to run without changing user or system policy. Organization policies may still block execution." },
+  zh: { label: "允许脚本执行（自动更新被阻止时需要）", hint: "允许更新程序的 PowerShell 脚本运行，不更改用户或系统策略。组织策略仍可能阻止执行。" },
+  es: { label: "Permitir ejecución de scripts (necesario si se bloquea la actualización automática)", hint: "Permite ejecutar los scripts PowerShell del actualizador sin cambiar políticas del usuario ni del sistema. Las políticas de la organización pueden seguir bloqueando la ejecución." },
+  fr: { label: "Autoriser l’exécution des scripts (nécessaire si la mise à jour automatique est bloquée)", hint: "Permet d’exécuter les scripts PowerShell de la mise à jour sans modifier les stratégies utilisateur ou système. Les stratégies de l’organisation peuvent toujours bloquer l’exécution." },
+  de: { label: "Skriptausführung erlauben (bei blockiertem automatischem Update erforderlich)", hint: "Erlaubt die PowerShell-Skripte des Updaters, ohne Benutzer- oder Systemrichtlinien zu ändern. Organisationsrichtlinien können die Ausführung weiterhin blockieren." },
+  "pt-BR": { label: "Permitir execução de scripts (necessário se a atualização automática for bloqueada)", hint: "Permite executar os scripts PowerShell do atualizador sem alterar políticas do usuário ou do sistema. Políticas da organização ainda podem bloquear a execução." },
+  ja: { label: "スクリプト実行を許可（自動更新がブロックされた場合に必要）", hint: "ユーザーやシステムのポリシーを変更せずに、更新プログラムの PowerShell スクリプトの実行を許可します。組織のポリシーにより実行がブロックされる場合があります。" },
+  ko: { label: "스크립트 실행 허용 (자동 업데이트가 차단된 경우 필요)", hint: "사용자나 시스템 정책을 변경하지 않고 업데이트 프로그램의 PowerShell 스크립트 실행을 허용합니다. 조직 정책은 여전히 실행을 차단할 수 있습니다." },
+  hi: { label: "स्क्रिप्ट चलाने की अनुमति दें (स्वचालित अपडेट अवरुद्ध होने पर आवश्यक)", hint: "उपयोगकर्ता या सिस्टम नीति बदले बिना अपडेटर की PowerShell स्क्रिप्ट चलाने की अनुमति देता है। संगठन की नीतियाँ फिर भी निष्पादन रोक सकती हैं।" },
+  ar: { label: "السماح بتنفيذ البرامج النصية (مطلوب إذا حُظر التحديث التلقائي)", hint: "يسمح بتشغيل برامج PowerShell النصية الخاصة بالمحدّث دون تغيير سياسة المستخدم أو النظام. قد تظل سياسات المؤسسة تمنع التنفيذ." },
+  ru: { label: "Разрешить выполнение скриптов (если автообновление заблокировано)", hint: "Разрешает запуск скриптов PowerShell программы обновления, не меняя политики пользователя или системы. Политики организации могут по-прежнему блокировать выполнение." },
+};
+
 export const portableUpdateLabels: Record<Language, { install: string; busy: string; consent: string; warning: string; failed: string }> = {
   en: { install: "Install and restart", busy: "Downloading and verifying update...", consent: "Unblock the verified update files (remove Mark of the Web)", warning: "The app will close and restart. Your library is preserved. Close games and Explore first. Unblocking does not bypass Smart App Control or replace code signing.", failed: "Could not install the update" },
   zh: { install: "安装并重启", busy: "正在下载并验证更新...", consent: "解除已验证更新文件的阻止（移除网络来源标记）", warning: "应用将关闭并重启，游戏库会保留。请先关闭游戏和探索。解除阻止不会绕过智能应用控制，也不能替代代码签名。", failed: "无法安装更新" },
@@ -564,6 +578,48 @@ export const portableUpdateLabels: Record<Language, { install: string; busy: str
   hi: { install: "इंस्टॉल करें और पुनः शुरू करें", busy: "अपडेट डाउनलोड और सत्यापित हो रहा है...", consent: "सत्यापित अपडेट फ़ाइलों का अवरोध हटाएँ (इंटरनेट स्रोत चिह्न हटाएँ)", warning: "ऐप बंद होकर फिर शुरू होगा। लाइब्रेरी सुरक्षित रहेगी। पहले गेम और खोज विंडो बंद करें। अवरोध हटाना Smart App Control को बायपास नहीं करता और कोड हस्ताक्षर का विकल्प नहीं है।", failed: "अपडेट इंस्टॉल नहीं हो सका" },
   ar: { install: "تثبيت وإعادة تشغيل", busy: "جارٍ تنزيل التحديث والتحقق منه...", consent: "إلغاء حظر ملفات التحديث التي تم التحقق منها (إزالة علامة مصدر الإنترنت)", warning: "سيتم إغلاق التطبيق وإعادة تشغيله مع الاحتفاظ بالمكتبة. أغلق الألعاب والاستكشاف أولاً. إلغاء الحظر لا يتجاوز Smart App Control ولا يحل محل توقيع الكود.", failed: "تعذّر تثبيت التحديث" },
   ru: { install: "Установить и перезапустить", busy: "Загрузка и проверка обновления...", consent: "Разблокировать проверенные файлы обновления (удалить метку Интернета)", warning: "Приложение закроется и перезапустится. Библиотека сохранится. Сначала закройте игры и поиск игр. Разблокировка не обходит Smart App Control и не заменяет подпись кода.", failed: "Не удалось установить обновление" },
+};
+
+export const manualUpdateTitles: Record<Language, string> = {
+  en: "Manual update:",
+  zh: "手动更新：",
+  es: "Actualización manual:",
+  fr: "Mise à jour manuelle :",
+  de: "Manuelles Update:",
+  "pt-BR": "Atualização manual:",
+  ja: "手動更新：",
+  ko: "수동 업데이트:",
+  hi: "मैन्युअल अपडेट:",
+  ar: "التحديث اليدوي:",
+  ru: "Обновление вручную:",
+};
+
+export const manualUpdateLabels: Record<Language, { openRelease: string; instructions: string }> = {
+  en: { openRelease: "Open release page", instructions: " Open the release page and download the Windows ZIP archive. Make sure Flash Royal is closed and not in the notification area. Extract the archive into a temporary folder, then copy the all files into your current Flash Royale folder, replacing existing files. Keep your existing library and launch Flash Royale again." },
+  zh: { openRelease: "打开发行页面", instructions: "打开发行页面并下载 Windows ZIP 压缩包。确保 Flash Royale 已关闭且未在通知区域运行。将压缩包解压到临时文件夹，再将所有文件复制到当前 Flash Royale 文件夹，替换现有文件。保留现有游戏库，然后重新启动 Flash Royale。" },
+  es: { openRelease: "Abrir página de la versión", instructions: " Abre la página de la versión y descarga el archivo ZIP para Windows. Asegúrate de que Flash Royale esté cerrado y no esté en el área de notificación. Extrae el archivo en una carpeta temporal y copia todos los archivos a tu carpeta actual de Flash Royale, reemplazando los existentes. Conserva tu biblioteca y vuelve a iniciar Flash Royale." },
+  fr: { openRelease: "Ouvrir la page de la version", instructions: " Ouvrez la page de la version et téléchargez l’archive ZIP pour Windows. Assurez-vous que Flash Royale est fermé et n’est pas dans la zone de notification. Extrayez l’archive dans un dossier temporaire, puis copiez tous les fichiers dans votre dossier Flash Royale actuel en remplaçant les fichiers existants. Conservez votre bibliothèque et relancez Flash Royale." },
+  de: { openRelease: "Versionsseite öffnen", instructions: " Öffnen Sie die Versionsseite und laden Sie das Windows-ZIP-Archiv herunter. Stellen Sie sicher, dass Flash Royale geschlossen ist und nicht im Infobereich läuft. Entpacken Sie das Archiv in einen temporären Ordner und kopieren Sie alle Dateien in Ihren aktuellen Flash-Royale-Ordner, wobei vorhandene Dateien ersetzt werden. Behalten Sie Ihre Bibliothek und starten Sie Flash Royale erneut." },
+  "pt-BR": { openRelease: "Abrir página da versão", instructions: " Abra a página da versão e baixe o arquivo ZIP para Windows. Certifique-se de que o Flash Royale esteja fechado e não esteja na área de notificação. Extraia o arquivo em uma pasta temporária e copie todos os arquivos para sua pasta atual do Flash Royale, substituindo os existentes. Preserve sua biblioteca e inicie o Flash Royale novamente." },
+  ja: { openRelease: "リリースページを開く", instructions: "リリースページを開き、Windows 用 ZIP をダウンロードしてください。Flash Royale が終了しており、通知領域にも残っていないことを確認してください。一時フォルダーに ZIP を展開し、すべてのファイルを現在の Flash Royale フォルダーにコピーして既存のファイルを置き換えます。既存のライブラリを保持し、Flash Royale を再起動してください。" },
+  ko: { openRelease: "릴리스 페이지 열기", instructions: " 릴리스 페이지에서 Windows ZIP 파일을 다운로드하세요. Flash Royale이 종료되어 있고 알림 영역에도 남아 있지 않은지 확인하세요. 임시 폴더에 압축을 풀고 모든 파일을 현재 Flash Royale 폴더에 복사하여 기존 파일을 교체하세요. 기존 라이브러리를 유지하고 Flash Royale을 다시 실행하세요." },
+  hi: { openRelease: "रिलीज़ पृष्ठ खोलें", instructions: " रिलीज़ पृष्ठ खोलें और Windows ZIP डाउनलोड करें। सुनिश्चित करें कि Flash Royale बंद है और सूचना क्षेत्र में भी नहीं चल रहा है। ZIP को अस्थायी फ़ोल्डर में निकालें, फिर सभी फ़ाइलों को अपने मौजूदा Flash Royale फ़ोल्डर में कॉपी करके पुरानी फ़ाइलें बदलें। अपनी मौजूदा लाइब्रेरी सुरक्षित रखें और Flash Royale फिर शुरू करें।" },
+  ar: { openRelease: "فتح صفحة الإصدار", instructions: " افتح صفحة الإصدار ونزّل أرشيف ZIP لنظام Windows. تأكد من إغلاق Flash Royale وعدم وجوده في منطقة الإعلام. استخرج الأرشيف إلى مجلد مؤقت، ثم انسخ جميع الملفات إلى مجلد Flash Royale الحالي مع استبدال الملفات الموجودة. احتفظ بمكتبتك الحالية وشغّل Flash Royale مجدداً." },
+  ru: { openRelease: "Открыть страницу релиза", instructions: " Откройте страницу релиза и скачайте ZIP-архив для Windows. Убедитесь, что Flash Royale закрыт и не находится в области уведомлений. Распакуйте архив во временную папку, затем скопируйте все файлы в текущую папку Flash Royale, заменив существующие файлы. Сохраните свою библиотеку и снова запустите Flash Royale." },
+};
+
+export const unblockUpdateDescriptions: Record<Language, string> = {
+  en: "Windows can mark files downloaded from the internet with a security marker called Mark of the Web, which may trigger warnings or block them from running. This option removes that marker only from the verified update files. It does not turn off Windows security or guarantee that the app can run.",
+  zh: "Windows 可能为从互联网下载的文件添加名为 Mark of the Web 的安全标记，导致警告或阻止运行。此选项仅移除已验证更新文件上的该标记，不会关闭 Windows 安全功能，也不保证应用能够运行。",
+  es: "Windows puede añadir a los archivos descargados de Internet una marca de seguridad llamada Mark of the Web, que puede provocar advertencias o impedir su ejecución. Esta opción elimina esa marca solo de los archivos de actualización verificados. No desactiva la seguridad de Windows ni garantiza que la aplicación pueda ejecutarse.",
+  fr: "Windows peut ajouter aux fichiers téléchargés sur Internet une marque de sécurité appelée Mark of the Web, qui peut déclencher des avertissements ou empêcher leur exécution. Cette option retire cette marque uniquement des fichiers de mise à jour vérifiés. Elle ne désactive pas la sécurité de Windows et ne garantit pas que l’application pourra démarrer.",
+  de: "Windows kann Dateien aus dem Internet mit einer Sicherheitsmarkierung namens Mark of the Web versehen, die Warnungen auslösen oder die Ausführung verhindern kann. Diese Option entfernt die Markierung nur aus den überprüften Update-Dateien. Sie deaktiviert nicht die Windows-Sicherheit und garantiert nicht, dass die App ausgeführt werden kann.",
+  "pt-BR": "O Windows pode adicionar aos arquivos baixados da Internet uma marca de segurança chamada Mark of the Web, que pode gerar avisos ou impedir a execução. Esta opção remove essa marca apenas dos arquivos de atualização verificados. Ela não desativa a segurança do Windows nem garante que o app possa ser executado.",
+  ja: "Windows はインターネットからダウンロードしたファイルに Mark of the Web というセキュリティマークを付けることがあり、警告や実行のブロックにつながる場合があります。このオプションは検証済みの更新ファイルからのみマークを削除します。Windows のセキュリティを無効にするものではなく、アプリの実行を保証するものでもありません。",
+  ko: "Windows는 인터넷에서 다운로드한 파일에 Mark of the Web이라는 보안 표시를 추가할 수 있으며, 이로 인해 경고가 나타나거나 실행이 차단될 수 있습니다. 이 옵션은 검증된 업데이트 파일에서만 해당 표시를 제거합니다. Windows 보안을 끄거나 앱 실행을 보장하지는 않습니다.",
+  hi: "Windows इंटरनेट से डाउनलोड की गई फ़ाइलों पर Mark of the Web नाम का सुरक्षा चिह्न लगा सकता है, जिससे चेतावनियाँ दिखाई दे सकती हैं या फ़ाइलों का चलना रोका जा सकता है। यह विकल्प केवल सत्यापित अपडेट फ़ाइलों से वह चिह्न हटाता है। यह Windows सुरक्षा बंद नहीं करता और ऐप चलने की गारंटी नहीं देता।",
+  ar: "قد يضيف Windows إلى الملفات المنزّلة من الإنترنت علامة أمان تسمى Mark of the Web، وقد تؤدي إلى ظهور تحذيرات أو منع تشغيلها. يزيل هذا الخيار العلامة من ملفات التحديث التي تم التحقق منها فقط. لا يعطّل أمان Windows ولا يضمن إمكانية تشغيل التطبيق.",
+  ru: "Windows может добавлять к файлам из Интернета метку безопасности Mark of the Web, которая может вызывать предупреждения или блокировать запуск. Этот вариант удаляет метку только с проверенных файлов обновления. Он не отключает защиту Windows и не гарантирует запуск приложения.",
 };
 
 export const showOnlineOnlyGamesLabels: Record<Language, string> = {

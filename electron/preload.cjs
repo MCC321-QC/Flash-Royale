@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld("flashApi", {
   getCheckForUpdatesOnStart: () => ipcRenderer.invoke("app:getCheckForUpdatesOnStart"),
   setCheckForUpdatesOnStart: (enabled) => ipcRenderer.invoke("app:setCheckForUpdatesOnStart", enabled),
   openUpdatePage: (releaseUrl) => ipcRenderer.invoke("app:openUpdatePage", releaseUrl),
-  installUpdate: (version, unblock) => ipcRenderer.invoke("app:installUpdate", version, unblock),
+  installUpdate: (version, unblock, enableScriptExecution) => ipcRenderer.invoke("app:installUpdate", version, unblock, enableScriptExecution),
   getStartInFullscreen: () => ipcRenderer.invoke("app:getStartInFullscreen"),
   setStartInFullscreen: (enabled) => ipcRenderer.invoke("app:setStartInFullscreen", enabled),
   getMinimizeToTrayOnGameLaunch: () => ipcRenderer.invoke("app:getMinimizeToTrayOnGameLaunch"),

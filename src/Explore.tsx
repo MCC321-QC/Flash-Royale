@@ -390,7 +390,7 @@ export function Explore() {
           </div>
           <div className="explore-search">
             <Search size={19} />
-            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder={labels.search} aria-label={labels.search} />
+            <input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); }} placeholder={labels.search} aria-label={labels.search} title={query ? undefined : labels.search} />
           </div>
           <button className="icon" title={refreshSeconds > 0 ? exploreRefreshLabels[language].wait.replace("{seconds}", String(refreshSeconds)) : exploreRefreshLabels[language].refresh}
             aria-label={refreshSeconds > 0 ? exploreRefreshLabels[language].wait.replace("{seconds}", String(refreshSeconds)) : exploreRefreshLabels[language].refresh}

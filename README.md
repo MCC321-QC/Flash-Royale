@@ -83,7 +83,11 @@ Settings includes **Check for updates on app start**, enabled by default. Disabl
 
 Packaged, extracted Windows portable folders support **Install and restart** when the GitHub release provides a supported ZIP with a SHA-256 digest. The updater downloads from the configured repository, checks the exact size and digest, stages the runtime, and checks write access before closing the app.
 
+The update dialog also offers **Open release page**, which opens the release in your default browser without closing the dialog. To update manually, download the Windows ZIP, back up your existing `library` folder, and close Flash Royale and all game windows. Extract the ZIP to a temporary folder, then copy the app files into your current Flash Royale folder, replacing existing app files. Keep your existing `library` folder; do not replace it with one from the archive. Launch Flash Royale again.
+
 The optional **Unblock the verified update files** checkbox is off by default. Selecting it explicitly authorizes removal of Mark of the Web from the staged runtime files before installation, including the executable and DLLs. This does not disable Windows security settings, bypass Smart App Control, or replace code signing.
+
+If PowerShell script execution is disabled, the update dialog offers a separate **Enable script execution** checkbox. Its choice is saved across app restarts. It applies only to the updater processes for each attempt, never changes your user/system execution policy, and remains independent of file unblocking. Organization policies or Windows application controls may still prevent execution.
 
 Close games and Explore and finish imports before updating. The updater replaces only known Electron runtime entries, it does not replace `library` or copy a library bundled in the release. It backs up replaced entries and attempts to restore them if replacement or launching fails. A helper error is shown separately, with an `error.txt` log in the temporary `flash-royale-update-*` folder, retaining that folder if manual recovery is needed. Successful updates restart the app and remove their temporary staging and backup folder.
 
@@ -93,6 +97,7 @@ Release ZIPs should contain exactly one `Flash Royale.exe` alongside `resources/
 
 - Add support for major linux distributions (Need more investigation).
 - Add support for HTML game packages in local (Need more investigation).
+- Add theme support with at least 3 choices by default and the ability to add a custom one. (Need more investigation)
 - Add support for changing the library directory.
 - Add bulk editing for tags, categories and game deletion.
 - Add option to enable CRT Shaders for each games, and a toggle button in the game player second top menu (Need more investigation).
@@ -116,15 +121,11 @@ npm.cmd run build
 
 ## Packaging
 
-Build the unpacked Electron application and a release ZIP:
+Build the unpacked Electron application:
 
 ```powershell
 npm.cmd run package:win
 ```
-
-This produces `release/win-unpacked/` and `release/Flash-Royale-v<version>-Windows.zip`, using the version in `package.json` (for example, `Flash-Royale-v0.9.6-Windows.zip`). Upload that ZIP to GitHub Releases. It contains the runtime, not your local game library. `npm run package:win` works identically when PowerShell permits the npm launcher.
-
-Packaging does not unblock files or remove their Mark of the Web. ZIPs do not store per-file `Zone.Identifier` streams; normal Windows browser downloads mark the archive, and Windows Explorer normally propagates that mark on extraction. A locally built ZIP is not artificially marked as downloaded. Automatic updating still only unblocks staged runtime files when the user explicitly selects that option.
 
 Create a quick launcher in the project root and `release/Flash Royale-ReadyToRun.zip`:
 

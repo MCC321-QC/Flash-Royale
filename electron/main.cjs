@@ -1880,8 +1880,8 @@ app.whenReady().then(async () => {
     ruffleVersion: String(rufflePackage.version || ""),
   }));
   ipcMain.handle("app:checkForUpdates", checkForUpdates);
-  ipcMain.handle("app:installUpdate", async (event, version, unblock) => {
-    if (event.sender !== mainWindow?.webContents || typeof version !== "string" || typeof unblock !== "boolean") {
+  ipcMain.handle("app:installUpdate", async (event, version, unblock, enableScriptExecution = false) => {
+    if (event.sender !== mainWindow?.webContents || typeof version !== "string" || typeof unblock !== "boolean" || typeof enableScriptExecution !== "boolean") {
       throw new TypeError("Invalid update request");
     }
     if (installingUpdate) throw new Error("An update is already being prepared");
@@ -1900,7 +1900,7 @@ app.whenReady().then(async () => {
     let prepared;
     let helperStarted = false;
     try {
-      prepared = await portableUpdate.prepareUpdate(checkedUpdate.asset, workspaceRoot, unblock);
+      prepared = await portableUpdate.prepareUpdate(checkedUpdate.asset, workspaceRoot, unblock, enableScriptExecution);
       assertIdle();
       await playTimeWriteQueue;
       await portableUpdate.launchUpdate(prepared);
@@ -1911,8 +1911,13 @@ app.whenReady().then(async () => {
     } catch (error) {
       installingUpdate = false;
       // A launched helper may still be waiting for the parent to exit.
-      if (prepared) await fs.rm(path.join(prepared.directory, "approved"), { force: true });
-      if (prepared && !helperStarted) await fs.rm(prepared.directory, { recursive: true, force: true });
+      if (prepared) {
+        try {
+          await portableUpdate.cleanupPreparedUpdate(prepared, helperStarted);
+        } catch (cleanupError) {
+          console.error(`Could not clean update staging at ${prepared.directory}:`, cleanupError);
+        }
+      }
       throw error;
     }
   });
@@ -2004,7 +2009,7 @@ app.whenReady().then(async () => {
     }
     const savedExploreBounds = windowState.explore;
     exploreWindow = new BrowserWindow({
-      ...restoreBounds(savedExploreBounds, { width: 660, height: 634, minWidth: 620, minHeight: 480 }),
+      ...restoreBounds(savedExploreBounds, { width: 860, height: 840, minWidth: 620, minHeight: 480 }),
       useContentSize: !savedExploreBounds,
       minWidth: 620,
       minHeight: 480,

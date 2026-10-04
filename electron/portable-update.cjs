@@ -1,8 +1,9 @@
 const fs = require("node:fs/promises");
+const nativeFs = process.versions.electron ? require("original-fs").promises : fs;
 const path = require("node:path");
 const os = require("node:os");
 const crypto = require("node:crypto");
-const { execFile, spawn } = require("node:child_process");
+const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 
 const runFile = promisify(execFile);
@@ -33,7 +34,7 @@ function selectUpdateAsset(release, repositoryPath) {
 async function downloadUpdate(asset, destination) {
   const response = await fetch(asset.url, { signal: AbortSignal.timeout(10 * 60 * 1000) });
   if (!response.ok || !response.body) throw new Error(`Update download failed (${response.status})`);
-  const file = await fs.open(destination, "wx");
+  const file = await nativeFs.open(destination, "wx");
   const hash = crypto.createHash("sha256");
   let received = 0;
   try {
@@ -51,47 +52,62 @@ async function downloadUpdate(asset, destination) {
   }
 }
 
-async function prepareUpdate(asset, target, unblock) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-update-"));
+async function prepareUpdate(asset, target, unblock, enableScriptExecution = false) {
+  const directory = await nativeFs.mkdtemp(path.join(os.tmpdir(), "flash-royale-update-"));
   try {
     const archive = path.join(directory, "update.zip");
     await downloadUpdate(asset, archive);
     const script = path.join(directory, "portable-update.ps1");
-    await fs.writeFile(script, await fs.readFile(path.join(__dirname, "portable-update.ps1")));
+    await nativeFs.writeFile(script, await fs.readFile(path.join(__dirname, "portable-update.ps1")));
     const planPath = path.join(directory, "plan.json");
-    await fs.writeFile(planPath, JSON.stringify({ target, unblock, parentPid: process.pid }), "utf8");
+    await nativeFs.writeFile(planPath, JSON.stringify({ target, unblock, parentPid: process.pid }), "utf8");
     await runFile("powershell.exe", [
-      "-NoProfile", "-NonInteractive", "-File", script, "-Mode", "Prepare", "-PlanPath", planPath,
+      "-NoProfile", "-NonInteractive", ...scriptExecutionArgs(enableScriptExecution), "-File", script, "-Mode", "Prepare", "-PlanPath", planPath,
     ], { windowsHide: true, timeout: 5 * 60 * 1000, maxBuffer: 1024 * 1024 });
-    return { directory, script, planPath };
+    return { directory, script, planPath, enableScriptExecution };
   } catch (error) {
-    await fs.rm(directory, { recursive: true, force: true });
-    throw error;
+    const detail = error.stderr?.trim() || error.message || String(error);
+    const logPath = path.join(directory, "error.txt");
+    try {
+      await nativeFs.appendFile(logPath, `\n${error.stack || detail}\n`, "utf8");
+    } catch (logError) {
+      console.error("Could not save update failure log:", logError);
+    }
+    throw new Error(`Update preparation failed: ${detail}\nDiagnostic files retained at ${directory}`, { cause: error });
+  }
+}
+
+function scriptExecutionArgs(enabled) {
+  return enabled === true ? ["-ExecutionPolicy", "Bypass"] : [];
+}
+
+async function cleanupPreparedUpdate(prepared, helperStarted) {
+  await nativeFs.rm(path.join(prepared.directory, "approved"), { force: true, maxRetries: 5, retryDelay: 200 });
+  if (!helperStarted) {
+    await nativeFs.rm(prepared.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
   }
 }
 
 async function launchUpdate(prepared) {
   const readyPath = path.join(prepared.directory, "ready");
-  const child = spawn("powershell.exe", [
-    "-NoProfile", "-NonInteractive", "-File", prepared.script,
-    "-Mode", "Install", "-PlanPath", prepared.planPath,
-  ], { windowsHide: true, detached: true, stdio: "ignore" });
-  let failure;
-  child.on("error", (error) => { failure = error; });
-  child.on("exit", (code) => { failure = new Error(`Update helper exited (${code})`); });
-  for (let attempt = 0; attempt < 150; attempt += 1) {
-    if (failure) throw failure;
-    try {
-      await fs.access(readyPath);
-      child.unref();
-      return;
-    } catch (error) {
-      if (error.code !== "ENOENT") throw error;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  child.kill();
-  throw new Error("Update helper did not start; the app has not been replaced");
+  await nativeFs.rm(readyPath, { force: true });
+  const quote = (value) => `'${value.replace(/'/g, "''")}'`;
+  const policyArguments = scriptExecutionArgs(prepared.enableScriptExecution).map(quote);
+  const command = [
+    "$ErrorActionPreference = 'Stop'",
+    `$helper = Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList @(${["'-NoProfile'", "'-NonInteractive'", ...policyArguments, "'-File'", quote(`"${prepared.script}"`), "'-Mode'", "'Install'", "'-PlanPath'", quote(`"${prepared.planPath}"`)].join(", ")}) -WindowStyle Hidden -PassThru`,
+    "for ($attempt = 0; $attempt -lt 150; $attempt++) {",
+    "  $helper.Refresh()",
+    '  if ($helper.HasExited) { throw "Update helper exited ($($helper.ExitCode))" }',
+    `  if (Test-Path -LiteralPath ${quote(readyPath)}) { exit 0 }`,
+    "  Start-Sleep -Milliseconds 100",
+    "}",
+    "$helper.Kill()",
+    "throw 'Update helper did not start; the app has not been replaced'",
+  ].join("\n");
+  await runFile("powershell.exe", ["-NoProfile", "-NonInteractive", ...scriptExecutionArgs(prepared.enableScriptExecution), "-Command", command], {
+    windowsHide: true, timeout: 30000, maxBuffer: 1024 * 1024,
+  });
 }
 
-module.exports = { selectUpdateAsset, downloadUpdate, prepareUpdate, launchUpdate };
+module.exports = { selectUpdateAsset, downloadUpdate, prepareUpdate, launchUpdate, cleanupPreparedUpdate, scriptExecutionArgs };

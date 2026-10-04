@@ -205,7 +205,7 @@ export interface FlashApi {
   getAppInfo(): Promise<AppInfo | null>;
   checkForUpdates(): Promise<UpdateCheckResult>;
   openUpdatePage(releaseUrl: string): Promise<void>;
-  installUpdate(version: string, unblock: boolean): Promise<void>;
+  installUpdate(version: string, unblock: boolean, enableScriptExecution?: boolean): Promise<void>;
   getCheckForUpdatesOnStart(): Promise<boolean>;
   setCheckForUpdatesOnStart(enabled: boolean): Promise<boolean>;
   checkForUpdates(): Promise<UpdateCheckResult>;

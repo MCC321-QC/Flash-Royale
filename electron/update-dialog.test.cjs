@@ -33,6 +33,31 @@ const checkNode = findNode((node) => ts.isVariableDeclaration(node) && node.name
 const installNode = findNode((node) => ts.isJsxAttribute(node) && node.name.getText(parsed) === "onClick"
   && node.getText(parsed).includes("window.flashApi.installUpdate("));
 
+test("script execution preference persists both choices and restores them after restart", () => {
+  const state = findNode((node) => ts.isVariableDeclaration(node)
+    && node.name.getText(parsed).includes("enableUpdateScriptExecution")
+    && ts.isArrayBindingPattern(node.name));
+  const change = findNode((node) => ts.isJsxAttribute(node) && node.name.getText(parsed) === "onChange"
+    && node.getText(parsed).includes('localStorage.setItem("flashroyale.enableUpdateScriptExecution"'));
+  const values = new Map();
+  const storage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value),
+  };
+  const read = () => evaluateFunction(state.initializer.arguments[0], { localStorage: storage })();
+  let enabled;
+  const update = evaluateFunction(change.initializer.expression, {
+    localStorage: storage,
+    setEnableUpdateScriptExecution: (value) => { enabled = value; },
+  });
+  assert.equal(read(), false);
+  for (const checked of [true, false]) {
+    update({ target: { checked } });
+    assert.equal(enabled, checked);
+    assert.equal(read(), checked);
+  }
+});
+
 for (const manual of [true, false]) {
   test(`${manual ? "manual" : "startup"} update check preserves automatic installation capability in the dialog`, async () => {
     const result = { status: "available", latestVersion: "1.0.0", currentVersion: "0.9.6", changelog: "Changes", releaseUrl: "https://github.com/MCC321-QC/Flash-Royale/releases/tag/v1.0.0", automaticUpdateAvailable: true };
@@ -44,6 +69,7 @@ for (const manual of [true, false]) {
       setIsCheckingForUpdates: (value) => checking.push(value),
       window: { flashApi: { checkForUpdates: async () => result } },
       setUnblockUpdate: (value) => assert.equal(value, false),
+      setEnableUpdateScriptExecution: () => assert.fail("Opening the dialog must not reset the saved script preference"),
       setUpdateInstallError: (value) => assert.equal(value, ""),
       setUpdateDialog: (value) => { dialog = value; },
       setToast: () => {},
@@ -65,6 +91,7 @@ test("manual available-update dialog installs the selected version with the user
   const action = evaluateFunction(installNode.initializer.expression, {
     updateDialog: { automaticUpdateAvailable: true, latestVersion: "1.0.0" },
     unblockUpdate: true,
+    enableUpdateScriptExecution: true,
     setIsInstallingUpdate: (value) => installing.push(value),
     setUpdateInstallError: (value) => errors.push(value),
     setUpdateDialog: () => assert.fail("Installing must not dismiss the dialog prematurely"),
@@ -75,7 +102,7 @@ test("manual available-update dialog installs the selected version with the user
   });
   action();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls, [["1.0.0", true]]);
+  assert.deepEqual(calls, [["1.0.0", true, true]]);
   assert.deepEqual(installing, [true, false]);
   assert.deepEqual(errors, [""]);
 });
@@ -86,6 +113,7 @@ test("installation failure stays in the dialog and allows retry", async () => {
   const action = evaluateFunction(installNode.initializer.expression, {
     updateDialog: { automaticUpdateAvailable: true, latestVersion: "1.0.0" },
     unblockUpdate: false,
+    enableUpdateScriptExecution: false,
     setIsInstallingUpdate: (value) => installing.push(value),
     setUpdateInstallError: (value) => errors.push(value),
     window: { flashApi: { installUpdate: async () => { throw new Error("Download failed"); } } },
@@ -94,6 +122,31 @@ test("installation failure stays in the dialog and allows retry", async () => {
   await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(errors, ["", "Download failed"]);
   assert.deepEqual(installing, [true, false]);
+});
+
+test("release-page button opens the browser without closing the update dialog and reports failures", async () => {
+  const node = findNode((node) => ts.isJsxAttribute(node) && node.name.getText(parsed) === "onClick"
+    && node.getText(parsed).includes("openUpdatePage(updateDialog.releaseUrl)"));
+  const releaseUrl = "https://github.com/MCC321-QC/Flash-Royale/releases/tag/v1.0.0";
+  for (const fails of [false, true]) {
+    const opened = [];
+    const errors = [];
+    const action = evaluateFunction(node.initializer.expression, {
+      updateDialog: { releaseUrl },
+      setUpdateDialog: () => assert.fail("Browsing a release must keep the dialog open"),
+      setToast: (value) => errors.push(value),
+      language: "en",
+      updateLabels: { en: { openFailed: "Could not open release page" } },
+      window: { flashApi: { openUpdatePage: async (url) => {
+        opened.push(url);
+        if (fails) throw new Error("Browser unavailable");
+      } } },
+    });
+    action();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(opened, [releaseUrl]);
+    assert.deepEqual(errors, fails ? ["Could not open release page"] : []);
+  }
 });
 
 test("unsupported builds retain the release-page fallback", async () => {

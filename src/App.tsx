@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { andkonSettingsLabels, gameCardTagsLabels, portableUpdateLabels, showOnlineOnlyGamesLabels, startupUpdateCheckLabels } from "./i18n";
+import { andkonSettingsLabels, gameCardTagsLabels, manualUpdateLabels, manualUpdateTitles, portableUpdateLabels, showOnlineOnlyGamesLabels, startupUpdateCheckLabels, unblockUpdateDescriptions, updateScriptExecutionLabels } from "./i18n";
 import { BoundedCache } from "./boundedCache";
 import {
   ArrowDown,
@@ -1827,6 +1827,13 @@ export function App() {
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
   const [updateDialog, setUpdateDialog] = useState<UpdateCheckResult | null>(null);
   const [unblockUpdate, setUnblockUpdate] = useState(false);
+  const [enableUpdateScriptExecution, setEnableUpdateScriptExecution] = useState(() => {
+    try { return localStorage.getItem("flashroyale.enableUpdateScriptExecution") === "true"; }
+    catch (error) {
+      console.warn("Could not read update script execution preference:", error);
+      return false;
+    }
+  });
   const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
   const [updateInstallError, setUpdateInstallError] = useState("");
   const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
@@ -3199,16 +3206,45 @@ export function App() {
             {updateDialog.automaticUpdateAvailable && (
               <>
                 <p>{portableUpdateLabels[language].warning}</p>
-                <label className="settings-toggle">
-                  <input type="checkbox" checked={unblockUpdate} disabled={isInstallingUpdate}
-                    onChange={(event) => setUnblockUpdate(event.target.checked)} />
-                  <span>{portableUpdateLabels[language].consent}</span>
-                </label>
+                <div>
+                  <label className="settings-toggle">
+                    <input type="checkbox" checked={unblockUpdate} disabled={isInstallingUpdate}
+                      onChange={(event) => setUnblockUpdate(event.target.checked)} />
+                    <span>{portableUpdateLabels[language].consent}</span>
+                  </label>
+                  <small className="update-option-description">{unblockUpdateDescriptions[language]}</small>
+                </div>
+                <div>
+                  <label className="settings-toggle">
+                    <input type="checkbox" checked={enableUpdateScriptExecution} disabled={isInstallingUpdate}
+                      onChange={(event) => {
+                        const enabled = event.target.checked;
+                        try {
+                          localStorage.setItem("flashroyale.enableUpdateScriptExecution", String(enabled));
+                          setEnableUpdateScriptExecution(enabled);
+                        } catch (error) {
+                          console.error("Could not save update script execution preference:", error);
+                          setUpdateInstallError(translateError(error instanceof Error ? error.message : "", language, text.saveFailed));
+                        }
+                      }} />
+                    <span>{updateScriptExecutionLabels[language].label}</span>
+                  </label>
+                  <small className="update-option-description">{updateScriptExecutionLabels[language].hint}</small>
+                </div>
                 {isInstallingUpdate && <p role="status">{portableUpdateLabels[language].busy}</p>}
                 {updateInstallError && <p role="alert">{portableUpdateLabels[language].failed}: {updateInstallError}</p>}
               </>
             )}
+            <small className="update-manual-description"><strong>{manualUpdateTitles[language]}</strong>{manualUpdateLabels[language].instructions}</small>
             <div className="confirm-actions">
+              <button type="button" className="secondary update-release-button" disabled={isInstallingUpdate}
+                onClick={() => {
+                  void window.flashApi.openUpdatePage(updateDialog.releaseUrl)
+                    .catch(() => setToast(updateLabels[language].openFailed));
+                }}>
+                <ExternalLink size={16} aria-hidden="true" />
+                <span>{manualUpdateLabels[language].openRelease}</span>
+              </button>
               <button type="button" className="secondary" autoFocus disabled={isInstallingUpdate} onClick={() => setUpdateDialog(null)}>
                 {updateLabels[language].cancel}
               </button>
@@ -3220,7 +3256,7 @@ export function App() {
                   if (updateDialog.automaticUpdateAvailable) {
                     setIsInstallingUpdate(true);
                     setUpdateInstallError("");
-                    void window.flashApi.installUpdate(updateDialog.latestVersion, unblockUpdate)
+                    void window.flashApi.installUpdate(updateDialog.latestVersion, unblockUpdate, enableUpdateScriptExecution)
                       .catch((error) => setUpdateInstallError(error instanceof Error ? error.message : String(error)))
                       .finally(() => setIsInstallingUpdate(false));
                     return;
