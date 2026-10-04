@@ -31,6 +31,8 @@
 - Require games and Explore to be closed and imports to finish before installation.
 - Back up replaced runtime entries and attempt rollback if replacement or launching fails during the update process.
 
+**Full Changelog**: https://github.com/MCC321-QC/Flash-Royale/compare/v0.8.9...0.9.6
+
 ## v0.8.9
 
 - Added personal half-star ratings that take precedence over source ratings and can be cleared.
@@ -48,9 +50,7 @@
 - Persist the main, player, and Explore window sizes and positions.
 - Added a auto update check on app startup and a manual update check button in the setting.
 
-[**commit 1**](https://github.com/MCC321-QC/Flash-Royale/commit/6c726494498a3f8f92c1b141d85c0acf7e8153a8)
-[**commit 2**](https://github.com/MCC321-QC/Flash-Royale/commit/8512de6adf03861c1ba33dc85aef6179ca7c2ee5)
-[**commit 3**](https://github.com/MCC321-QC/Flash-Royale/commit/02d6176e6ae60233a42f46423447b4d39b70d2f2)
+**Full Changelog**: https://github.com/MCC321-QC/Flash-Royale/compare/v0.5.0...v0.8.9
 
 ## v0.5.0
 
@@ -88,7 +88,4 @@
 - Fixed the drag and drop import option. It now work as it should.
 - Disabled the visibility of favorited logo on game card when in the favorites tab.v
 
-[**commit 1**](https://github.com/MCC321-QC/Flash-Royale/commit/c6fa1bbc3bd38fa8fd58563ab4bc818f18db7554)
-[**commit 2**](https://github.com/MCC321-QC/Flash-Royale/commit/49011527a8bc2342b9793cdfab867c3146160e5a)
-[**commit 3**](https://github.com/MCC321-QC/Flash-Royale/commit/f6f302ea9bfbcc071907803552b8f02d33d39dbd)
-[**commit 4**](https://github.com/MCC321-QC/Flash-Royale/commit/6e29a3fcaab549930f224a4a77af1db15ca8d78a)
+**Full Changelog**: https://github.com/MCC321-QC/Flash-Royale/commits/v0.5.0
