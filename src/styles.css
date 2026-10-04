@@ -443,6 +443,22 @@ button > svg {
   overflow-wrap: anywhere;
 }
 
+.game-info-filter-link {
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.game-info-filter-link:hover,
+.game-info-filter-link:focus-visible {
+  color: #73d2de;
+  text-decoration: underline;
+}
+
 .game-info-file {
   display: inline-flex;
   align-items: baseline;
@@ -781,6 +797,39 @@ button > svg {
   gap: 4px;
 }
 
+.sort-menu-divider {
+  height: 1px;
+  margin: 4px 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.sort-menu-filter {
+  gap: 8px;
+  text-align: start;
+}
+
+.sort-menu-filter:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.sort-menu-checkbox {
+  display: inline-grid;
+  flex: 0 0 15px;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border: 1px solid #748194;
+  border-radius: 3px;
+  color: #10151c;
+  background: #73d2de;
+}
+
+.sort-menu-checkbox:empty {
+  background: transparent;
+}
+
 .sort-menu-option > .category-option {
   flex: 1 1 auto;
   width: auto;
@@ -959,6 +1008,27 @@ button > svg {
 .library-info span,
 .library-info p {
   font-size: 12px;
+}
+
+.online-only-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  color: #a8b5c6;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.online-only-filter input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: #73d2de;
 }
 
 .library-info p {
@@ -1306,17 +1376,37 @@ button > svg {
   padding-top: 5px;
 }
 
-.mini-tags em {
+.game-info-panel-tags {
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding-bottom: 5px;
+}
+
+.mini-tags em,
+.mini-tags .game-info-tag-filter {
+  display: inline-block;
   max-width: 100%;
   overflow: hidden;
   padding: 2px 6px;
+  border: 0;
   border-radius: 8px;
   color: #b6d8ff;
   background: rgba(89, 161, 255, 0.16);
+  font-family: inherit;
   font-size: 11px;
   font-style: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mini-tags .game-info-tag-filter {
+  cursor: pointer;
+}
+
+.mini-tags .game-info-tag-filter:hover,
+.mini-tags .game-info-tag-filter:focus-visible {
+  background: rgba(89, 161, 255, 0.3);
 }
 
 .empty-state,
@@ -2730,20 +2820,23 @@ body.explore-window-body {
 }
 
 .explore-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+  row-gap: 8px;
   padding: 26px 32px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
 }
 
 .explore-heading {
+  display: contents;
   min-width: 0;
 }
 
 .explore-catalog-switch {
   display: flex;
+  grid-column: 1 / -1;
   flex-wrap: wrap;
   align-items: center;
   gap: 16px;
@@ -2789,16 +2882,116 @@ body.explore-window-body {
 }
 
 .explore-header h1 {
-  margin: 6px 0 0;
+  grid-column: 1;
+  align-self: center;
+  margin: 0;
   font-size: 24px;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.explore-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.explore-filters .online-only-filter {
+  min-height: 34px;
+  padding-inline: 8px;
+  background: rgba(16, 21, 28, 0.75);
+}
+
+.explore-category-filter {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.explore-category-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 42px;
+  padding: 0 9px;
+  overflow: hidden;
+  border: 1px solid #434d59;
+  border-radius: 6px;
+  color: #eef2f7;
+  background: #10151c;
+  text-align: left;
+  cursor: pointer;
+}
+
+.explore-category-trigger:hover,
+.explore-category-trigger[aria-expanded="true"] {
+  border-color: #74d1d8;
+}
+
+.explore-category-trigger > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.explore-category-trigger svg {
+  flex: 0 0 auto;
+  transition: transform 140ms ease;
+}
+
+.explore-category-trigger[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.explore-category-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  gap: 2px;
+  max-height: 280px;
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(15, 20, 28, 0.98);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+}
+
+.explore-category-menu .category-option {
+  min-width: 0;
+  text-align: left;
 }
 
 .explore-search-actions {
   display: flex;
+  grid-column: 2;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+}
+
+.explore-header-options {
+  display: flex;
   align-items: center;
   gap: 8px;
-  width: min(400px, 50%);
+}
+
+.explore-category-slot {
+  display: flex;
+  width: 220px;
+  flex: 0 1 220px;
   min-width: 0;
 }
 
@@ -2813,7 +3006,8 @@ body.explore-window-body {
 
 .explore-search {
   display: flex;
-  flex: 1;
+  flex: 0 1 220px;
+  width: 220px;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -3304,12 +3498,24 @@ body.explore-window-body {
 
 @media (max-width: 800px) {
   .explore-header { padding: 20px; }
+  .explore-filters { padding-inline: 20px; }
   .explore-footer { padding: 8px 20px; }
 }
 
 @media (max-width: 540px) {
-  .explore-header { align-items: stretch; flex-direction: column; gap: 16px; }
-  .explore-search-actions { width: 100%; }
+  .explore-header { display: flex; align-items: stretch; flex-direction: column; gap: 16px; }
+  .explore-heading { display: block; }
+  .explore-header h1 { white-space: normal; }
+  .explore-search-actions {
+    flex: 0 0 auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr) 40px;
+  }
+  .explore-header-options { display: contents; }
+  .explore-category-slot { width: auto; flex-basis: auto; }
+  .explore-search { width: auto; }
+  .explore-category-slot { min-width: 0; }
   .explore-footer { gap: 4px; }
   .explore-footer nav { gap: 3px; }
 }

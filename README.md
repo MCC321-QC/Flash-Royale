@@ -39,10 +39,10 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
 - Extract likely music tracks from SWF files, choose a built-in track, or select a local custom music file for each game.
 - Adjust library music volume. Music fades smoothly and pauses while any game is running, then resumes afterward.
 - Track play count, total play time, last-played date, and each game's original SWF stage dimensions.
-- Open the separate Explore catalog window to search Silvergames games, sort by rating or title, paginate results, and see cover art, tags, source ratings, and imported status.
+- Open the separate Explore catalogue window to search Silvergames games, sort by rating or title, paginate results, and see cover art, tags, source ratings, and imported status.
 - Open a game's separate info window to inspect its cover, source rating and vote count, age guidance, tags, and description; open the Silvergames page or import the game there. Age guidance is not saved to the library.
-- Import games from Explore catalog window with covers, tags, descriptions, and source ratings saved locally. A separate progress window shows download and import progress.
-- Enable or disable Explore catalog window independently of local library and game playback.
+- Import games from Explore catalogue window with covers, tags, descriptions, and source ratings saved locally. A separate progress window shows download and import progress.
+- Enable or disable Explore catalogue window independently of local library and game playback.
 - Configure app startup fullscreen and minimize-to-tray behavior for game launches or ordinary window minimization.
 - Change the language in Settings between English, Simplified Chinese, Spanish, French, German, Brazilian Portuguese, Japanese, Korean, Hindi, Arabic, and Russian.
 - Create a portable Windows folder that can be compressed and shared.
@@ -65,17 +65,17 @@ Each game also has an **Allow online features** toggle and a list of automatical
 
 The public-resource relay accepts up to 50 automatically discovered exact HTTP/HTTPS URLs without credentials, it uses GET only, pins public DNS addresses, rejects redirects and private networks, and limits response size. Numeric `RND` cache-busters are stripped, other query strings and login requests stay outside the relay, and cookies are never forwarded.
 
-## Explore Catalog and Game Info
+## Explore Catalogue and Game Info
 
-Explore is an optional online catalog. Search the Silvergames catalog, sort by rating or title, move through result pages, and see game covers, tags, ratings, and which games are already imported.
+Explore is an optional online catalogue. Search the Silvergames catalogue, sort by rating or title, move through result pages, and see game covers, tags, ratings, and which games are already imported.
 
-Each result has a separate game-info window with a larger cover, source rating and vote count, age guidance, tags, and description. From there, open the game's Silvergames page or import it. Imported SWFs and selected catalog details are stored locally, and a separate progress window tracks the download and importation. Age guidance is shown for reference but is not saved to the library.
+Each result has a separate game-info window with a larger cover, source rating and vote count, age guidance, tags, and description. From there, open the game's Silvergames page or import it. Imported SWFs and selected catalogue details are stored locally, and a separate progress window tracks the download and importation. Age guidance is shown for reference but is not saved to the library.
 
 The Explore source tabs also include Y8. It contains both SWF and browser-only games that can be sorted by Popularity, Rating, and Date. SWF games import locally, while HTML5/WebGL games can be added as online-only entries and open on Y8 in a sandboxed window.
 
 Y8 game details show available tags, rating and vote count, site play count, likes, description, category, developer, and site-added date. Imports save only tags, rating, vote count, description, category, and developer, alongside the SWF and cover. Y8's 10-point ratings are converted to the library's 5-star scale and Y8's play counts do not become local play counts. Offline compatibility still depends on the individual game.
 
-Andkon is an optional additional catalog, disabled by default in Settings because many of its games are domain-locked and have low offline compatibility.
+Andkon is an optional additional catalogue, disabled by default in Settings because many of its games are domain-locked and have low offline compatibility.
 
 ### In-app updates on Windows
 
@@ -87,7 +87,16 @@ The optional **Unblock the verified update files** checkbox is off by default. S
 
 Close games and Explore and finish imports before updating. The updater replaces only known Electron runtime entries, it does not replace `library` or copy a library bundled in the release. It backs up replaced entries and attempts to restore them if replacement or launching fails. A helper error is shown separately, with an `error.txt` log in the temporary `flash-royale-update-*` folder, retaining that folder if manual recovery is needed. Successful updates restart the app and remove their temporary staging and backup folder.
 
-Release ZIPs should contain exactly one `Flash Royale.exe` alongside `resources/app.asar`, `locales`, and the Electron runtime files. Supported asset names are `Flash-Royale-<tag>-Windows.zip`, `Flash Royale-ReadyToRun.zip`, and `flash-royale.zip`. Publish through GitHub Releases so the asset metadata includes its SHA-256 digest. Digest verification checks download integrity against GitHub metadata, it is not an independent publisher signature.
+Release ZIPs should contain exactly one `Flash Royale.exe` alongside `resources/app.asar`, `locales`, and the Electron runtime files. Supported asset names are `Flash-Royale-v<version>-Windows.zip`, `Flash-Royale-<version>-Windows.zip`, `Flash Royale-ReadyToRun.zip`, and `flash-royale.zip`; release tags may have or omit the `v` prefix. Publish through GitHub Releases so the asset metadata includes its SHA-256 digest. Digest verification checks download integrity against GitHub metadata, it is not an independent publisher signature.
+
+## Future Improvements
+
+- Add support for major linux distributions (Need more investigation).
+- Add support for HTML game packages in local (Need more investigation).
+- Add support for changing the library directory.
+- Add bulk editing for tags, categories and game deletion.
+- Add option to enable CRT Shaders for each games, and a toggle button in the game player second top menu (Need more investigation).
+- Add controller config and mapping settings that can be set independantly for each games and up to 4 different controllers.
 
 ## Tech Stack
 
@@ -107,11 +116,15 @@ npm.cmd run build
 
 ## Packaging
 
-Build the unpacked Electron application:
+Build the unpacked Electron application and a release ZIP:
 
 ```powershell
 npm.cmd run package:win
 ```
+
+This produces `release/win-unpacked/` and `release/Flash-Royale-v<version>-Windows.zip`, using the version in `package.json` (for example, `Flash-Royale-v0.9.6-Windows.zip`). Upload that ZIP to GitHub Releases. It contains the runtime, not your local game library. `npm run package:win` works identically when PowerShell permits the npm launcher.
+
+Packaging does not unblock files or remove their Mark of the Web. ZIPs do not store per-file `Zone.Identifier` streams; normal Windows browser downloads mark the archive, and Windows Explorer normally propagates that mark on extraction. A locally built ZIP is not artificially marked as downloaded. Automatic updating still only unblocks staged runtime files when the user explicitly selects that option.
 
 Create a quick launcher in the project root and `release/Flash Royale-ReadyToRun.zip`:
 

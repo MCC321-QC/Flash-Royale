@@ -1,22 +1,33 @@
 const { load } = require("cheerio");
 const silvergames = require("./silvergames.cjs");
+const { createCatalogueCache } = require("./catalogue-cache.cjs");
+const { createCachedTextFetcher } = require("./catalogue-http.cjs");
+const { fetchCatalogue } = require("./catalogue-backoff.cjs");
+const { getCachedSwfHeader } = require("./swf-header-cache.cjs");
 
 const baseUrl = "https://www.andkon.com";
 const maxSwfBytes = 40 * 1024 * 1024;
 const maxCoverBytes = 5 * 1024 * 1024;
 const catalogPages = ["/arcade/", "/arcade/page2.php", "/arcade/page3.php"];
-let catalogCache;
+const catalogCache = createCatalogueCache();
+const fetchCachedText = createCachedTextFetcher(catalogCache, {
+  timeoutMs: 20000,
+  unavailableMessage: "Andkon is unavailable. Please try again later.",
+  validateUrl: (url) => {
+    const target = new URL(url);
+    if (target.protocol !== "https:" || !["www.andkon.com", "andkon.com"].includes(target.hostname)) {
+      throw new Error("Invalid Andkon response URL.");
+    }
+  },
+});
 
 async function fetchPage(url) {
   const target = new URL(url, baseUrl);
   if (target.protocol !== "https:" || !["www.andkon.com", "andkon.com"].includes(target.hostname)) {
     throw new Error("Invalid Andkon URL.");
   }
-  const response = await fetch(target, { signal: AbortSignal.timeout(20000) });
-  if (!response.ok || !["www.andkon.com", "andkon.com"].includes(new URL(response.url).hostname)) {
-    throw new Error("Andkon is unavailable. Please try again later.");
-  }
-  return { response, url: response.url, html: await response.text() };
+  const response = await fetchCachedText(target);
+  return { url: response.url, html: response.text };
 }
 
 function parseCatalogPage(html, pageIndex) {
@@ -42,20 +53,22 @@ function parseCatalogPage(html, pageIndex) {
 }
 
 async function getCatalog() {
-  if (!catalogCache) {
-    catalogCache = Promise.all(catalogPages.map(async (pagePath, index) => {
-      const { html } = await fetchPage(pagePath);
-      return parseCatalogPage(html, index);
-    })).then((pages) => {
-      const games = new Map();
-      for (const page of pages) for (const game of page) games.set(game.pagePath, game);
-      return Array.from(games.values());
-    }).catch((error) => {
-      catalogCache = null;
-      throw error;
-    });
-  }
-  return catalogCache;
+  return catalogCache.get("catalogue", () => Promise.all(catalogPages.map(async (pagePath, index) => {
+    const { html } = await fetchPage(pagePath);
+    return parseCatalogPage(html, index);
+  })).then((pages) => {
+    const games = new Map();
+    for (const page of pages) for (const game of page) games.set(game.pagePath, game);
+    return Array.from(games.values());
+  }));
+}
+
+function refreshCache() {
+  return catalogCache.invalidate();
+}
+
+function configureCache(directory) {
+  catalogCache.configureDirectory(directory);
 }
 
 function normalizedTitle(title) {
@@ -119,6 +132,11 @@ function getSwfUrl(html, pageUrl) {
 
 async function getGameDetails(id, libraryGames = []) {
   const game = await getCatalogGame(id);
+  const details = await catalogCache.get(`details:${id}`, () => loadGameDetails(game));
+  return { ...game, ...details, ...libraryStatus(game, libraryGames) };
+}
+
+async function loadGameDetails(game) {
   const page = await fetchPage(game.pagePath);
   const $ = load(page.html);
   const bodyLines = $("body").text().split(/[\r\n]+/).map((line) => line.trim()).filter(Boolean);
@@ -127,34 +145,11 @@ async function getGameDetails(id, libraryGames = []) {
   const authorLine = bodyLines.find((line) => /^Author Info\s*:/i.test(line)) || "";
   const authorInfo = authorLine.replace(/^Author Info\s*:\s*/i, "").trim();
   const swfUrl = getSwfUrl(page.html, page.url);
-  const response = await fetch(swfUrl, { headers: { Range: "bytes=0-65535" }, signal: AbortSignal.timeout(15000) });
-  let technical = { swfVersion: null, stageWidth: null, stageHeight: null, frameRate: null, fileSizeBytes: null, uploadDate: null };
-  if (response.ok && ["www.andkon.com", "andkon.com"].includes(new URL(response.url).hostname) && response.body) {
-    const contentRange = /^bytes\s+\d+-\d+\/(\d+)$/i.exec(response.headers.get("content-range") || "");
-    const contentLength = response.status === 200 ? Number(response.headers.get("content-length")) : 0;
-    const fileSizeBytes = Number(contentRange?.[1]) || contentLength || null;
-    const modified = Date.parse(response.headers.get("last-modified") || "");
-    const reader = response.body.getReader();
-    const chunks = [];
-    let received = 0;
-    try {
-      while (received < 65536) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = Buffer.from(value).subarray(0, 65536 - received);
-        chunks.push(chunk);
-        received += chunk.length;
-      }
-    } finally {
-      await reader.cancel().catch(() => {});
-    }
-    technical = {
-      ...silvergames.parseSwfMetadata(Buffer.concat(chunks), fileSizeBytes),
-      uploadDate: Number.isFinite(modified) ? new Date(modified).toISOString() : null,
-    };
-  }
+  const technical = await getCachedSwfHeader(catalogCache, swfUrl, (responseUrl) => {
+    const url = new URL(responseUrl);
+    if (url.protocol !== "https:" || !["www.andkon.com", "andkon.com"].includes(url.hostname)) throw new Error("Invalid Andkon SWF response URL.");
+  }, silvergames.parseSwfMetadata);
   return {
-    ...game,
     source: "andkon",
     fallbackImageUrl: game.imageUrl,
     description: "",
@@ -163,7 +158,6 @@ async function getGameDetails(id, libraryGames = []) {
     sourceRatingCount: null,
     ageRating: null,
     ...technical,
-    ...libraryStatus(game, libraryGames),
   };
 }
 
@@ -172,7 +166,7 @@ async function downloadGame(id, catalogGame, onProgress = () => {}) {
   if (game.id !== id) throw new Error("Invalid Andkon game selection.");
   const page = await fetchPage(game.pagePath);
   const url = getSwfUrl(page.html, page.url);
-  const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+  const response = await fetchCatalogue(url, { signal: AbortSignal.timeout(60000) });
   if (!response.ok || !["www.andkon.com", "andkon.com"].includes(new URL(response.url).hostname) || !response.body ||
       Number(response.headers.get("content-length") || 0) > maxSwfBytes) {
     throw new Error("The Andkon SWF download failed or is too large.");
@@ -203,7 +197,7 @@ async function downloadGame(id, catalogGame, onProgress = () => {}) {
 }
 
 async function downloadCover(game) {
-  const response = await fetch(game.imageUrl, { signal: AbortSignal.timeout(15000) });
+  const response = await fetchCatalogue(game.imageUrl, { signal: AbortSignal.timeout(15000) });
   if (!response.ok || !["www.andkon.com", "andkon.com"].includes(new URL(response.url).hostname) ||
       Number(response.headers.get("content-length") || 0) > maxCoverBytes) throw new Error("Andkon game artwork is unavailable.");
   const data = Buffer.from(await response.arrayBuffer());
@@ -213,4 +207,4 @@ async function downloadCover(game) {
   return data;
 }
 
-module.exports = { listGames, getCatalogGame, getGameDetails, getLibraryStatus: libraryStatus, downloadGame, downloadCover };
+module.exports = { listGames, getCatalogGame, getGameDetails, getLibraryStatus: libraryStatus, downloadGame, downloadCover, refreshCache, configureCache, getCoverVersion: catalogCache.getCoverVersion };

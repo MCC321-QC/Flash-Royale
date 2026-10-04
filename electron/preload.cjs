@@ -30,8 +30,9 @@ contextBridge.exposeInMainWorld("flashApi", {
   openRepository: () => ipcRenderer.invoke("app:openRepository"),
   openOriginalAuthorRepository: () => ipcRenderer.invoke("app:openOriginalAuthorRepository"),
   openExplore: () => ipcRenderer.invoke("app:openExplore"),
-  listExploreGames: (query, page, pageSize, sortMode, ascending, source) =>
-    ipcRenderer.invoke("explore:list", query, page, pageSize, sortMode, ascending, source),
+  listExploreGames: (query, page, pageSize, sortMode, ascending, source, category, refresh, showOnlineOnlyGames) =>
+    ipcRenderer.invoke("explore:list", query, page, pageSize, sortMode, ascending, source, category, refresh, showOnlineOnlyGames),
+  cancelExploreList: () => ipcRenderer.send("explore:cancelList"),
   openExploreSite: (source) => ipcRenderer.invoke("explore:openSite", source),
   openExploreDetails: (id, source) => ipcRenderer.invoke("explore:openDetails", id, source),
   getExploreGameDetails: (id, source) => ipcRenderer.invoke("explore:getDetails", id, source),

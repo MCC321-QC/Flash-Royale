@@ -9,8 +9,11 @@ const runFile = promisify(execFile);
 const MAX_DOWNLOAD_BYTES = 512 * 1024 * 1024;
 
 function selectUpdateAsset(release, repositoryPath) {
+  const version = String(release.tag_name || "").replace(/^v/i, "");
   const names = [
     `Flash-Royale-${release.tag_name}-Windows.zip`,
+    `Flash-Royale-v${version}-Windows.zip`,
+    `Flash-Royale-${version}-Windows.zip`,
     "Flash Royale-ReadyToRun.zip",
     "flash-royale.zip",
   ];

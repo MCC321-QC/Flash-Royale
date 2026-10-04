@@ -9,6 +9,10 @@ const zlib = require("node:zlib");
 const andkon = require("./andkon.cjs");
 const y8 = require("./y8.cjs");
 const silvergames = require("./silvergames.cjs");
+const { readLocalSwfMetadata } = require("./local-swf-header.cjs");
+const { fetchCatalogue } = require("./catalogue-backoff.cjs");
+const { createInternetConnectivityChecker } = require("./internet-connectivity.cjs");
+const isInternetAvailable = createInternetConnectivityChecker();
 const portableUpdate = require("./portable-update.cjs");
 const { normalizePublicResourceUrl, normalizeDiscoveredPublicResourceUrl, readPublicResource } = require("./public-resources.cjs");
 const { gameFolderName, getGamePaths, migrateGameStorage, migrateLegacyLocalStorage, safeGameTitle } = require("./game-storage.cjs");
@@ -52,6 +56,9 @@ let exploreDetailsWindow = null;
 let exploreDetailsGameId = null;
 let exploreDetailsGameSlug = null;
 let exploreDetailsSource = "silvergames";
+let exploreRefreshAvailableAt = 0;
+const exploreRefreshCooldownMs = 60_000;
+let exploreListController = null;
 const pendingExploreImports = new Set();
 const exploreImportJobs = new Map();
 let exploreEnabled = true;
@@ -89,19 +96,7 @@ const defaultConfig = {
 
 async function getExploreAvailability() {
   if (!exploreEnabled) return { enabled: false, online: false };
-  const availability = await Promise.all([
-    ["https://www.silvergames.com/search/core.json", "https://www.silvergames.com"],
-    ["https://www.y8.com/tags/flash", "https://www.y8.com"],
-    ...(andkonEnabled ? [["https://www.andkon.com/arcade/", "https://www.andkon.com"]] : []),
-  ].map(async ([url, origin]) => {
-    try {
-      const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(5000) });
-      return response.ok && new URL(response.url).origin === origin;
-    } catch {
-      return false;
-    }
-  }));
-  return { enabled: true, online: availability.some(Boolean) };
+  return { enabled: true, online: await isInternetAvailable() };
 }
 
 function compareVersions(first, second) {
@@ -284,21 +279,8 @@ function readRectDimension(buffer) {
 
 async function readSwfStageSize(filePath) {
   try {
-    const header = await fs.readFile(filePath);
-    if (header.length < 12) return null;
-    const signature = header.subarray(0, 3).toString("ascii");
-    if (signature === "FWS") {
-      return readRectDimension(header.subarray(8));
-    }
-    if (signature === "CWS") {
-      const body = await new Promise((resolve, reject) => {
-        zlib.inflate(header.subarray(8), (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        });
-      });
-      return readRectDimension(body);
-    }
+    const metadata = await readLocalSwfMetadata(filePath, silvergames.parseSwfMetadata);
+    if (metadata.stageWidth && metadata.stageHeight) return { width: metadata.stageWidth, height: metadata.stageHeight };
   } catch {
     return null;
   }
@@ -412,13 +394,13 @@ function collectSwfSounds(body, depth = 0) {
   return sounds;
 }
 
-function wavFromPcm(pcm, { rate, is16, stereo }) {
+function wavHeader(pcmLength, { rate, is16, stereo }) {
   const channels = stereo ? 2 : 1;
   const bytesPerSample = is16 ? 2 : 1;
   const sampleRate = Math.round(rate);
   const header = Buffer.alloc(44);
   header.write("RIFF", 0, "ascii");
-  header.writeUInt32LE(36 + pcm.length, 4);
+  header.writeUInt32LE(36 + pcmLength, 4);
   header.write("WAVEfmt ", 8, "ascii");
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
@@ -428,8 +410,8 @@ function wavFromPcm(pcm, { rate, is16, stereo }) {
   header.writeUInt16LE(channels * bytesPerSample, 32);
   header.writeUInt16LE(bytesPerSample * 8, 34);
   header.write("data", 36, "ascii");
-  header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
+  header.writeUInt32LE(pcmLength, 40);
+  return header;
 }
 
 const audioMimeTypes = {
@@ -469,6 +451,19 @@ async function readCustomMusic(game) {
 
 // The longest embedded tracks are the likely music; short ones are sound effects.
 const maxMusicCandidates = 6;
+let musicExtractionQueue = Promise.resolve();
+const pendingMusicExtractions = new Map();
+
+function extractAndSaveMusic(game) {
+  const existing = pendingMusicExtractions.get(game.id);
+  if (existing) return existing;
+  const result = musicExtractionQueue.then(async () =>
+    saveDetectedMusicTracks(game, await findMusicCandidates(game)));
+  musicExtractionQueue = result.then(() => undefined, () => undefined);
+  const pending = result.finally(() => pendingMusicExtractions.delete(game.id));
+  pendingMusicExtractions.set(game.id, pending);
+  return pending;
+}
 
 async function findMusicCandidates(game) {
   const body = await readSwfBody(game.filePath);
@@ -486,7 +481,8 @@ async function saveDetectedMusicTracks(game, candidates) {
   const savedFiles = new Set();
   for (const [index, track] of candidates.entries()) {
     const extension = track.kind === "mp3" ? ".mp3" : ".wav";
-    const data = track.kind === "mp3" ? Buffer.concat(track.chunks) : wavFromPcm(Buffer.concat(track.chunks), track);
+    const data = track.kind === "mp3" ? track.chunks
+      : [wavHeader(track.chunks.reduce((size, chunk) => size + chunk.length, 0), track), ...track.chunks];
     const targetPath = paths.defaultMusicTrackPath(index, extension);
     await fs.writeFile(targetPath, data);
     savedFiles.add(path.basename(targetPath));
@@ -516,8 +512,7 @@ async function getSavedMusicTracks(game) {
       return tracks;
     }
   } catch {}
-  const candidates = await findMusicCandidates(game);
-  const tracks = await saveDetectedMusicTracks(game, candidates);
+  const tracks = await extractAndSaveMusic(game);
   return tracks.map((track) => ({ ...track, filePath: paths.defaultMusicTrackPath(track.index, track.extension) }));
 }
 
@@ -719,8 +714,7 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
     await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
     await fs.mkdir(paths.customMusicDirectory, { recursive: true });
     await fs.copyFile(absoluteSource, targetPath);
-    const swfData = await fs.readFile(targetPath);
-    const swfMetadata = silvergames.parseSwfMetadata(swfData, swfData.length);
+    const swfMetadata = await readLocalSwfMetadata(targetPath, silvergames.parseSwfMetadata);
     await writeJson(paths.swfMetadataPath, swfMetadata);
 
     const game = {
@@ -746,7 +740,7 @@ async function importSwfFiles(filePaths, language = "zh", { onProgress = () => {
       stageHeight: swfMetadata.stageHeight,
     };
     game.coverPath = await createFallbackCover(game);
-    await saveDetectedMusicTracks(game, await findMusicCandidates(game));
+    await extractAndSaveMusic(game);
     await writeGameSettings(game);
     db.games.unshift(game);
     imported.push(gameToClient(game));
@@ -1848,6 +1842,11 @@ async function destroyGameStorageMigrationWindow(force = false) {
 
 app.whenReady().then(async () => {
   await ensureLibrary();
+  const catalogueCacheRoot = path.join(libraryRoot, "catalogue-cache");
+  await fetchCatalogue.configurePersistence(path.join(catalogueCacheRoot, "server-backoff.json"));
+  silvergames.configureCache(path.join(catalogueCacheRoot, "silvergames"));
+  andkon.configureCache(path.join(catalogueCacheRoot, "andkon"));
+  y8.configureCache(path.join(catalogueCacheRoot, "y8"));
   const config = await readJson(configPath, defaultConfig);
   startInFullscreen = Boolean(config.startInFullscreen);
   minimizeToTrayOnGameLaunch = config.minimizeToTrayOnGameLaunch !== false;
@@ -1998,14 +1997,14 @@ app.whenReady().then(async () => {
   ipcMain.handle("app:openExplore", async () => {
     const availability = await getExploreAvailability();
     if (!availability.enabled) throw new Error("Explore is disabled in settings.");
-    if (!availability.online) throw new Error("No internet connection to Silvergames.");
+    if (!availability.online) throw new Error("No internet connection.");
     if (exploreWindow && !exploreWindow.isDestroyed()) {
       exploreWindow.focus();
       return;
     }
     const savedExploreBounds = windowState.explore;
     exploreWindow = new BrowserWindow({
-      ...restoreBounds(savedExploreBounds, { width: 960, height: 790, minWidth: 620, minHeight: 480 }),
+      ...restoreBounds(savedExploreBounds, { width: 660, height: 634, minWidth: 620, minHeight: 480 }),
       useContentSize: !savedExploreBounds,
       minWidth: 620,
       minHeight: 480,
@@ -2025,20 +2024,56 @@ app.whenReady().then(async () => {
       windowState.explore = bounds;
     });
     exploreWindow.on("closed", () => {
+      exploreListController?.abort();
+      exploreListController = null;
       if (exploreDetailsWindow && !exploreDetailsWindow.isDestroyed()) exploreDetailsWindow.close();
       exploreWindow = null;
     });
     if (isDev) exploreWindow.loadURL("http://127.0.0.1:5173/?explore=1");
     else exploreWindow.loadFile(path.join(projectRoot, "dist", "index.html"), { query: { explore: "1" } });
   });
-  ipcMain.handle("explore:list", async (event, query, page, pageSize, sortMode, ascending, source = "silvergames") => {
+  ipcMain.on("explore:cancelList", (event) => {
+    if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) return;
+    exploreListController?.abort();
+  });
+  ipcMain.handle("explore:list", async (event, query, page, pageSize, sortMode, ascending, source = "silvergames", category = "", refresh = false, showOnlineOnlyGames = true) => {
     if (BrowserWindow.fromWebContents(event.sender) !== exploreWindow) throw new Error("Explore window required");
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
     if (!["silvergames", "andkon", "y8"].includes(source)) throw new Error("Invalid Explore catalog");
+    if (typeof showOnlineOnlyGames !== "boolean") throw new Error("Invalid online-only games filter.");
     if (source === "andkon" && !andkonEnabled) throw new Error("Andkon catalog is disabled in settings.");
-    const db = await readDb();
-    const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
-    return provider.listGames(query, page, pageSize, sortMode, ascending, db.games);
+    if (refresh === true) {
+      const now = Date.now();
+      if (now < exploreRefreshAvailableAt) {
+        const seconds = Math.ceil((exploreRefreshAvailableAt - now) / 1000);
+        throw new Error(`Please wait ${seconds} seconds before refreshing the catalog again.`);
+      }
+      exploreRefreshAvailableAt = now + exploreRefreshCooldownMs;
+    }
+    exploreListController?.abort();
+    const controller = new AbortController();
+    exploreListController = controller;
+    try {
+      const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
+      if (refresh === true) await provider.refreshCache();
+      controller.signal.throwIfAborted();
+      const db = await readDb();
+      controller.signal.throwIfAborted();
+      const catalog = await (source === "y8"
+        ? provider.listGames(query, page, pageSize, sortMode, ascending, db.games, category, controller.signal, showOnlineOnlyGames)
+        : provider.listGames(query, page, pageSize, sortMode, ascending, db.games));
+      controller.signal.throwIfAborted();
+      const coverVersion = await provider.getCoverVersion();
+      controller.signal.throwIfAborted();
+      catalog.games = catalog.games.map((game) => {
+        const imageUrl = new URL(game.imageUrl);
+        imageUrl.searchParams.set("flashRoyaleRefresh", String(coverVersion));
+        return { ...game, imageUrl: imageUrl.href };
+      });
+      return catalog;
+    } finally {
+      if (exploreListController === controller) exploreListController = null;
+    }
   });
   ipcMain.handle("explore:openSite", (event, source = "silvergames") => {
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
@@ -2119,7 +2154,14 @@ app.whenReady().then(async () => {
     if (!exploreEnabled) throw new Error("Explore is disabled in settings.");
     const db = await readDb();
     const provider = source === "y8" ? y8 : source === "andkon" ? andkon : silvergames;
-    return provider.getGameDetails(catalogId, db.games);
+    const details = await provider.getGameDetails(catalogId, db.games);
+    const coverVersion = await provider.getCoverVersion();
+    for (const field of ["imageUrl", "fallbackImageUrl"]) {
+      const imageUrl = new URL(details[field]);
+      imageUrl.searchParams.set("flashRoyaleRefresh", String(coverVersion));
+      details[field] = imageUrl.href;
+    }
+    return details;
   });
   ipcMain.handle("explore:getImportProgress", (event) => {
     const job = Array.from(exploreImportJobs.values()).find((entry) => entry.window.webContents === event.sender);
@@ -2290,8 +2332,7 @@ app.whenReady().then(async () => {
     let metadata = await readJson(metadataPath, null);
     if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
       try {
-        const swfData = await fs.readFile(game.filePath);
-        metadata = silvergames.parseSwfMetadata(swfData, swfData.length);
+        metadata = await readLocalSwfMetadata(game.filePath, silvergames.parseSwfMetadata);
         await writeJson(metadataPath, metadata);
       } catch {
         return null;

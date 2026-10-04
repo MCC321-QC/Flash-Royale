@@ -1,8 +1,8 @@
 {
   "name": "flash-royale",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "private": true,
-  "description": "Local Flash game library manager powered by Electron, React, and Ruffle.",
+  "description": "Dominate your local flash games library with Flash Royale. Powered by Electron, React, and Ruffle.",
   "author": "MCC321-QC",
   "contributors": [
     "xevil3301",
@@ -21,7 +21,7 @@
     "postinstall": "node scripts/copy-ruffle.cjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
     "build": "tsc --noEmit && vite build",
-    "package:win": "npm run build && electron-builder --win dir",
+    "package:win": "npm run build && electron-builder --win dir && node scripts/package-windows-release.cjs",
     "package:portable": "npm run package:fast",
     "package:fast": "npm run build && electron-builder --win dir && node scripts/prepare-fast-package.cjs",
     "package:share": "npm run build && electron-builder --win dir && node scripts/package-share-folder.cjs",

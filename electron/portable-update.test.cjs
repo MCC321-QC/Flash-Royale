@@ -30,6 +30,20 @@ test("selects only supported repository assets with a digest and bounded size", 
   assert.equal(select({ browser_download_url: `http://github.com${repositoryPath}/releases/download/v1/update.zip` }), null);
 });
 
+test("recognizes release 0.9.6's v-prefixed archive with an unprefixed tag and both naming variants", () => {
+  for (const tag of ["0.9.6", "v0.9.6"]) {
+    for (const name of ["Flash-Royale-v0.9.6-Windows.zip", "Flash-Royale-0.9.6-Windows.zip"]) {
+      const selected = selectUpdateAsset({
+        tag_name: tag,
+        assets: [{ ...asset, name, browser_download_url: `https://github.com${repositoryPath}/releases/download/${tag}/${name}` }],
+      }, repositoryPath);
+      assert.equal(selected.sha256, digest);
+      assert.ok(selected.url.endsWith(name));
+    }
+  }
+  assert.equal(selectUpdateAsset({ tag_name: "0.9.6", assets: [{ ...asset, name: "Flash-Royale-v0.9.5-Windows.zip" }] }, repositoryPath), null);
+});
+
 test("download checks both exact size and SHA-256", async (t) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-download-test-"));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));

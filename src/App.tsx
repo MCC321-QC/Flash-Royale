@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
-import { andkonSettingsLabels, gameCardTagsLabels, portableUpdateLabels, showOnlineOnlyOfflineLabels, startupUpdateCheckLabels } from "./i18n";
+import { andkonSettingsLabels, gameCardTagsLabels, portableUpdateLabels, showOnlineOnlyGamesLabels, startupUpdateCheckLabels } from "./i18n";
+import { BoundedCache } from "./boundedCache";
 import {
   ArrowDown,
   ArrowDownUp,
@@ -389,6 +390,8 @@ function CoverImage({ game, className, language }: { game: Game; className?: str
     <img
       className={className}
       src={game.coverUrl}
+      loading="lazy"
+      decoding="async"
       alt={`${game.title} ${messages[language].coverAlt}`}
       onError={() => setFailed(true)}
     />
@@ -822,21 +825,23 @@ function DetailsPanel({
           />
           <span>{gameSettingsLabels[language].fullscreenByDefault}</span>
         </label>
-        <label className="fullscreen-setting" title={reopenTooltip}>
-          <input type="checkbox" checked={draft.fixScaling} aria-describedby="scaling-performance-hint" onChange={(event) => updateDraft({ fixScaling: event.target.checked })} />
-          <span>{compatibilitySettingsLabels[language].fixScaling}</span>
-        </label>
-        <small className="scaling-performance-hint" id="scaling-performance-hint">{scalingPerformanceHints[language]}</small>
-        <label className="fullscreen-setting" title={reopenTooltip}>
-          <input type="checkbox" checked={draft.standaloneCompatibility} onChange={(event) => updateDraft({ standaloneCompatibility: event.target.checked })} />
-          <span>{compatibilitySettingsLabels[language].standalone}</span>
-        </label>
-        <label className="fullscreen-setting" title={reopenTooltip}>
-          <input type="checkbox" checked={draft.allowOnlineFeatures} onChange={(event) => updateDraft({ allowOnlineFeatures: event.target.checked })} />
-          <span>{compatibilitySettingsLabels[language].online}</span>
-        </label>
+        {!game.onlineOnly && <>
+          <label className="fullscreen-setting" title={reopenTooltip}>
+            <input type="checkbox" checked={draft.fixScaling} aria-describedby="scaling-performance-hint" onChange={(event) => updateDraft({ fixScaling: event.target.checked })} />
+            <span>{compatibilitySettingsLabels[language].fixScaling}</span>
+          </label>
+          <small className="scaling-performance-hint" id="scaling-performance-hint">{scalingPerformanceHints[language]}</small>
+          <label className="fullscreen-setting" title={reopenTooltip}>
+            <input type="checkbox" checked={draft.standaloneCompatibility} onChange={(event) => updateDraft({ standaloneCompatibility: event.target.checked })} />
+            <span>{compatibilitySettingsLabels[language].standalone}</span>
+          </label>
+          <label className="fullscreen-setting" title={reopenTooltip}>
+            <input type="checkbox" checked={draft.allowOnlineFeatures} onChange={(event) => updateDraft({ allowOnlineFeatures: event.target.checked })} />
+            <span>{compatibilitySettingsLabels[language].online}</span>
+          </label>
+        </>}
       </div>
-      <div className="public-resources">
+      {!game.onlineOnly && <div className="public-resources">
         <strong>{compatibilitySettingsLabels[language].resources}</strong>
         {game.publicResourceUrls?.length ? (
           <ul ref={publicResourcesListRef} className={publicResourcesHaveScrollbar ? "has-scrollbar-gap" : undefined}>
@@ -875,7 +880,7 @@ function DetailsPanel({
         ) : (
           <span className="public-resources-empty">{compatibilitySettingsLabels[language].noResources}</span>
         )}
-      </div>
+      </div>}
       <fieldset className="user-rating-field">
         <legend>{userRatingLabels[language].title}{game.userRating !== undefined && `: ${game.userRating.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} / 5`}</legend>
         <div className="user-rating-options">
@@ -1084,12 +1089,13 @@ function DetailsPanel({
   );
 }
 
-function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescription, hasMusic, musicTracks, onSettings }: {
+function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, setFilter, musicDescription, hasMusic, musicTracks, onSettings }: {
   game: Game;
   language: Language;
   isRunning: boolean;
   onPlay: (game: Game) => void;
   onPatch: (gameId: string, patch: GamePatch) => void;
+  setFilter: (filter: Filter) => void;
   musicDescription: string;
   hasMusic: boolean;
   musicTracks: number[];
@@ -1134,9 +1140,11 @@ function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescri
   }
   const settings = [
     [gameSettingsLabels[language].fullscreenByDefault, stateLabel(Boolean(game.fullscreenByDefault))],
-    [compatibilitySettingsLabels[language].fixScaling, stateLabel(Boolean(game.fixScaling))],
-    [compatibilitySettingsLabels[language].standalone, stateLabel(Boolean(game.standaloneCompatibility))],
-    [compatibilitySettingsLabels[language].online, stateLabel(game.allowOnlineFeatures !== false)],
+    ...(!game.onlineOnly ? [
+      [compatibilitySettingsLabels[language].fixScaling, stateLabel(Boolean(game.fixScaling))],
+      [compatibilitySettingsLabels[language].standalone, stateLabel(Boolean(game.standaloneCompatibility))],
+      [compatibilitySettingsLabels[language].online, stateLabel(game.allowOnlineFeatures !== false)],
+    ] : []),
     ...(hasMusic ? [[gameSettingsLabels[language].repeatMusic, stateLabel(game.repeatMusic !== false)]] : []),
   ];
 
@@ -1180,7 +1188,7 @@ function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescri
           <button className="icon" type="button" title={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} aria-label={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} onClick={() => void window.flashApi.openGameFolder(game.id).catch(() => {})}><FolderOpen size={18} /></button>
         </div>
       </div>
-      {(game.userRating !== undefined || game.sourceRating !== undefined || game.description) && (
+      {(game.userRating !== undefined || game.sourceRating !== undefined || game.tags.length > 0 || game.description) && (
         <section className="game-info-section game-info-rating-description">
           {(game.userRating !== undefined || game.sourceRating !== undefined) && <div className="game-info-ratings">
             {game.sourceRating !== undefined && <div>
@@ -1189,6 +1197,9 @@ function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescri
               {game.sourceRatingCount !== undefined && <span>{game.sourceRatingCount.toLocaleString(language)} {sourceMetadataLabels[language].votes}</span>}
             </div>}
             {game.userRating !== undefined && <div><h3>{userRatingLabels[language].title}</h3><StarRating rating={game.userRating} label={userRatingLabels[language].title} language={language} /></div>}
+          </div>}
+          {game.tags.length > 0 && <div className="mini-tags game-info-panel-tags">
+            {game.tags.map((tag) => <button className="game-info-tag-filter" key={tag} type="button" title={tag} onClick={() => setFilter({ type: "tag", value: tag })}>{tag}</button>)}
           </div>}
           {game.description && <div className="game-info-description">
             <h3>{sourceMetadataLabels[language].description}</h3>
@@ -1203,7 +1214,9 @@ function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescri
       <section className="game-info-section">
         <h3>{sourceMetadataLabels[language].gameDetails}</h3>
         <dl className="game-info-facts">
-        {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+        {facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{label === text.category
+          ? <button className="game-info-filter-link" type="button" onClick={() => setFilter({ type: "category", value: game.category })}>{value}</button>
+          : value}</dd></div>)}
         {!game.onlineOnly && <div><dt>{text.file}</dt><dd>
           <button className="game-info-file" type="button" title={sourceMetadataLabels[language].openGameFolder.replace("{title}", game.title)} onClick={() => void window.flashApi.openGameFolder(game.id).catch(() => {})}>
             <span>{game.storageFileName || game.originalFileName}</span><ExternalLink size={12} aria-hidden="true" />
@@ -1215,16 +1228,16 @@ function GameInfoPanel({ game, language, isRunning, onPlay, onPatch, musicDescri
       {game.notes && <section className="game-info-section"><h3>{text.notes}</h3><p>{game.notes}</p></section>}
       {musicTracks.length > 0 && <section className="game-info-section"><h3>{musicLabels[language].defaultMusic}</h3><ul className="game-info-tracks">{musicTracks.map((duration, index) => <li key={index} className={index === (game.defaultMusicIndex ?? 0) ? "selected" : undefined}>{musicLabels[language].track.replace("{n}", String(index + 1))} · {formatTrackDuration(duration)}</li>)}</ul></section>}
       <section className="game-info-section"><h3>{labels.settings}</h3><dl className="game-info-facts">{settings.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>
-      {Boolean(game.publicResourceUrls?.length) && <section className="game-info-section"><h3>{compatibilitySettingsLabels[language].resources}</h3><ul className="game-info-resources">{game.publicResourceUrls?.map(url => <li key={url}><span title={url}>{url}</span><span>{stateLabel(!game.blockedPublicResourceUrls?.includes(url))}</span></li>)}</ul></section>}
+      {!game.onlineOnly && Boolean(game.publicResourceUrls?.length) && <section className="game-info-section"><h3>{compatibilitySettingsLabels[language].resources}</h3><ul className="game-info-resources">{game.publicResourceUrls?.map(url => <li key={url}><span title={url}>{url}</span><span>{stateLabel(!game.blockedPublicResourceUrls?.includes(url))}</span></li>)}</ul></section>}
     </aside>
   );
 }
 
-function GameDetailsSidebar(props: Omit<Parameters<typeof DetailsPanel>[0], "onBack">) {
+function GameDetailsSidebar(props: Omit<Parameters<typeof DetailsPanel>[0], "onBack"> & { setFilter: (filter: Filter) => void }) {
   const [showSettings, setShowSettings] = useState(false);
   if (!props.game || showSettings) return <DetailsPanel {...props} onBack={() => setShowSettings(false)} />;
   return <GameInfoPanel game={props.game} language={props.language} isRunning={props.isRunning} onPlay={props.onPlay} onPatch={props.onPatch}
-    musicDescription={props.musicDescription} hasMusic={props.hasMusic} musicTracks={props.musicTracks} onSettings={() => setShowSettings(true)} />;
+    setFilter={props.setFilter} musicDescription={props.musicDescription} hasMusic={props.hasMusic} musicTracks={props.musicTracks} onSettings={() => setShowSettings(true)} />;
 }
 
 export function PlayerModal({
@@ -1779,21 +1792,14 @@ export function App() {
     try { return localStorage.getItem("flashmanager.showGameCardTags") !== "false"; }
     catch { return true; }
   });
-  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
-  const [showOnlineOnlyOffline, setShowOnlineOnlyOffline] = useState(() => {
-    try { return localStorage.getItem("flashmanager.showOnlineOnlyOffline") === "true"; }
-    catch { return false; }
+  const [showOnlineOnlyGames, setShowOnlineOnlyGames] = useState(() => {
+    try {
+      const saved = localStorage.getItem("flashmanager.showOnlineOnlyGames");
+      return saved === null ? localStorage.getItem("flashmanager.showOnlineOnlyOffline") !== "false" : saved !== "false";
+    }
+    catch { return true; }
   });
 
-  useEffect(() => {
-    const updateConnectivity = () => setIsOnline(navigator.onLine);
-    window.addEventListener("online", updateConnectivity);
-    window.addEventListener("offline", updateConnectivity);
-    return () => {
-      window.removeEventListener("online", updateConnectivity);
-      window.removeEventListener("offline", updateConnectivity);
-    };
-  }, []);
   const [cardSizeIndex, setCardSizeIndex] = useState(() => {
     try {
       const stored = localStorage.getItem("flashmanager.cardSizeIndex");
@@ -2071,8 +2077,8 @@ export function App() {
 
   const selectedGame = library.games.find((game) => game.id === selectedId) || null;
   useEffect(() => {
-    if (!isOnline && !showOnlineOnlyOffline && selectedGame?.onlineOnly) setSelectedId(null);
-  }, [isOnline, showOnlineOnlyOffline, selectedGame?.onlineOnly]);
+    if (!showOnlineOnlyGames && selectedGame?.onlineOnly) setSelectedId(null);
+  }, [showOnlineOnlyGames, selectedGame?.onlineOnly]);
   const [isThemeEnabled, setIsThemeEnabled] = useState(() => readStoredFlag("flashmanager.themeEnabled"));
   const [themeVolume, setThemeVolume] = useState(() => {
     try {
@@ -2084,9 +2090,9 @@ export function App() {
   });
   const [themeInfo, setThemeInfo] = useState<{ gameId: string; theme: GameTheme | null } | null>(null);
   const [themeReloadKey, setThemeReloadKey] = useState(0);
-  const themeCacheRef = useRef(new Map<string, GameTheme | null>());
+  const themeCacheRef = useRef(new BoundedCache<string, GameTheme | null>(4, 16 * 1024 * 1024, (theme) => theme?.data.byteLength || 0));
   const [musicCandidates, setMusicCandidates] = useState<{ gameId: string; durations: number[] } | null>(null);
-  const musicCandidatesCacheRef = useRef(new Map<string, number[]>());
+  const musicCandidatesCacheRef = useRef(new BoundedCache<string, number[]>(128, 64 * 1024, (durations) => durations.length * 8));
   const themeAudioRef = useRef<HTMLAudioElement | null>(null);
   const themeFadeRef = useRef<{ audio: HTMLAudioElement; cancel: () => void } | null>(null);
   const [visibilityRefreshKey, setVisibilityRefreshKey] = useState(0);
@@ -2124,6 +2130,7 @@ export function App() {
       .getMusicCandidates(selectedId)
       .catch(() => [])
       .then((candidates) => {
+        if (cancelled) return;
         const durations = candidates.map((candidate) => candidate.duration);
         musicCandidatesCacheRef.current.set(selectedId, durations);
         if (!cancelled) setMusicCandidates({ gameId: selectedId, durations });
@@ -2148,6 +2155,7 @@ export function App() {
       .getGameTheme(selectedId)
       .catch(() => null)
       .then((theme) => {
+        if (cancelled) return;
         themeCacheRef.current.set(selectedId, theme);
         if (!cancelled) setThemeInfo({ gameId: selectedId, theme });
       });
@@ -2170,6 +2178,8 @@ export function App() {
       if (themeAudioRef.current === audio) themeAudioRef.current = null;
       fadeManagedAudio(audio, () => 0, themeFadeRef, () => {
         audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
         URL.revokeObjectURL(audioUrl);
       });
     };
@@ -2238,7 +2248,7 @@ export function App() {
   const visibleGames = useMemo(() => {
     const source = query.trim() ? fuse.search(query.trim()).map((result) => result.item) : library.games;
     const filtered = source.filter((game) => {
-      if (game.onlineOnly && !isOnline && !showOnlineOnlyOffline) return false;
+      if (game.onlineOnly && !showOnlineOnlyGames) return false;
       if (filter.type === "favorites") return game.favorite;
       if (filter.type === "category") return game.category === filter.value;
       if (filter.type === "tag") return game.tags.includes(filter.value);
@@ -2258,7 +2268,8 @@ export function App() {
     return [...filtered].sort(
       (first, second) => direction * (sortValue(first) - sortValue(second)) || compareTitle(first, second),
     );
-  }, [filter, fuse, isOnline, language, library.games, query, showOnlineOnlyOffline, sortAscending, sortMode]);
+  }, [filter, fuse, language, library.games, query, showOnlineOnlyGames, sortAscending, sortMode]);
+  const hasOnlineOnlyGames = library.games.some((game) => game.onlineOnly);
 
   useEffect(() => {
     if (!sortMenuOpen) return;
@@ -2788,6 +2799,23 @@ export function App() {
                     )}
                   </div>
                 ))}
+                {hasOnlineOnlyGames && <>
+                  <div className="sort-menu-divider" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitemcheckbox"
+                    aria-checked={showOnlineOnlyGames}
+                    className="category-option sort-menu-filter"
+                    onClick={() => {
+                      const enabled = !showOnlineOnlyGames;
+                      setShowOnlineOnlyGames(enabled);
+                      try { localStorage.setItem("flashmanager.showOnlineOnlyGames", String(enabled)); } catch {}
+                    }}
+                  >
+                    <span className="sort-menu-checkbox" aria-hidden="true">{showOnlineOnlyGames && <Check size={13} />}</span>
+                    <span>{showOnlineOnlyGamesLabels[language]}</span>
+                  </button>
+                </>}
               </div>
             )}
           </div>
@@ -2971,6 +2999,7 @@ export function App() {
           musicDescription={musicDescription}
           hasMusic={Boolean(selectedTheme)}
           musicTracks={selectedMusicTracks}
+          setFilter={setFilter}
           onSelectDefaultMusic={selectDefaultMusic}
           onRecaptureCover={recaptureCover}
           isCapturingCover={Boolean(selectedGame && captureQueue.includes(selectedGame.id))}
@@ -3076,14 +3105,6 @@ export function App() {
                   onChange={(event) => void updateExploreEnabled(event.target.checked)}
                 />
                 <span>{exploreLabels.enable}</span>
-              </label>
-              <label className="settings-toggle">
-                <input type="checkbox" checked={showOnlineOnlyOffline} onChange={(event) => {
-                  const enabled = event.target.checked;
-                  setShowOnlineOnlyOffline(enabled);
-                  try { localStorage.setItem("flashmanager.showOnlineOnlyOffline", String(enabled)); } catch {}
-                }} />
-                <span>{showOnlineOnlyOfflineLabels[language]}</span>
               </label>
               <label className="settings-toggle">
                 <input type="checkbox" checked={andkonEnabled} onChange={(event) => {

@@ -1,5 +1,13 @@
 # Flash Royale - Changelog
 
+## v0.9.7
+
+- Made duplicated games in catalogue be orange instead of green on import.
+- Removed the upload date metadata from the y8 game info catalogue window.
+- Optimized each catalogue's cache and sort/filter options.
+- Added filter options in explore window such as Show online only games (Default to On) and categories if the catalogue permits it.
+- Removed Fix scaling / zoom, Standalone compatibility, allow online features and discovered public resources from the game detail panel of the main app window and game settings panel for Online-only games.
+
 ## v0.9.6
 
 - Added a dedicated Game Info sidebar, separate from the editable Game Settings view.
@@ -13,7 +21,7 @@
 - Added technical information displays to local Game Info and Explore game details.
 - Save parsed metadata for imported SWFs in each game's `swf-metadata.json`.
 - Added Y8 as an Explore source alongside Silvergames.
-- Added an optional Andkon catalog, disabled by default in Settings, with a warning about domain-locked games and limited offline compatibility.
+- Added an optional Andkon catalogue, disabled by default in Settings, with a warning about domain-locked games and limited offline compatibility.
 - Improved Silvergames game-detail covers with a higher-resolution image and a fallback image.
 - Added collapsible Categories and Tags sections, collapsed by default for new users.
 - Categories and Tags independently remember their last expanded or collapsed state across app restarts.
@@ -41,7 +49,7 @@
 - Added per-game Standalone compatibility, using local-file loading and the original SWF filename for games that expect standalone-player behavior. Authentication remains with the game's original servers.
 - Control online access per game and show automatically discovered public resource URLs with individual block and clipboard-copy controls.
 - Added a restricted public-resource GET relay that pins public DNS results, rejects private destinations and redirects, limits response size, strips numeric RND cache-busters, and never forwards cookies or login requests.
-- Added an optional separate Explore window for searching the Silvergames catalog, sorting by rating or title, paging results, and seeing covers, tags, ratings, and imported status.
+- Added an optional separate Explore window for searching the Silvergames catalogue, sorting by rating or title, paging results, and seeing covers, tags, ratings, and imported status.
 - Added a separate game-info window with cover, source rating and vote count, age guidance, tags, and description, plus links to Silvergames and game import.
 - Added an import progress window that reports download and save progress.
 - Keep Explore independently configurable from the local library and player.
@@ -86,6 +94,6 @@
 - Added option to minimize the game in the notification area on game launch and another one for when minimizing the main window. Both option are enabled by default.
 - Added a sort bouton that let you sort the game library by date added, name, last played and most played. Each sort option can bo toggle between ascending and descending.
 - Fixed the drag and drop import option. It now work as it should.
-- Disabled the visibility of favorited logo on game card when in the favorites tab.v
+- Disabled the visibility of favorited logo on game card when in the favorites tab.
 
 **Full Changelog**: https://github.com/MCC321-QC/Flash-Royale/commits/v0.5.0

@@ -143,6 +143,7 @@ export interface ExploreGame {
   likes?: string | null;
   onlineOnly?: boolean;
   onlineUrl?: string;
+  category?: string;
 }
 
 export interface ExplorePage {
@@ -150,6 +151,7 @@ export interface ExplorePage {
   page: number;
   totalPages: number;
   total: number;
+  categories?: Array<{ slug: string; name: string }>;
   totalIsPageCount?: boolean;
   hasNext?: boolean;
 }
@@ -225,7 +227,8 @@ export interface FlashApi {
   openRepository(): Promise<void>;
   openOriginalAuthorRepository(): Promise<void>;
   openExplore(): Promise<void>;
-  listExploreGames(query: string, page: number, pageSize: number, sortMode: ExploreSortMode, ascending: boolean, source?: ExploreSource): Promise<ExplorePage>;
+  listExploreGames(query: string, page: number, pageSize: number, sortMode: ExploreSortMode, ascending: boolean, source?: ExploreSource, category?: string, refresh?: boolean, showOnlineOnlyGames?: boolean): Promise<ExplorePage>;
+  cancelExploreList(): void;
   openExploreSite(source?: ExploreSource): Promise<void>;
   openExploreDetails(id: ExploreGame["id"], source?: ExploreSource): Promise<void>;
   getExploreGameDetails(id: ExploreGame["id"], source?: ExploreSource): Promise<ExploreDetailsGame>;

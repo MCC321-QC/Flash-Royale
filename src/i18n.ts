@@ -136,7 +136,7 @@ const baseMessages = {
     canvasUnavailable: "Could not create a cover canvas.",
     coverDataInvalid: "Screenshot data is invalid; the original cover was kept.",
     coverAlt: "cover",
-    localLibrary: "Local game library",
+    localLibrary: "Dominate your flash games",
     allGames: "All games",
     favorites: "Favorites",
     categories: "Categories",
@@ -566,18 +566,60 @@ export const portableUpdateLabels: Record<Language, { install: string; busy: str
   ru: { install: "Установить и перезапустить", busy: "Загрузка и проверка обновления...", consent: "Разблокировать проверенные файлы обновления (удалить метку Интернета)", warning: "Приложение закроется и перезапустится. Библиотека сохранится. Сначала закройте игры и поиск игр. Разблокировка не обходит Smart App Control и не заменяет подпись кода.", failed: "Не удалось установить обновление" },
 };
 
-export const showOnlineOnlyOfflineLabels: Record<Language, string> = {
-  en: "Show online only game even when offline",
-  zh: "离线时仍显示仅限在线游戏",
-  es: "Mostrar juegos solo en línea incluso sin conexión",
-  fr: "Afficher les jeux en ligne même hors connexion",
-  de: "Online-Spiele auch offline anzeigen",
-  "pt-BR": "Mostrar jogos online mesmo sem conexão",
-  ja: "オフラインでもオンライン専用ゲームを表示",
-  ko: "오프라인에서도 온라인 전용 게임 표시",
-  hi: "ऑफलाइन होने पर भी केवल ऑनलाइन गेम दिखाएँ",
-  ar: "عرض الألعاب المتصلة حتى دون اتصال بالإنترنت",
-  ru: "Показывать онлайн-игры даже без интернета",
+export const showOnlineOnlyGamesLabels: Record<Language, string> = {
+  en: "Show online-only games",
+  zh: "显示仅限在线游戏",
+  es: "Mostrar juegos solo en línea",
+  fr: "Afficher les jeux en ligne uniquement",
+  de: "Nur-Online-Spiele anzeigen",
+  "pt-BR": "Mostrar jogos somente online",
+  ja: "オンライン専用ゲームを表示",
+  ko: "온라인 전용 게임 표시",
+  hi: "केवल ऑनलाइन गेम दिखाएँ",
+  ar: "عرض الألعاب المتاحة عبر الإنترنت فقط",
+  ru: "Показывать игры только онлайн",
+};
+
+export const y8CategoryRequiredLabels: Record<Language, string> = {
+  en: "Select a specific category to use this setting.",
+  zh: "请选择一个具体类别以使用此设置。",
+  es: "Selecciona una categoría específica para usar este ajuste.",
+  fr: "Sélectionnez une catégorie précise pour utiliser ce réglage.",
+  de: "Wähle eine bestimmte Kategorie, um diese Einstellung zu verwenden.",
+  "pt-BR": "Selecione uma categoria específica para usar esta configuração.",
+  ja: "この設定を使用するには、特定のカテゴリを選択してください。",
+  ko: "이 설정을 사용하려면 특정 카테고리를 선택하세요.",
+  hi: "इस सेटिंग का उपयोग करने के लिए एक विशिष्ट श्रेणी चुनें।",
+  ar: "حدد فئة معينة لاستخدام هذا الإعداد.",
+  ru: "Выберите конкретную категорию, чтобы использовать эту настройку.",
+};
+
+export const exploreFilterLabels: Record<Language, { categories: string; allCategories: string; noMatches: string }> = {
+  en: { categories: "Category", allCategories: "All categories", noMatches: "No games on this page match the selected filters." },
+  zh: { categories: "类别", allCategories: "所有类别", noMatches: "此页没有符合所选筛选条件的游戏。" },
+  es: { categories: "Categoría", allCategories: "Todas las categorías", noMatches: "No hay juegos en esta página que coincidan con los filtros." },
+  fr: { categories: "Catégorie", allCategories: "Toutes les catégories", noMatches: "Aucun jeu de cette page ne correspond aux filtres." },
+  de: { categories: "Kategorie", allCategories: "Alle Kategorien", noMatches: "Auf dieser Seite gibt es keine Spiele, die den Filtern entsprechen." },
+  "pt-BR": { categories: "Categoria", allCategories: "Todas as categorias", noMatches: "Nenhum jogo nesta página corresponde aos filtros." },
+  ja: { categories: "カテゴリ", allCategories: "すべてのカテゴリ", noMatches: "このページに選択した条件に一致するゲームはありません。" },
+  ko: { categories: "카테고리", allCategories: "모든 카테고리", noMatches: "이 페이지에는 선택한 필터와 일치하는 게임이 없습니다." },
+  hi: { categories: "श्रेणी", allCategories: "सभी श्रेणियाँ", noMatches: "इस पृष्ठ पर चुने गए फ़िल्टर से मेल खाने वाले गेम नहीं हैं।" },
+  ar: { categories: "الفئة", allCategories: "كل الفئات", noMatches: "لا توجد ألعاب في هذه الصفحة تطابق عوامل التصفية المحددة." },
+  ru: { categories: "Категория", allCategories: "Все категории", noMatches: "На этой странице нет игр, соответствующих выбранным фильтрам." },
+};
+
+export const exploreRefreshLabels: Record<Language, { refresh: string; wait: string }> = {
+  en: { refresh: "Refresh games", wait: "Refresh available in {seconds}s" },
+  zh: { refresh: "刷新游戏", wait: "{seconds} 秒后可刷新" },
+  es: { refresh: "Actualizar juegos", wait: "Podrás actualizar en {seconds}s" },
+  fr: { refresh: "Actualiser les jeux", wait: "Actualisation disponible dans {seconds}s" },
+  de: { refresh: "Spiele aktualisieren", wait: "Aktualisierung in {seconds}s verfügbar" },
+  "pt-BR": { refresh: "Atualizar jogos", wait: "Atualização disponível em {seconds}s" },
+  ja: { refresh: "ゲームを更新", wait: "{seconds}秒後に更新できます" },
+  ko: { refresh: "게임 새로고침", wait: "{seconds}초 후 새로고침 가능" },
+  hi: { refresh: "गेम रीफ़्रेश करें", wait: "{seconds} सेकंड में रीफ़्रेश उपलब्ध" },
+  ar: { refresh: "تحديث الألعاب", wait: "يتاح التحديث خلال {seconds} ثانية" },
+  ru: { refresh: "Обновить игры", wait: "Обновление будет доступно через {seconds} с" },
 };
 
 export const gameCardTagsLabels: Record<Language, string> = {
@@ -620,6 +662,20 @@ export const silvergamesAddedDateLabels: Record<Language, string> = {
   hi: "SilverGames पर जोड़ा गया",
   ar: "تاريخ الإضافة إلى SilverGames",
   ru: "Добавлено на SilverGames",
+};
+
+export const andkonMetadataLabels: Record<Language, { added: string; author: string }> = {
+  en: { added: "Added to Andkon", author: "Author" },
+  zh: { added: "添加到 Andkon", author: "作者" },
+  es: { added: "Añadido a Andkon", author: "Autor" },
+  fr: { added: "Ajouté à Andkon", author: "Auteur" },
+  de: { added: "Zu Andkon hinzugefügt", author: "Autor" },
+  "pt-BR": { added: "Adicionado ao Andkon", author: "Autor" },
+  ja: { added: "Andkon に追加", author: "作者" },
+  ko: { added: "Andkon에 추가됨", author: "작성자" },
+  hi: { added: "Andkon में जोड़ा गया", author: "लेखक" },
+  ar: { added: "تمت الإضافة إلى Andkon", author: "المؤلف" },
+  ru: { added: "Добавлено на Andkon", author: "Автор" },
 };
 
 export const y8MetadataLabels: Record<Language, { likes: string; added: string; onlineOnly: string; addOnlineOnly: string }> = {
@@ -665,17 +721,17 @@ export const generalSettingsLabels: Record<Language, { general: string; startInF
 };
 
 export const exploreSettingsLabels: Record<Language, { enable: string; disabled: string; offline: string; checking: string; open: string; button: string }> = {
-  en: { enable: "Enable Explore (requires internet)", disabled: "Explore is disabled in settings", offline: "Explore unavailable: no internet connection to Silvergames", checking: "Checking Silvergames connection", open: "Explore Flash games", button: "Explore" },
-  zh: { enable: "启用探索（需要网络）", disabled: "探索已在设置中关闭", offline: "无法连接 Silvergames，请检查网络", checking: "正在检查 Silvergames 连接", open: "探索 Flash 游戏", button: "探索" },
-  es: { enable: "Activar Explorar (requiere internet)", disabled: "Explorar está desactivado en ajustes", offline: "No hay conexión a Silvergames", checking: "Comprobando la conexión a Silvergames", open: "Explorar juegos Flash", button: "Explorar" },
-  fr: { enable: "Activer Explorer (internet requis)", disabled: "Explorer est désactivé dans les paramètres", offline: "Impossible de se connecter à Silvergames", checking: "Vérification de la connexion à Silvergames", open: "Explorer les jeux Flash", button: "Explorer" },
-  de: { enable: "Flash-Spiele entdecken (Internet erforderlich)", disabled: "Flash-Spiele entdecken ist in den Einstellungen deaktiviert", offline: "Keine Verbindung zu Silvergames", checking: "Verbindung zu Silvergames wird geprüft", open: "Flash-Spiele entdecken", button: "Entdecken" },
-  "pt-BR": { enable: "Ativar Explorar (requer internet)", disabled: "Explorar está desativado nas configurações", offline: "Sem conexão com Silvergames", checking: "Verificando conexão com Silvergames", open: "Explorar jogos Flash", button: "Explorar" },
-  ja: { enable: "探索を有効にする（インターネットが必要）", disabled: "設定で探索が無効です", offline: "Silvergames に接続できません", checking: "Silvergames への接続を確認中", open: "Flash ゲームを探す", button: "探索" },
-  ko: { enable: "탐색 사용 (인터넷 필요)", disabled: "설정에서 탐색이 꺼져 있습니다", offline: "Silvergames에 연결할 수 없습니다", checking: "Silvergames 연결 확인 중", open: "Flash 게임 탐색", button: "탐색" },
-  hi: { enable: "एक्सप्लोर चालू करें (इंटरनेट आवश्यक)", disabled: "सेटिंग्स में एक्सप्लोर बंद है", offline: "Silvergames से कनेक्शन नहीं है", checking: "Silvergames कनेक्शन जाँच रहे हैं", open: "Flash गेम खोजें", button: "खोजें" },
-  ar: { enable: "تفعيل الاستكشاف (يتطلب الإنترنت)", disabled: "الاستكشاف معطل في الإعدادات", offline: "لا يوجد اتصال بـ Silvergames", checking: "جارٍ التحقق من الاتصال بـ Silvergames", open: "استكشاف ألعاب Flash", button: "استكشف" },
-  ru: { enable: "Включить поиск игр (нужен интернет)", disabled: "Поиск игр отключён в настройках", offline: "Нет соединения с Silvergames", checking: "Проверка соединения с Silvergames", open: "Поиск Flash-игр", button: "Обзор" },
+  en: { enable: "Enable Explore (requires internet)", disabled: "Explore is disabled in settings", offline: "Explore unavailable: no internet connection", checking: "Checking internet connection", open: "Explore Flash games", button: "Explore" },
+  zh: { enable: "启用探索（需要网络）", disabled: "探索已在设置中关闭", offline: "探索不可用：无网络连接", checking: "正在检查网络连接", open: "探索 Flash 游戏", button: "探索" },
+  es: { enable: "Activar Explorar (requiere internet)", disabled: "Explorar está desactivado en ajustes", offline: "Explorar no disponible: sin conexión a internet", checking: "Comprobando la conexión a internet", open: "Explorar juegos Flash", button: "Explorar" },
+  fr: { enable: "Activer Explorer (internet requis)", disabled: "Explorer est désactivé dans les paramètres", offline: "Explorer indisponible : aucune connexion internet", checking: "Vérification de la connexion internet", open: "Explorer les jeux Flash", button: "Explorer" },
+  de: { enable: "Flash-Spiele entdecken (Internet erforderlich)", disabled: "Flash-Spiele entdecken ist in den Einstellungen deaktiviert", offline: "Entdecken nicht verfügbar: keine Internetverbindung", checking: "Internetverbindung wird geprüft", open: "Flash-Spiele entdecken", button: "Entdecken" },
+  "pt-BR": { enable: "Ativar Explorar (requer internet)", disabled: "Explorar está desativado nas configurações", offline: "Explorar indisponível: sem conexão com a internet", checking: "Verificando conexão com a internet", open: "Explorar jogos Flash", button: "Explorar" },
+  ja: { enable: "探索を有効にする（インターネットが必要）", disabled: "設定で探索が無効です", offline: "探索を利用できません：インターネット接続がありません", checking: "インターネット接続を確認中", open: "Flash ゲームを探す", button: "探索" },
+  ko: { enable: "탐색 사용 (인터넷 필요)", disabled: "설정에서 탐색이 꺼져 있습니다", offline: "탐색 불가: 인터넷 연결 없음", checking: "인터넷 연결 확인 중", open: "Flash 게임 탐색", button: "탐색" },
+  hi: { enable: "एक्सप्लोर चालू करें (इंटरनेट आवश्यक)", disabled: "सेटिंग्स में एक्सप्लोर बंद है", offline: "एक्सप्लोर उपलब्ध नहीं: इंटरनेट कनेक्शन नहीं है", checking: "इंटरनेट कनेक्शन जाँच रहे हैं", open: "Flash गेम खोजें", button: "खोजें" },
+  ar: { enable: "تفعيل الاستكشاف (يتطلب الإنترنت)", disabled: "الاستكشاف معطل في الإعدادات", offline: "الاستكشاف غير متاح: لا يوجد اتصال بالإنترنت", checking: "جارٍ التحقق من الاتصال بالإنترنت", open: "استكشاف ألعاب Flash", button: "استكشف" },
+  ru: { enable: "Включить поиск игр (нужен интернет)", disabled: "Поиск игр отключён в настройках", offline: "Обзор недоступен: нет подключения к интернету", checking: "Проверка подключения к интернету", open: "Поиск Flash-игр", button: "Обзор" },
 };
 
 export const sourceMetadataLabels: Record<Language, { description: string; instructionsControls: string; authorInfo: string; gameDetails: string; rating: string; votes: string; ageRating: string; uploadDate: string; version: string; swfVersion: string; dimensions: string; frameRate: string; fileSize: string; openGameFolder: string; noTags: string; noCategories: string; showMore: string; showLess: string }> = {
@@ -693,7 +749,7 @@ export const sourceMetadataLabels: Record<Language, { description: string; instr
 };
 
 export const exploreCoverLabels: Record<Language, string> = {
-  en: "Imported from catalog",
+  en: "Imported from catalogue",
   zh: "从游戏目录导入",
   es: "Importada del catálogo",
   fr: "Importée depuis le catalogue",

@@ -1,26 +1,48 @@
 const { load } = require("cheerio");
 const zlib = require("node:zlib");
+const { createCatalogueCache } = require("./catalogue-cache.cjs");
+const { createCachedTextFetcher } = require("./catalogue-http.cjs");
+const { fetchCatalogue, CatalogueBackoffError } = require("./catalogue-backoff.cjs");
+const { getCachedSwfHeader } = require("./swf-header-cache.cjs");
 
 const catalogUrl = "https://www.silvergames.com/search/core.json";
 const playerOrigin = "https://files.silvergames.com";
 const imageOrigin = "https://media.silvergames.com";
 const maxSwfBytes = 40 * 1024 * 1024;
+const catalogCache = createCatalogueCache();
+const fetchCachedText = createCachedTextFetcher(catalogCache, {
+  timeoutMs: 15000,
+  unavailableMessage: "Silvergames is unavailable. Please try again later.",
+  validateUrl: (url) => {
+    if (!["https://www.silvergames.com", playerOrigin].includes(new URL(url).origin)) throw new Error("Invalid SilverGames response URL.");
+  },
+  validateText: (text, url) => {
+    if (url === catalogUrl && !Array.isArray(JSON.parse(text))) throw new Error("Silvergames returned an invalid catalog.");
+  },
+});
 
 async function fetchText(url) {
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
-  if (!response.ok || new URL(response.url).origin !== new URL(url).origin) {
-    throw new Error("Silvergames is unavailable. Please try again later.");
-  }
-  return response.text();
+  return (await fetchCachedText(url)).text;
 }
 
 async function getCatalog() {
-  const games = JSON.parse(await fetchText(catalogUrl));
-  if (!Array.isArray(games)) throw new Error("Silvergames returned an invalid catalog.");
-  return games.filter((game) =>
-    ["ruffle-swf", "swf"].includes(game.fileType) && Number.isSafeInteger(game.id) &&
-    /^[a-z0-9-]+$/.test(game.url) && typeof game.name === "string"
-  ).map((game) => ({ id: game.id, slug: game.url, title: game.name, rating: Number.isFinite(game.rating) ? game.rating : 0, tags: game.tags || [] }));
+  return catalogCache.get("catalogue", async () => {
+    const text = await fetchText(catalogUrl);
+    const games = JSON.parse(text);
+    if (!Array.isArray(games)) throw new Error("Silvergames returned an invalid catalog.");
+    return games.filter((game) =>
+      ["ruffle-swf", "swf"].includes(game.fileType) && Number.isSafeInteger(game.id) &&
+      /^[a-z0-9-]+$/.test(game.url) && typeof game.name === "string"
+    ).map((game) => ({ id: game.id, slug: game.url, title: game.name, rating: Number.isFinite(game.rating) ? game.rating : 0, tags: game.tags || [] }));
+  });
+}
+
+function refreshCache() {
+  return catalogCache.invalidate();
+}
+
+function configureCache(directory) {
+  catalogCache.configureDirectory(directory);
 }
 
 function normalizedTitle(title) {
@@ -57,7 +79,7 @@ async function listGames(query = "", page = 1, requestedPageSize = 12, sortMode 
   const search = String(query).trim().toLowerCase().slice(0, 80);
   const matches = search
     ? catalog.filter((game) => game.title.toLowerCase().includes(search) || game.tags.some((tag) => tag.includes(search)))
-    : catalog;
+    : catalog.slice();
   const direction = ascending === true ? 1 : -1;
   matches.sort((first, second) => {
     const titleOrder = first.title.localeCompare(second.title, "en", { sensitivity: "base" }) || first.id - second.id;
@@ -86,13 +108,15 @@ function coverUrl(slug, highResolution = false) {
 async function downloadCover(game) {
   for (const url of [coverUrl(game.slug, true), coverUrl(game.slug)]) {
     try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      const response = await fetchCatalogue(url, { signal: AbortSignal.timeout(15000) });
       if (!response.ok || new URL(response.url).origin !== imageOrigin ||
           Number(response.headers.get("content-length") || 0) > 5 * 1024 * 1024) continue;
       const data = Buffer.from(await response.arrayBuffer());
       if (data.length <= 5 * 1024 * 1024 && data.toString("ascii", 0, 4) === "RIFF" &&
           data.toString("ascii", 8, 12) === "WEBP") return data;
-    } catch {}
+    } catch (error) {
+      if (error instanceof CatalogueBackoffError) throw error;
+    }
   }
   throw new Error("The game cover could not be downloaded.");
 }
@@ -174,41 +198,10 @@ async function getSwfUrl(game) {
 }
 
 async function getSwfTechnicalMetadata(game) {
-  try {
-    const url = await getSwfUrl(game);
-    const response = await fetch(url, {
-      headers: { Range: "bytes=0-65535" },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!response.ok || new URL(response.url).origin !== playerOrigin || !response.body) {
-      return parseSwfMetadata(Buffer.alloc(0));
-    }
-
-    const contentRange = /^bytes\s+\d+-\d+\/(\d+)$/i.exec(response.headers.get("content-range") || "");
-    const contentLength = response.status === 200 ? Number(response.headers.get("content-length")) : 0;
-    const responseSize = Number(contentRange?.[1]) || contentLength || null;
-    const lastModified = response.headers.get("last-modified");
-    const modifiedAt = lastModified ? Date.parse(lastModified) : NaN;
-    const uploadDate = Number.isFinite(modifiedAt) ? new Date(modifiedAt).toISOString() : null;
-    const reader = response.body.getReader();
-    const chunks = [];
-    let received = 0;
-    try {
-      while (received < 65536) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = Buffer.from(value).subarray(0, 65536 - received);
-        chunks.push(chunk);
-        received += chunk.length;
-        if (received >= 65536) break;
-      }
-    } finally {
-      await reader.cancel().catch(() => {});
-    }
-    return { ...parseSwfMetadata(Buffer.concat(chunks), responseSize), uploadDate };
-  } catch {
-    return { ...parseSwfMetadata(Buffer.alloc(0)), uploadDate: null };
-  }
+  const url = await getSwfUrl(game);
+  return getCachedSwfHeader(catalogCache, url, (responseUrl) => {
+    if (new URL(responseUrl).origin !== playerOrigin) throw new Error("Invalid SilverGames SWF response URL.");
+  }, parseSwfMetadata);
 }
 
 async function getGameMetadata(game, { includeAgeRating = false } = {}) {
@@ -218,26 +211,24 @@ async function getGameMetadata(game, { includeAgeRating = false } = {}) {
     sourceRatingCount: null,
   };
   if (includeAgeRating) metadata.ageRating = null;
-  try {
-    const $ = load(await fetchText(`https://www.silvergames.com/en/${game.slug}`));
-    if (includeAgeRating) {
-      const ageLine = $(".gp").first().contents().filter((_index, element) =>
-        element.type === "text" && /^\s*Age rating:/i.test($(element).text())
-      ).first().text();
-      metadata.ageRating = ageLine.replace(/^\s*Age rating:\s*/i, "").trim().slice(0, 160) || null;
-    }
-    for (const element of $("script[type='application/ld+json']").toArray()) {
-      let data;
-      try { data = JSON.parse($(element).text()); } catch { continue; }
-      if (data?.["@type"] !== "VideoGame") continue;
-      if (typeof data.description === "string") metadata.description = data.description.trim().slice(0, 5000);
-      const rating = Number(data.aggregateRating?.ratingValue);
-      if (Number.isFinite(rating) && rating >= 0 && rating <= 5) metadata.sourceRating = rating;
-      const count = Number(data.aggregateRating?.ratingCount);
-      if (Number.isSafeInteger(count) && count >= 0) metadata.sourceRatingCount = count;
-      break;
-    }
-  } catch {}
+  const $ = load(await fetchText(`https://www.silvergames.com/en/${game.slug}`));
+  if (includeAgeRating) {
+    const ageLine = $(".gp").first().contents().filter((_index, element) =>
+      element.type === "text" && /^\s*Age rating:/i.test($(element).text())
+    ).first().text();
+    metadata.ageRating = ageLine.replace(/^\s*Age rating:\s*/i, "").trim().slice(0, 160) || null;
+  }
+  for (const element of $("script[type='application/ld+json']").toArray()) {
+    let data;
+    try { data = JSON.parse($(element).text()); } catch { continue; }
+    if (data?.["@type"] !== "VideoGame") continue;
+    if (typeof data.description === "string") metadata.description = data.description.trim().slice(0, 5000);
+    const rating = Number(data.aggregateRating?.ratingValue);
+    if (Number.isFinite(rating) && rating >= 0 && rating <= 5) metadata.sourceRating = rating;
+    const count = Number(data.aggregateRating?.ratingCount);
+    if (Number.isSafeInteger(count) && count >= 0) metadata.sourceRatingCount = count;
+    break;
+  }
   return metadata;
 }
 
@@ -267,7 +258,7 @@ async function downloadGame(id, catalogGame, onProgress = () => {}) {
   const game = catalogGame || await getCatalogGame(id);
   if (game.id !== id) throw new Error("Invalid Flash game selection.");
   const url = await getSwfUrl(game);
-  const response = await fetch(url, { signal: AbortSignal.timeout(60000) });
+  const response = await fetchCatalogue(url, { signal: AbortSignal.timeout(60000) });
   if (!response.ok || new URL(response.url).origin !== playerOrigin ||
       Number(response.headers.get("content-length") || 0) > maxSwfBytes) {
     throw new Error("The SWF download failed or is too large.");
@@ -292,4 +283,4 @@ async function downloadGame(id, catalogGame, onProgress = () => {}) {
   return { game, data };
 }
 
-module.exports = { listGames, getCatalogGame, getGameMetadata, getGameDetails, downloadGame, downloadCover, isInLibrary, getLibraryStatus, parseSwfMetadata };
+module.exports = { listGames, getCatalogGame, getGameMetadata, getGameDetails, downloadGame, downloadCover, isInLibrary, getLibraryStatus, parseSwfMetadata, refreshCache, configureCache, getCoverVersion: catalogCache.getCoverVersion };

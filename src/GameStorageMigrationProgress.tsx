@@ -8,6 +8,7 @@ export function GameStorageMigrationProgress() {
   const [progress, setProgress] = useState<Progress>({ current: 0, total: 0, gameTitle: "", percent: 0 });
 
   useEffect(() => {
+    document.title = labels.title;
     let active = true;
     let receivedUpdate = false;
     const unsubscribe = window.flashApi.onGameStorageMigrationProgress((update) => {
@@ -18,7 +19,7 @@ export function GameStorageMigrationProgress() {
       if (active && !receivedUpdate) setProgress(update);
     }).catch(() => {});
     return () => { active = false; unsubscribe(); };
-  }, []);
+  }, [labels.title]);
 
   const status = progress.total
     ? labels.status.replace("{current}", String(progress.current)).replace("{total}", String(progress.total)).replace("{title}", progress.gameTitle)

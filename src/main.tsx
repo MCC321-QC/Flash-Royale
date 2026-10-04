@@ -4,7 +4,7 @@ import { App, PlayerModal } from "./App";
 import { Explore, ExploreDetails } from "./Explore";
 import { ExploreImportProgress } from "./ExploreImportProgress";
 import { GameStorageMigrationProgress } from "./GameStorageMigrationProgress";
-import { messages, readLanguage } from "./i18n";
+import { libraryMigrationLabels, messages, readLanguage } from "./i18n";
 import type { Language } from "./i18n";
 import type { ExploreSource } from "./types";
 import type { PlayerWindowData } from "./types";
@@ -67,6 +67,7 @@ if (!window.flashApi) {
     openOriginalAuthorRepository: async () => {},
     openExplore: async () => { throw new Error(messages[readLanguage()].electronOnlyPlay); },
     listExploreGames: async () => ({ games: [], page: 1, totalPages: 0, total: 0 }),
+    cancelExploreList: () => {},
     openExploreSite: async () => {},
     openExploreDetails: async () => { throw new Error(messages[readLanguage()].electronOnlyEdit); },
     getExploreGameDetails: async () => { throw new Error(messages[readLanguage()].electronOnlyEdit); },
@@ -148,7 +149,7 @@ const importParams = new URLSearchParams(window.location.search);
 const isExploreImport = importParams.has("exploreImport");
 const isGameStorageMigration = importParams.has("libraryMigration");
 if (isGameStorageMigration) {
-  document.title = "Updating game folders";
+  document.title = libraryMigrationLabels[readLanguage()].title;
   document.body.classList.add("explore-window-body");
 }
 const importLanguage = importParams.get("language");
