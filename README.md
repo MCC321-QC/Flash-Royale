@@ -95,13 +95,13 @@ Release ZIPs should contain exactly one `Flash Royale.exe` alongside `resources/
 
 ## Future Improvements
 
-- Add support for major linux distributions (Need more investigation).
-- Add support for HTML game packages in local (Need more investigation).
+- Add support for major linux distributions. (Need more investigation)
+- Add support for HTML game packages in local. (Need more investigation)
 - Add theme support with at least 3 choices by default and the ability to add a custom one. (Need more investigation)
 - Add support for changing the library directory.
 - Add bulk editing for tags, categories and game deletion.
-- Add option to enable CRT Shaders for each games, and a toggle button in the game player second top menu (Need more investigation).
-- Add controller config and mapping settings that can be set independantly for each games and up to 4 different controllers (Need more investigation).
+- Add option to enable CRT Shaders for each games, and a toggle button in the game player second top menu. (Need more investigation)
+- Add controller config and mapping settings that can be set independantly for each games and up to 4 different controllers. (Need more investigation)
 
 ## Tech Stack
 
