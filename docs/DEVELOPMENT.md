@@ -70,6 +70,7 @@ Explore's interface strings are localized for all supported languages in `src/ex
 - Manual refresh marks memory and disk entries for revalidation, bypassing the 24-hour freshness timer without deleting saved bodies or validators. Derived listings, categories, counts, and metadata are rebuilt when next needed. Successful loads are saved using atomic file replacement; failed loads do not renew cache freshness.
 - Catalogue HTML/JSON and SWF-header caches retain `ETag` and `Last-Modified` validators. On expiry or manual refresh, supported servers can respond with `304 Not Modified`; saved data is reused and its freshness renewed. Changed data or servers without validators use normal downloads.
 - SilverGames and Andkon detail-page data and all three providers' SWF technical metadata are cached for 24 hours. Library/import status is always applied from the current local database, never persisted in the detail cache.
+- SilverGames resolves the selected game's iframe for both current `media.silvergames.com/flash/ruffle/player-{id}.html` players and legacy `files.silvergames.com/flash/ruffle/player.php?id={id}` players. SWF headers and imports accept only these two asset origins.
 - Images retain browser-managed caching. A per-provider cover URL version persists for 24 hours and survives restarts; refresh changes it for both cards and detail images. Normal browsing after refresh keeps the same URLs instead of reverting to older cache keys. Image bytes remain subject to server cache headers and browser eviction, not a forced 24-hour image TTL.
 - Y8 HTML requests explicitly accept `text/html` to receive complete pages, including category navigation. Category parsing deduplicates links and rejects an empty index instead of caching it.
 - Explore debounces ordinary list updates by 300 ms and cancels superseded listing work. Shared Y8 fetches already requested are allowed to finish and populate the cache; cancelled loads do not request further listing pages or metadata batches.
@@ -83,7 +84,7 @@ Explore's interface strings are localized for all supported languages in `src/ex
 Run the network behavior tests without contacting catalogue servers:
 
 ```powershell
-node --test electron\catalogue-cache.test.cjs electron\catalogue-network.test.cjs electron\catalogue-http.test.cjs electron\catalogue-backoff.test.cjs electron\swf-header-cache.test.cjs electron\internet-connectivity.test.cjs electron\explore-preferences.test.cjs electron\explore-localization.test.cjs electron\memory-optimization.test.cjs
+node --test electron\catalogue-cache.test.cjs electron\catalogue-network.test.cjs electron\catalogue-http.test.cjs electron\catalogue-backoff.test.cjs electron\silvergames.test.cjs electron\swf-header-cache.test.cjs electron\internet-connectivity.test.cjs electron\explore-preferences.test.cjs electron\explore-localization.test.cjs electron\memory-optimization.test.cjs
 ```
 
 ## Directory Responsibilities

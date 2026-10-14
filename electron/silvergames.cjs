@@ -8,13 +8,14 @@ const { getCachedSwfHeader } = require("./swf-header-cache.cjs");
 const catalogUrl = "https://www.silvergames.com/search/core.json";
 const playerOrigin = "https://files.silvergames.com";
 const imageOrigin = "https://media.silvergames.com";
+const swfOrigins = [playerOrigin, imageOrigin];
 const maxSwfBytes = 40 * 1024 * 1024;
 const catalogCache = createCatalogueCache();
 const fetchCachedText = createCachedTextFetcher(catalogCache, {
   timeoutMs: 15000,
   unavailableMessage: "Silvergames is unavailable. Please try again later.",
   validateUrl: (url) => {
-    if (!["https://www.silvergames.com", playerOrigin].includes(new URL(url).origin)) throw new Error("Invalid SilverGames response URL.");
+    if (!["https://www.silvergames.com", ...swfOrigins].includes(new URL(url).origin)) throw new Error("Invalid SilverGames response URL.");
   },
   validateText: (text, url) => {
     if (url === catalogUrl && !Array.isArray(JSON.parse(text))) throw new Error("Silvergames returned an invalid catalog.");
@@ -185,22 +186,30 @@ function parseSwfMetadata(buffer, responseSize = null) {
 }
 
 async function getSwfUrl(game) {
-  const frame = await fetchText(`https://www.silvergames.com/en/${game.slug}/gameframe`);
-  if (!frame.includes(`${playerOrigin}/flash/ruffle/player.php?id=${game.id}`)) {
+  const frameUrl = `https://www.silvergames.com/en/${game.slug}/gameframe`;
+  const $ = load(await fetchText(frameUrl));
+  const playerUrl = $("iframe[src]").toArray().map((element) => {
+    return URL.parse($(element).attr("src"), frameUrl);
+  }).find((url) => url && !url.username && !url.password && (
+    (url.origin === imageOrigin && url.pathname === `/flash/ruffle/player-${game.id}.html`) ||
+    (url.origin === playerOrigin && url.pathname === "/flash/ruffle/player.php" &&
+      url.searchParams.get("id") === String(game.id))
+  ));
+  if (!playerUrl) {
     throw new Error("This game does not have a downloadable SWF player.");
   }
-  const player = await fetchText(`${playerOrigin}/flash/ruffle/player.php?id=${game.id}`);
+  const player = await fetchText(playerUrl.href);
   const fileName = /let swf\s*=\s*['"]([a-zA-Z0-9_/-]+\.swf)['"]/.exec(player)?.[1];
   if (!fileName || fileName.split("/").some((segment) => segment === "..")) {
     throw new Error("No valid SWF was found for this game.");
   }
-  return new URL(`/flash/${fileName}`, playerOrigin);
+  return new URL(`/flash/${fileName}`, playerUrl.origin);
 }
 
 async function getSwfTechnicalMetadata(game) {
   const url = await getSwfUrl(game);
   return getCachedSwfHeader(catalogCache, url, (responseUrl) => {
-    if (new URL(responseUrl).origin !== playerOrigin) throw new Error("Invalid SilverGames SWF response URL.");
+    if (!swfOrigins.includes(new URL(responseUrl).origin)) throw new Error("Invalid SilverGames SWF response URL.");
   }, parseSwfMetadata);
 }
 
@@ -259,7 +268,7 @@ async function downloadGame(id, catalogGame, onProgress = () => {}) {
   if (game.id !== id) throw new Error("Invalid Flash game selection.");
   const url = await getSwfUrl(game);
   const response = await fetchCatalogue(url, { signal: AbortSignal.timeout(60000) });
-  if (!response.ok || new URL(response.url).origin !== playerOrigin ||
+  if (!response.ok || !swfOrigins.includes(new URL(response.url).origin) ||
       Number(response.headers.get("content-length") || 0) > maxSwfBytes) {
     throw new Error("The SWF download failed or is too large.");
   }

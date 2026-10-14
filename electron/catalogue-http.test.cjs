@@ -166,7 +166,7 @@ for (const source of ["silvergames", "andkon", "y8"]) {
       }
       if (source === "silvergames") {
         if (url.pathname.endsWith("core.json")) return response(url, JSON.stringify([{ id: 1, url: "game", name: "Game", rating: 80, tags: [], fileType: "swf" }]));
-        if (url.pathname.endsWith("/gameframe")) return response(url, "https://files.silvergames.com/flash/ruffle/player.php?id=1");
+        if (url.pathname.endsWith("/gameframe")) return response(url, '<iframe src="https://files.silvergames.com/flash/ruffle/player.php?id=1"></iframe>');
         if (url.pathname.endsWith("/player.php")) return response(url, "let swf = 'game.swf'");
         return response(url, `<script type="application/ld+json">${JSON.stringify({ "@type": "VideoGame", description: `Revision ${revision}` })}</script>`);
       }
