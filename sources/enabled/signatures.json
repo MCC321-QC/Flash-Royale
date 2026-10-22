@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "signedAt": "2026-10-22T22:27:25.905Z",
+  "keyId": "b9d765102d3efdbc",
+  "files": {
+    "catalog-andkon.json": "e65653469626a62927f973c09d33b1c0446dee2686f9650aa6a66e232405359d",
+    "catalog-silvergames.json": "220358da87b40287d3b57daf390ae881e203b712f83221357fe42c88de118847",
+    "catalog-y8.json": "9a36b0ad313d01cde12554f51e789294b4a707f1d83ccaaf0b278b91e2ae46fb",
+    "metadata-andkon.json": "5e28d7e3c0aa14375b3a49ab2e634e7bfcf50507b1ee9bc665e2ada73bf350ad",
+    "metadata-armorgames.json": "680e965e8c4f22bcfb36ff6bad23657cbf573e436bce6ed33353c1e8f4d7b400",
+    "metadata-flashgames247.json": "21e0a16ff83df5700c1248c200149fb146f786d70221c163036565467061f841",
+    "metadata-flashpointLocal.json": "0fda952cc935dbcd7030483445e0deefe90a2d5b7bc5440b12a87a28a89b2e52",
+    "metadata-flashpointOnline.json": "234cf5f034a59345a57605fadf06f2bed44c542e3260598ce66413ee0aaad234",
+    "metadata-newgrounds.json": "647ad9588c55c0bede996d5eba1e9b5e0662071f13c8b5b26006b5f7741e9087",
+    "metadata-silvergames.json": "40c1f7486f4001b7c76daf91df5885f0178e1730efabd6b17a2ec4397ef7e3bc",
+    "metadata-y8.json": "2ea05310018f1e25da15b80c54695407d919f413034dc9655647b8bc21c38a0b"
+  },
+  "signature": "bILuQRzSPQDSy8Oa0cmxp0T4tzQxf6sXdULRHhWZaKvUUpEz3UE4Z/tEInYTnwUArFltO8MZMbYC0U+PJ6g4Cg=="
+}
