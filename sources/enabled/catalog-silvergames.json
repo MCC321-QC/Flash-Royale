@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "kind": "catalog",
+  "id": "silvergames",
+  "builtin": true,
+  "name": "Silvergames.com",
+  "order": 10,
+  "siteUrl": "https://www.silvergames.com/en/"
+}

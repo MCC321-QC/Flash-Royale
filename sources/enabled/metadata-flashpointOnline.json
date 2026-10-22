@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "kind": "metadata",
+  "id": "flashpointOnline",
+  "builtin": true,
+  "name": "Flashpoint (online database)",
+  "order": 20
+}

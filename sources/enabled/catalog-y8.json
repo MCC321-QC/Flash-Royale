@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "kind": "catalog",
+  "id": "y8",
+  "builtin": true,
+  "name": "Y8.com",
+  "order": 20,
+  "siteUrl": "https://www.y8.com/tags/flash"
+}

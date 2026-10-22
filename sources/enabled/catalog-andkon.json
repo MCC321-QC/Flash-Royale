@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "kind": "catalog",
+  "id": "andkon",
+  "builtin": true,
+  "name": "Andkon.com",
+  "order": 30,
+  "siteUrl": "https://www.andkon.com/arcade/"
+}
