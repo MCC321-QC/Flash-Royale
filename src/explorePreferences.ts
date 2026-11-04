@@ -1,6 +1,6 @@
 const categoryOnlineOnlyKey = "flashroyale.y8CategoryShowOnlineOnly";
 
-export type CategoryOnlineOnlyPreferences = Record<string, boolean>;
+type CategoryOnlineOnlyPreferences = Record<string, boolean>;
 
 export function readCategoryOnlineOnlyPreferences(storage: Pick<Storage, "getItem">): CategoryOnlineOnlyPreferences {
   try {

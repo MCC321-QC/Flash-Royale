@@ -1,0 +1,196 @@
+{
+  "rows": [
+    [
+      {
+        "value": "1",
+        "shifted": "!",
+        "code": "Digit1"
+      },
+      {
+        "value": "2",
+        "shifted": "@",
+        "code": "Digit2"
+      },
+      {
+        "value": "3",
+        "shifted": "#",
+        "code": "Digit3"
+      },
+      {
+        "value": "4",
+        "shifted": "$",
+        "code": "Digit4"
+      },
+      {
+        "value": "5",
+        "shifted": "%",
+        "code": "Digit5"
+      },
+      {
+        "value": "6",
+        "shifted": "^",
+        "code": "Digit6"
+      },
+      {
+        "value": "7",
+        "shifted": "&",
+        "code": "Digit7"
+      },
+      {
+        "value": "8",
+        "shifted": "*",
+        "code": "Digit8"
+      },
+      {
+        "value": "9",
+        "shifted": "(",
+        "code": "Digit9"
+      },
+      {
+        "value": "0",
+        "shifted": ")",
+        "code": "Digit0"
+      }
+    ],
+    [
+      {
+        "value": "ض",
+        "code": "KeyQ"
+      },
+      {
+        "value": "ص",
+        "code": "KeyW"
+      },
+      {
+        "value": "ث",
+        "code": "KeyE"
+      },
+      {
+        "value": "ق",
+        "code": "KeyR"
+      },
+      {
+        "value": "ف",
+        "code": "KeyT"
+      },
+      {
+        "value": "غ",
+        "code": "KeyY"
+      },
+      {
+        "value": "ع",
+        "code": "KeyU"
+      },
+      {
+        "value": "ه",
+        "code": "KeyI"
+      },
+      {
+        "value": "خ",
+        "code": "KeyO"
+      },
+      {
+        "value": "ح",
+        "code": "KeyP"
+      },
+      {
+        "value": "ج",
+        "code": "BracketLeft"
+      },
+      {
+        "value": "د",
+        "code": "BracketRight"
+      }
+    ],
+    [
+      {
+        "value": "ش",
+        "code": "KeyA"
+      },
+      {
+        "value": "س",
+        "code": "KeyS"
+      },
+      {
+        "value": "ي",
+        "code": "KeyD"
+      },
+      {
+        "value": "ب",
+        "code": "KeyF"
+      },
+      {
+        "value": "ل",
+        "code": "KeyG"
+      },
+      {
+        "value": "ا",
+        "code": "KeyH"
+      },
+      {
+        "value": "ت",
+        "code": "KeyJ"
+      },
+      {
+        "value": "ن",
+        "code": "KeyK"
+      },
+      {
+        "value": "م",
+        "code": "KeyL"
+      },
+      {
+        "value": "ك",
+        "code": "Semicolon"
+      },
+      {
+        "value": "ط",
+        "code": "Quote"
+      }
+    ],
+    [
+      {
+        "value": "ئ",
+        "code": "KeyZ"
+      },
+      {
+        "value": "ء",
+        "code": "KeyX"
+      },
+      {
+        "value": "ؤ",
+        "code": "KeyC"
+      },
+      {
+        "value": "ر",
+        "code": "KeyV"
+      },
+      {
+        "value": "لا",
+        "code": "KeyB"
+      },
+      {
+        "value": "ى",
+        "code": "KeyN"
+      },
+      {
+        "value": "ة",
+        "code": "KeyM"
+      },
+      {
+        "value": "و",
+        "code": "Comma"
+      },
+      {
+        "value": "ز",
+        "code": "Period"
+      },
+      {
+        "value": "ظ",
+        "code": "Slash"
+      }
+    ]
+  ],
+  "symbols": "أإآءؤئةىًٌٍَُِّْ٠١٢٣٤٥٦٧٨٩،؛؟!@#$%^&*()[]{}<>/\\|`~_-+=.,:;'\"?",
+  "rtl": true
+}

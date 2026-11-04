@@ -1,0 +1,18 @@
+{
+  "repository": "https://github.com/microsoft/Selawik",
+  "version": "1.01",
+  "revision": "b65ff9ce7c4673e75ec5c622924a6b6f61f2f876",
+  "source": "https://github.com/microsoft/Selawik/releases/download/1.01/Selawik_Release.zip",
+  "files": [
+    "flash-royale-sans-light.woff2",
+    "flash-royale-sans-semilight.woff2",
+    "flash-royale-sans-regular.woff2",
+    "flash-royale-sans-semibold.woff2",
+    "flash-royale-sans-bold.woff2"
+  ],
+  "location": "src/assets/fonts/flash-royale-sans",
+  "modified": true,
+  "modifiedName": "Flash Royale Sans",
+  "modification": "Renamed; added a no-op TrueType prep program so FreeType under Wine does not auto-hint stems sideways, and gave every outline glyph a single COLR layer in the text color so Chromium under Wine positions glyphs at sub-pixel offsets. Outlines, metrics, and kerning are unchanged.",
+  "generator": "scripts/build-flash-royale-sans.py"
+}

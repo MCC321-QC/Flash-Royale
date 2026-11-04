@@ -1,0 +1,208 @@
+{
+  "rows": [
+    [
+      {
+        "value": "१",
+        "shifted": "1",
+        "code": "Digit1"
+      },
+      {
+        "value": "२",
+        "shifted": "2",
+        "code": "Digit2"
+      },
+      {
+        "value": "३",
+        "shifted": "3",
+        "code": "Digit3"
+      },
+      {
+        "value": "४",
+        "shifted": "4",
+        "code": "Digit4"
+      },
+      {
+        "value": "५",
+        "shifted": "5",
+        "code": "Digit5"
+      },
+      {
+        "value": "६",
+        "shifted": "6",
+        "code": "Digit6"
+      },
+      {
+        "value": "७",
+        "shifted": "7",
+        "code": "Digit7"
+      },
+      {
+        "value": "८",
+        "shifted": "8",
+        "code": "Digit8"
+      },
+      {
+        "value": "९",
+        "shifted": "9",
+        "code": "Digit9"
+      },
+      {
+        "value": "०",
+        "shifted": "0",
+        "code": "Digit0"
+      }
+    ],
+    [
+      {
+        "value": "ौ",
+        "shifted": "औ",
+        "code": "KeyQ"
+      },
+      {
+        "value": "ै",
+        "shifted": "ऐ",
+        "code": "KeyW"
+      },
+      {
+        "value": "ा",
+        "shifted": "आ",
+        "code": "KeyE"
+      },
+      {
+        "value": "ी",
+        "shifted": "ई",
+        "code": "KeyR"
+      },
+      {
+        "value": "ू",
+        "shifted": "ऊ",
+        "code": "KeyT"
+      },
+      {
+        "value": "ब",
+        "shifted": "भ",
+        "code": "KeyY"
+      },
+      {
+        "value": "ह",
+        "shifted": "ङ",
+        "code": "KeyU"
+      },
+      {
+        "value": "ग",
+        "shifted": "घ",
+        "code": "KeyI"
+      },
+      {
+        "value": "द",
+        "shifted": "ध",
+        "code": "KeyO"
+      },
+      {
+        "value": "ज",
+        "shifted": "झ",
+        "code": "KeyP"
+      },
+      {
+        "value": "ड",
+        "shifted": "ढ",
+        "code": "BracketLeft"
+      },
+      {
+        "value": "़",
+        "shifted": "ञ",
+        "code": "BracketRight"
+      }
+    ],
+    [
+      {
+        "value": "ो",
+        "shifted": "ओ",
+        "code": "KeyA"
+      },
+      {
+        "value": "े",
+        "shifted": "ए",
+        "code": "KeyS"
+      },
+      {
+        "value": "्",
+        "shifted": "अ",
+        "code": "KeyD"
+      },
+      {
+        "value": "ि",
+        "shifted": "इ",
+        "code": "KeyF"
+      },
+      {
+        "value": "ु",
+        "shifted": "उ",
+        "code": "KeyG"
+      },
+      {
+        "value": "प",
+        "shifted": "फ",
+        "code": "KeyH"
+      },
+      {
+        "value": "र",
+        "shifted": "ऱ",
+        "code": "KeyJ"
+      },
+      {
+        "value": "क",
+        "shifted": "ख",
+        "code": "KeyK"
+      },
+      {
+        "value": "त",
+        "shifted": "थ",
+        "code": "KeyL"
+      },
+      {
+        "value": "च",
+        "shifted": "छ",
+        "code": "Semicolon"
+      },
+      {
+        "value": "ट",
+        "shifted": "ठ",
+        "code": "Quote"
+      }
+    ],
+    [
+      {
+        "value": "ं",
+        "shifted": "ँ",
+        "code": "KeyZ"
+      },
+      {
+        "value": "म",
+        "shifted": "ण",
+        "code": "KeyX"
+      },
+      {
+        "value": "न",
+        "shifted": "ऩ",
+        "code": "KeyC"
+      },
+      {
+        "value": "व",
+        "shifted": "ऴ",
+        "code": "KeyV"
+      },
+      {
+        "value": "ल",
+        "shifted": "ळ",
+        "code": "KeyB"
+      },
+      {
+        "value": "स",
+        "shifted": "श",
+        "code": "KeyN"
+      }
+    ]
+  ],
+  "symbols": "ऋॠृॄषहयॐ।॥क्षज्ञश्र!@#$%^&*()[]{}<>/\\|`~_-+=.,:;'\"?"
+}

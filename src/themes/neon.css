@@ -1,0 +1,51 @@
+/* Neon skin: synthwave. Deep violet panels with glowing cyan edges, cyan primary buttons, magenta selection and focus,
+   glowing titles over a neon grid. Loaded after styled-base.css. */
+
+:root {
+  --cyan: var(--fr-accent); --magenta: var(--fr-highlight);
+  --glow-line: color-mix(in oklab, var(--fr-accent) 45%, var(--fr-border));
+
+  --sk-panel: var(--fr-surface); --sk-panel-2: var(--fr-surface-2);
+  --sk-line: var(--glow-line);
+  --sk-ctl: var(--fr-surface-2); --sk-ctl-hover: var(--fr-raised);
+  --sk-ctl-line: color-mix(in oklab, var(--fr-accent) 30%, var(--fr-border)); --sk-ctl-line-hover: var(--cyan);
+  --sk-field: var(--fr-depth);
+
+  --sk-card: var(--fr-surface-2); --sk-card-hover: var(--fr-raised); --sk-card-sel: color-mix(in oklab, var(--fr-surface-2) 82%, var(--magenta));
+  --sk-card-line: color-mix(in oklab, var(--fr-accent) 22%, var(--fr-border)); --sk-card-line-hover: var(--cyan); --sk-card-line-sel: var(--magenta);
+
+  --sk-head-bg: linear-gradient(90deg, rgb(from var(--magenta) r g b / 0.2) 0%, transparent 45%, rgb(from var(--cyan) r g b / 0.16) 100%), var(--fr-depth);
+  --sk-head-line: var(--cyan); --sk-head-title: var(--cyan);
+
+  --sk-primary: var(--cyan); --sk-primary-ink: var(--fr-on-accent);
+  --sk-sel: var(--magenta); --sk-sel-ink: var(--fr-on-accent);
+  --sk-danger-ink: var(--fr-on-accent); --sk-danger-ring: var(--cyan);
+  --sk-ring: var(--magenta);
+
+  --sk-bw: 1px; --sk-pw: 1px;
+  --sk-r-ctl: calc(8px * var(--fr-roundness)); --sk-r-card: calc(10px * var(--fr-roundness)); --sk-r-panel: calc(14px * var(--fr-roundness));
+  --sk-sh-ctl: none;
+  --sk-sh-ctl-hover: 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.45);
+  --sk-sh-primary: 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.45);
+  --sk-sh-primary-hover: 0 0 calc(20px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.7);
+  --sk-sh-card: 0 0 calc(8px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.08);
+  --sk-sh-card-hover: 0 0 calc(16px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.4);
+  --sk-sh-card-sel: 0 0 0 1px var(--magenta), 0 0 calc(20px * var(--fr-shadow-scale)) rgb(from var(--magenta) r g b / 0.55);
+  --sk-sh-panel: 0 0 calc(30px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.18), 0 calc(18px * var(--fr-shadow-scale)) calc(48px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.8);
+  --sk-sh-menu: 0 0 calc(18px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.25);
+}
+
+/* Glowing header underline and titles. */
+.settings-tabbed > header, .explore-header, .remap-header, .onscreen-editor-header, .crt-settings-panel > header {
+  box-shadow: 0 1px calc(14px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.45);
+}
+.settings-tabbed > header .settings-heading, .explore-heading h2, .remap-header :is(h1, h2), .brand h1, .brand strong {
+  text-shadow: 0 0 calc(10px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.7);
+}
+.brand h1, .brand strong { color: var(--fr-text); text-shadow: 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--magenta) r g b / 0.8); }
+.settings-section-title, .confirm-dialog h2 { color: var(--magenta); text-shadow: 0 0 calc(8px * var(--fr-shadow-scale)) rgb(from var(--magenta) r g b / 0.5); }
+.settings-tabbed > header .settings-heading, .explore-heading h2, .remap-header :is(h1, h2), .settings-section-title { letter-spacing: 0.06em; }
+
+/* Selected tab and nav entries glow magenta. */
+.nav-section button.active, .settings-tab-entry > button[aria-selected="true"] { box-shadow: 0 0 calc(14px * var(--fr-shadow-scale)) rgb(from var(--magenta) r g b / 0.55); }
+.searchbox:focus-within, .explore-search:focus-within { box-shadow: 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--cyan) r g b / 0.45); }

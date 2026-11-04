@@ -1,0 +1,76 @@
+{
+  "location": "src/assets/fonts/theme",
+  "generator": "scripts/build-theme-fonts.py",
+  "modification": "Renamed; variable fonts instanced at fixed weights; a no-op TrueType prep program where the font had none and one COLR layer per outline glyph in the text color, so glyphs keep sub-pixel positions under Wine. Outlines, metrics, and kerning are unchanged.",
+  "fonts": [
+    {
+      "name": "Flash Royale Display",
+      "original": "Lilita One",
+      "license": "OFL-1.1 (OFL-LilitaOne.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/lilitaone",
+      "sourceFile": "LilitaOne-Regular.ttf",
+      "sha256": "f5b641c45c69d772ee4eda687bc9fda411d5cad6b0b45371491da4580cbc8d59",
+      "files": [
+        "flash-royale-display.woff2"
+      ]
+    },
+    {
+      "name": "Flash Royale Rounded",
+      "original": "Nunito",
+      "license": "OFL-1.1 (OFL-Nunito.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/nunito",
+      "sourceFile": "Nunito.ttf",
+      "sha256": "bb55a5ca5c2042335b3991af27c4d0705d0ef41cac6164ac737fd8f2a1e85207",
+      "files": [
+        "flash-royale-rounded-400.woff2",
+        "flash-royale-rounded-600.woff2",
+        "flash-royale-rounded-700.woff2",
+        "flash-royale-rounded-800.woff2"
+      ]
+    },
+    {
+      "name": "Flash Royale Serif",
+      "original": "Playfair Display",
+      "license": "OFL-1.1 (OFL-PlayfairDisplay.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/playfairdisplay",
+      "sourceFile": "PlayfairDisplay-VF.ttf",
+      "sha256": "c40f2293766a503bc70cce9e512ef844a4ccb7cbcde792fe2ea31d191917d8d6",
+      "files": [
+        "flash-royale-serif.woff2"
+      ]
+    },
+    {
+      "name": "Flash Royale Deco",
+      "original": "Cinzel",
+      "license": "OFL-1.1 (OFL-Cinzel.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/cinzel",
+      "sourceFile": "Cinzel-VF.ttf",
+      "sha256": "f4d83d34d1f6c741193e4acf4b3dff9531e5a67b6aa65228d00a7db72a4e0f34",
+      "files": [
+        "flash-royale-deco.woff2"
+      ]
+    },
+    {
+      "name": "Flash Royale Tech",
+      "original": "Orbitron",
+      "license": "OFL-1.1 (OFL-Orbitron.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/orbitron",
+      "sourceFile": "Orbitron-VF.ttf",
+      "sha256": "f42db2dd16e642258e35782916eceb1dcdbea06fb958d77ad71dc5963587e8fd",
+      "files": [
+        "flash-royale-tech.woff2"
+      ]
+    },
+    {
+      "name": "Flash Royale Arcade",
+      "original": "Russo One",
+      "license": "OFL-1.1 (OFL-RussoOne.txt)",
+      "source": "https://github.com/google/fonts/tree/main/ofl/russoone",
+      "sourceFile": "RussoOne-Regular.ttf",
+      "sha256": "bc0abcc660bd8b7ad3000ecb2898a27c58a29a50f7ec81652fa12e75148d09df",
+      "files": [
+        "flash-royale-arcade.woff2"
+      ]
+    }
+  ]
+}

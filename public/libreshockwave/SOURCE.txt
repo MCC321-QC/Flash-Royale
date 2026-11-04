@@ -1,0 +1,13 @@
+LibreShockwave 20260810-zlib - Flash Royale experimental browser build
+Unmodified upstream source revision: 3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2
+Source: https://github.com/LibreShockwave/LibreShockwave/tree/3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2
+Source archive URL: https://github.com/LibreShockwave/LibreShockwave/archive/3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2.tar.gz
+Complete upstream source archive: source.tar.gz (included alongside the runtime).
+Build recipe: scripts/build-libreshockwave.cjs in Flash Royale.
+Emscripten 4.0.12, CMake Release, Ninja, BUILD_TESTING=OFF.
+CXX flags: -sUSE_ZLIB=1 -DLIBRESHOCKWAVE_HAVE_ZLIB=1; linker: -sUSE_ZLIB=1.
+No upstream source changes. This corrects missing zlib support in the published WASM build.
+Embedded zlib 1.3.1 source: zlib-source.tar.gz. Notice: LICENSE.zlib.txt.
+Emscripten source/toolchain: https://github.com/emscripten-core/emscripten/tree/4.0.12
+Flash Royale integration: public/shockwave-player.js and public/libreshockwave-adapter.js.
+License: AGPLv3, see COPYING. Review complete distribution/integration obligations before publishing.

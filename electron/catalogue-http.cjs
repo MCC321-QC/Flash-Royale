@@ -1,13 +1,13 @@
 const { fetchCatalogue } = require("./catalogue-backoff.cjs");
 
-function createCachedTextFetcher(cache, { validateUrl, validateText = () => {}, unavailableMessage, timeoutMs, limit = (request) => request(), accept = "text/html" }) {
+function createCachedTextFetcher(cache, { validateUrl, validateText = () => {}, unavailableMessage, timeoutMs, limit = (request) => request(), accept = "text/html", backoff = {} }) {
   return async (input) => {
     const url = String(input);
     const result = await cache.get(`http:${url}`, (previous) => limit(async () => {
       const headers = { Accept: accept };
       if (previous?.etag) headers["If-None-Match"] = previous.etag;
       if (previous?.lastModified) headers["If-Modified-Since"] = previous.lastModified;
-      const response = await fetchCatalogue(url, { headers, cache: "no-store", signal: AbortSignal.timeout(timeoutMs) });
+      const response = await fetchCatalogue(url, { headers, cache: "no-store", signal: AbortSignal.timeout(timeoutMs) }, backoff);
       validateUrl(response.url);
       if (response.status === 304) {
         if (typeof previous?.text !== "string") throw new Error("Catalogue returned 304 without cached data.");

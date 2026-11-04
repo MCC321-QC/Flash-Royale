@@ -1,0 +1,17 @@
+Flash Royale offline keyboard dictionaries
+
+Chinese conversion data is adapted from CC-CEDICT, published by MDBG and the CC-CEDICT community.
+https://www.mdbg.net/chinese/dictionary?page=cedict
+https://cc-cedict.org/
+The adapted Chinese dictionary (zh/*.json.gz) is licensed under CC BY-SA 4.0.
+Changes: pronunciation normalization, removal of English definitions, grouping of simplified/traditional spellings, and candidate ordering.
+Candidate frequency ordering uses jieba data (67fa2e36e72f69d9134b8a1037b83fbb070b9775), MIT; see jieba-LICENSE.txt.
+
+Japanese conversion data is adapted from Mozc (e5f1494923a0a624d01f19c50d57bbdfa03ea5ba).
+https://github.com/google/mozc
+Changes: deduplication and grouping by kana reading, retaining candidate cost order.
+See Mozc-LICENSE.txt and Mozc-dictionary-NOTICE.txt for Google, IPAdic/NAIST/ICOT and Okinawa dictionary terms.
+
+These dictionaries are bundled locally. Keyboard input is never sent to these upstream projects or any conversion service.
+
+Storage format changes: bounded first-character shards; complete readings and candidate order preserved.

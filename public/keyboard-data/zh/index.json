@@ -1,0 +1,136 @@
+{
+  "schema": 1,
+  "readings": 86232,
+  "prefixes": {
+    "a": {
+      "file": "0061.json.gz",
+      "keys": 1294,
+      "uncompressedBytes": 48618
+    },
+    "b": {
+      "file": "0062.json.gz",
+      "keys": 5289,
+      "uncompressedBytes": 203922
+    },
+    "c": {
+      "file": "0063.json.gz",
+      "keys": 4784,
+      "uncompressedBytes": 181584
+    },
+    "d": {
+      "file": "0064.json.gz",
+      "keys": 5394,
+      "uncompressedBytes": 209673
+    },
+    "e": {
+      "file": "0065.json.gz",
+      "keys": 570,
+      "uncompressedBytes": 21002
+    },
+    "f": {
+      "file": "0066.json.gz",
+      "keys": 2984,
+      "uncompressedBytes": 120132
+    },
+    "g": {
+      "file": "0067.json.gz",
+      "keys": 4086,
+      "uncompressedBytes": 161837
+    },
+    "h": {
+      "file": "0068.json.gz",
+      "keys": 4979,
+      "uncompressedBytes": 193934
+    },
+    "i": {
+      "file": "0069.json.gz",
+      "keys": 2,
+      "uncompressedBytes": 66
+    },
+    "j": {
+      "file": "006a.json.gz",
+      "keys": 5176,
+      "uncompressedBytes": 224917
+    },
+    "k": {
+      "file": "006b.json.gz",
+      "keys": 2410,
+      "uncompressedBytes": 86650
+    },
+    "l": {
+      "file": "006c.json.gz",
+      "keys": 5036,
+      "uncompressedBytes": 196911
+    },
+    "m": {
+      "file": "006d.json.gz",
+      "keys": 3472,
+      "uncompressedBytes": 129007
+    },
+    "n": {
+      "file": "006e.json.gz",
+      "keys": 2110,
+      "uncompressedBytes": 73646
+    },
+    "o": {
+      "file": "006f.json.gz",
+      "keys": 136,
+      "uncompressedBytes": 5542
+    },
+    "p": {
+      "file": "0070.json.gz",
+      "keys": 2248,
+      "uncompressedBytes": 78096
+    },
+    "q": {
+      "file": "0071.json.gz",
+      "keys": 3051,
+      "uncompressedBytes": 123334
+    },
+    "r": {
+      "file": "0072.json.gz",
+      "keys": 1585,
+      "uncompressedBytes": 57237
+    },
+    "s": {
+      "file": "0073.json.gz",
+      "keys": 7184,
+      "uncompressedBytes": 290428
+    },
+    "t": {
+      "file": "0074.json.gz",
+      "keys": 3891,
+      "uncompressedBytes": 145058
+    },
+    "u": {
+      "file": "0075.json.gz",
+      "keys": 8,
+      "uncompressedBytes": 239
+    },
+    "v": {
+      "file": "0076.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 48
+    },
+    "w": {
+      "file": "0077.json.gz",
+      "keys": 2888,
+      "uncompressedBytes": 119577
+    },
+    "x": {
+      "file": "0078.json.gz",
+      "keys": 4862,
+      "uncompressedBytes": 194026
+    },
+    "y": {
+      "file": "0079.json.gz",
+      "keys": 6075,
+      "uncompressedBytes": 257919
+    },
+    "z": {
+      "file": "007a.json.gz",
+      "keys": 6717,
+      "uncompressedBytes": 270189
+    }
+  }
+}

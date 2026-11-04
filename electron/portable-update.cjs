@@ -7,7 +7,9 @@ const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 
 const runFile = promisify(execFile);
+const signing = require("./signing.cjs");
 const MAX_DOWNLOAD_BYTES = 512 * 1024 * 1024;
+const MAX_SIGNATURE_BYTES = 4096;
 
 function selectUpdateAsset(release, repositoryPath) {
   const version = String(release.tag_name || "").replace(/^v/i, "");
@@ -26,13 +28,36 @@ function selectUpdateAsset(release, repositoryPath) {
     if (url.origin !== "https://github.com"
       || !url.pathname.startsWith(`${repositoryPath}/releases/download/`)
       || url.username || url.password) continue;
-    return { url: url.href, size: asset.size, sha256: asset.digest.slice(7).toLowerCase() };
+    return { name, url: url.href, size: asset.size, sha256: asset.digest.slice(7).toLowerCase(), signatureUrl: signatureUrl(release, name, repositoryPath) };
   }
   return null;
 }
 
-async function downloadUpdate(asset, destination) {
-  const response = await fetch(asset.url, { signal: AbortSignal.timeout(10 * 60 * 1000) });
+/** The "<archive>.sig" asset made by "npm run sign-release", when the release has one. */
+function signatureUrl(release, name, repositoryPath) {
+  const asset = release.assets?.find((candidate) => candidate.name === `${name}.sig`);
+  if (!asset || !Number.isSafeInteger(asset.size) || asset.size <= 0 || asset.size > MAX_SIGNATURE_BYTES) return "";
+  try {
+    const url = new URL(asset.browser_download_url);
+    if (url.origin !== "https://github.com" || !url.pathname.startsWith(`${repositoryPath}/releases/download/`) || url.username || url.password) return "";
+    return url.href;
+  } catch {
+    return "";
+  }
+}
+
+/** Throws unless the release archive was signed by a key this build trusts. */
+async function verifyUpdateSignature(asset, keys = signing.loadTrustedKeys(), signal) {
+  if (!asset.signatureUrl) throw new Error("This update has no signature, so it cannot be installed automatically.");
+  const response = await fetch(asset.signatureUrl, { signal: AbortSignal.any([AbortSignal.timeout(60 * 1000), ...signal ? [signal] : []]) });
+  if (!response.ok) throw new Error(`Could not download the update signature (${response.status})`);
+  const text = await response.text();
+  if (text.length > MAX_SIGNATURE_BYTES) throw new Error("The update signature is too large");
+  signing.verifyReleaseSignature(text, asset, keys);
+}
+
+async function downloadUpdate(asset, destination, onProgress = () => {}, signal) {
+  const response = await fetch(asset.url, { signal: AbortSignal.any([AbortSignal.timeout(10 * 60 * 1000), ...signal ? [signal] : []]) });
   if (!response.ok || !response.body) throw new Error(`Update download failed (${response.status})`);
   const file = await nativeFs.open(destination, "wx");
   const hash = crypto.createHash("sha256");
@@ -43,6 +68,7 @@ async function downloadUpdate(asset, destination) {
       if (received > asset.size) throw new Error("Update download exceeds the expected size");
       hash.update(chunk);
       await file.writeFile(chunk);
+      onProgress(received, asset.size);
     }
   } finally {
     await file.close();
@@ -52,11 +78,15 @@ async function downloadUpdate(asset, destination) {
   }
 }
 
-async function prepareUpdate(asset, target, unblock, enableScriptExecution = false) {
+async function prepareUpdate(asset, target, unblock, enableScriptExecution = false, verify = verifyUpdateSignature, onProgress = () => {}, signal) {
+  signal?.throwIfAborted();
+  await verify(asset, undefined, signal);
   const directory = await nativeFs.mkdtemp(path.join(os.tmpdir(), "flash-royale-update-"));
   try {
     const archive = path.join(directory, "update.zip");
-    await downloadUpdate(asset, archive);
+    await downloadUpdate(asset, archive, (received, total) => onProgress({ stage: "downloading", received, total }), signal);
+    signal?.throwIfAborted();
+    onProgress({ stage: "preparing" });
     const script = path.join(directory, "portable-update.ps1");
     await nativeFs.writeFile(script, await fs.readFile(path.join(__dirname, "portable-update.ps1")));
     const planPath = path.join(directory, "plan.json");
@@ -64,8 +94,13 @@ async function prepareUpdate(asset, target, unblock, enableScriptExecution = fal
     await runFile("powershell.exe", [
       "-NoProfile", "-NonInteractive", ...scriptExecutionArgs(enableScriptExecution), "-File", script, "-Mode", "Prepare", "-PlanPath", planPath,
     ], { windowsHide: true, timeout: 5 * 60 * 1000, maxBuffer: 1024 * 1024 });
+    signal?.throwIfAborted();
     return { directory, script, planPath, enableScriptExecution };
   } catch (error) {
+    if (signal?.aborted) {
+      await nativeFs.rm(directory, { recursive: true, force: true });
+      signal.throwIfAborted();
+    }
     const detail = error.stderr?.trim() || error.message || String(error);
     const logPath = path.join(directory, "error.txt");
     try {
@@ -110,4 +145,4 @@ async function launchUpdate(prepared) {
   });
 }
 
-module.exports = { selectUpdateAsset, downloadUpdate, prepareUpdate, launchUpdate, cleanupPreparedUpdate, scriptExecutionArgs };
+module.exports = { selectUpdateAsset, verifyUpdateSignature, downloadUpdate, prepareUpdate, launchUpdate, cleanupPreparedUpdate, scriptExecutionArgs };

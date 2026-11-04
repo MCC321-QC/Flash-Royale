@@ -1,0 +1,54 @@
+/* Casino skin: black lacquer and burgundy velvet with art-deco gold trim. Gold metallic primary buttons and tabs,
+   thin gold frames with a second inner line on big panels, glowing gold hovers. Loaded after styled-base.css. */
+
+:root {
+  --gold: var(--fr-accent); --gold-bright: var(--fr-accent-bright); --gold-dim: color-mix(in oklab, var(--fr-accent) 55%, var(--fr-depth));
+  --lacquer: color-mix(in oklab, var(--fr-depth) 55%, var(--fr-surface));
+  --gold-metal: linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 52%, color-mix(in oklab, var(--gold) 78%, var(--fr-depth)) 100%);
+  --gold-metal-hover: linear-gradient(180deg, color-mix(in oklab, var(--gold-bright) 70%, white) 0%, var(--gold-bright) 52%, var(--gold) 100%);
+
+  --sk-line: var(--gold-dim);
+  --sk-ctl: var(--lacquer); --sk-ctl-hover: var(--fr-raised);
+  --sk-ctl-line: var(--gold-dim); --sk-ctl-line-hover: var(--gold-bright);
+  --sk-field: var(--fr-depth);
+
+  --sk-card: var(--fr-surface-2); --sk-card-hover: var(--fr-raised); --sk-card-sel: color-mix(in oklab, var(--fr-surface-2) 80%, var(--gold));
+  --sk-card-line: color-mix(in oklab, var(--gold) 40%, var(--fr-depth)); --sk-card-line-hover: var(--gold); --sk-card-line-sel: var(--fr-highlight);
+
+  --sk-head-bg: linear-gradient(180deg, var(--fr-raised) 0%, var(--fr-depth) 100%);
+  --sk-head-line: var(--gold); --sk-head-title: var(--gold-bright);
+
+  --sk-primary: var(--gold); --sk-primary-bg: var(--gold-metal); --sk-primary-bg-hover: var(--gold-metal-hover);
+  --sk-sel: var(--gold); --sk-sel-bg: var(--gold-metal);
+  --sk-danger-ink: var(--fr-text);
+
+  --sk-bw: 1px; --sk-pw: 1px;
+  --sk-r-ctl: calc(8px * var(--fr-roundness)); --sk-r-card: calc(10px * var(--fr-roundness)); --sk-r-panel: calc(14px * var(--fr-roundness));
+  --sk-sh-ctl: 0 calc(2px * var(--fr-shadow-scale)) calc(6px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.6);
+  --sk-sh-ctl-hover: 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--gold) r g b / 0.4);
+  --sk-sh-primary: 0 calc(2px * var(--fr-shadow-scale)) calc(8px * var(--fr-shadow-scale)) rgb(from var(--gold) r g b / 0.3);
+  --sk-sh-primary-hover: 0 0 calc(16px * var(--fr-shadow-scale)) rgb(from var(--gold) r g b / 0.55);
+  --sk-sh-card: 0 calc(4px * var(--fr-shadow-scale)) calc(12px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.65);
+  --sk-sh-card-hover: 0 0 calc(16px * var(--fr-shadow-scale)) rgb(from var(--gold) r g b / 0.35);
+  --sk-sh-card-sel: 0 0 0 1px var(--fr-highlight), 0 0 calc(20px * var(--fr-shadow-scale)) rgb(from var(--fr-highlight) r g b / 0.45);
+  --sk-sh-panel: 0 calc(16px * var(--fr-shadow-scale)) calc(44px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.8);
+  --sk-sh-menu: 0 calc(8px * var(--fr-shadow-scale)) calc(24px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.75);
+}
+
+/* Art-deco double frame on the big panels. */
+.settings-window, .confirm-dialog, .crt-settings-panel, .remap-window, .explore-window {
+  outline: 1px solid rgb(from var(--gold) r g b / 0.4); outline-offset: -5px;
+}
+.settings-tabbed > header, .explore-header, .remap-header, .onscreen-editor-header { border-bottom-width: 2px !important; }
+
+/* Deco titles: spaced capitals in gold, flanked by diamonds in the main headers. */
+.settings-tabbed > header .settings-heading, .explore-heading h2, .remap-header :is(h1, h2), .settings-section-title, .confirm-dialog h2 {
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.settings-section-title, .confirm-dialog h2 { color: var(--gold-bright); }
+.settings-tabbed > header .settings-heading::before, .settings-tabbed > header .settings-heading::after { content: "\25C6"; margin: 0 10px; color: var(--gold); font-size: 0.55em; vertical-align: 0.3em; }
+.brand h1, .brand strong { color: var(--gold-bright); text-shadow: 0 1px 0 var(--fr-depth), 0 0 14px rgb(from var(--gold) r g b / 0.35); }
+
+/* Gold text on the metallic fills is replaced by dark ink, and their hover keeps the ink. */
+.primary, .nav-section button.active, .settings-tab-entry > button[aria-selected="true"], .explore-catalog-switch button.active, .category-option.active,
+.shortcut-logo-choices > button[aria-pressed="true"] { text-shadow: 0 1px 0 rgb(from var(--gold-bright) r g b / 0.5); }

@@ -1,15 +1,7 @@
-<img src="assets/new-flash-royale-logo.png" alt="Flash Royale logo" width="115"/>
+<details><br>
+  <summary>🛑 <b>Windows 11 Smart App Control Block</b></summary>
 
-# Flash Royale
-
-> Dominate your flash games library with Flash Royale.
-
-![Flash Royale main window preview](docs/assets/Screenshots/preview.gif)
-
-Flash Royale is a library manager for old flash games that lets you have ultimate control. Automatically play the game music, generate cover arts, organise with categories and tags, track your playtime, show/add tons of metadata and more!
-
-> [!WARNING]  
-> ### 🛑 Windows 11 Smart App Control Block
+> [!WARNING]
 > Because this is a **portable .exe** and an open-source project without an expensive commercial signature, **Windows Smart App Control** or **SmartScreen** will block it immediately upon launch. 
 > 
 > To bypass this restriction, you just need to remove the "Mark of the Web" from the file. Follow these steps before running the app:
@@ -23,165 +15,81 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
 > ```powershell
 > Unblock-File -Path ".\Flash Royale.exe"
 > ```
+</details><br>
 
-## Features
-- Import one or more `.swf` files with the file picker or drag and drop. Duplicate files are detected by SHA-256.
-- Copy imported games into the app's library so they remain available if the originals are moved.
-- Open the resizable Game Info sidebar to view a game's cover, ratings, metadata, description, private notes, play history, music, and current playback settings.
-- Open Game Settings from the info sidebar to edit metadata and ratings, configure playback and online resources, manage music and covers, or delete the game. Edits save automatically, Back returns to Game Info, and selecting a different game starts in the info view.
-- Search your library by titles, original filenames, tags, categories, and notes.
-- Sort the library and adjust game card size with 8 different sizes.
-- Rate games personally in half-star steps. Personal ratings take precedence over source ratings and can be cleared.
-- Generate placeholder covers, capture covers from a running game, or choose a PNG, JPG, or WEBP image.
-- Play games with Ruffle Web/WASM, fullscreen controls, proportional stage sizing, zoom controls, and optional pinned player controls.
-- Set fullscreen and music-repeat behavior per game, plus standalone compatibility and online access.
-- Fix scaling / zoom is an opt-in per-game setting. Off lets the SWF use its own scaling, On fits the stage proportionally and keeps it centered.
-- Extract likely music tracks from SWF files, choose a built-in track, or select a local custom music file for each game.
-- Adjust library music volume. Music fades smoothly and pauses while any game is running, then resumes afterward.
-- Track play count, total play time, last-played date, and each game's original SWF stage dimensions.
-- Open the separate Explore catalogue window to search Silvergames games, sort by rating or title, paginate results, and see cover art, tags, source ratings, and imported status.
-- Open a game's separate info window to inspect its cover, source rating and vote count, age guidance, tags, and description; open the Silvergames page or import the game there. Age guidance is not saved to the library.
-- Import games from Explore catalogue window with covers, tags, descriptions, and source ratings saved locally. A separate progress window shows download and import progress.
-- Enable or disable Explore catalogue window independently of local library and game playback.
-- Configure app startup fullscreen and minimize-to-tray behavior for game launches or ordinary window minimization.
-- Change the language in Settings between English, Simplified Chinese, Spanish, French, German, Brazilian Portuguese, Japanese, Korean, Hindi, Arabic, and Russian.
-- Create a portable Windows folder that can be compressed and shared.
+# Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/0.9.7/Flash-Royale-v0.9.7-Windows.zip)
 
-## Library Music
+![Flash Royale cover art](assets/steam/header_920x430.png)<br>
+Flash Royale is a library manager for old flash games that lets you have ultimate control. Automatically play the game music, generate cover arts, organise with categories and tags, track your playtime, show/add tons of metadata and a lot more!
 
-The library music control plays a game's music separately from its in-game audio. When possible, Flash Royale finds up to six of the SWF's longest embedded audio tracks, which are more likely to be music than sound effects. Every detected track is extracted and saved as an individual MP3 or WAV file in that game's `music/default/` folder, with durations recorded in `tracks.json`. Playback reads the selected file from there. Custom music is copied into `music/custom/` and takes priority over the built-in selection.
+<details>
+  <summary>🔍 <b>Gif Preview</b> (Video trailer soon!)</summary><br>
 
-Custom music can use MP3, WAV, OGG/OGA, Opus, M4A, AAC, FLAC, or WebM files. The library control has its own volume slider; music fade in and out, repeat according to the per-game setting, and pause while any game player is running. They resume automatically after gameplay. This does not replace or change a game's own audio.
+  ![Flash Royale main window preview](docs/assets/Screenshots/preview.gif)
+</details><br>
 
-## Player and Scaling
+## Latest Update
 
-The player keeps the SWF's stage aspect ratio and centers it in the available area. Its toolbar provides fullscreen, zoom in/out, reset zoom, and optional pinned controls.
+[Flash Royale v0.9.7 (v1.0 coming soon!)](https://github.com/MCC321-QC/eMixedNiteMC/releases/download/v4.0/eMixedNiteMC_4_0.pthm)<br>
+<br>
 
-**Fix scaling / zoom** is off by default, so the SWF controls its own scaling. Turn it on for a game that needs the app to fit its stage to the player window, the stage remains centered.
+## Features (v1.0)
 
-**Standalone compatibility** uses local-file loading and the original SWF filename, which can expose controls intended for a standalone Flash player. This can fix issues like not being able to log in your account in [The N Game v2](https://www.thewayoftheninja.org/nv2.html).
-
-Each game also has an **Allow online features** toggle and a list of automatically discovered public resources with individual block controls. Online access is enabled by default, disabling it blocks that player's remote requests without disabling local assets. The public-resource relay is separate from login and only handles eligible public GET resources discovered during gameplay.
-
-The public-resource relay accepts up to 50 automatically discovered exact HTTP/HTTPS URLs without credentials, it uses GET only, pins public DNS addresses, rejects redirects and private networks, and limits response size. Numeric `RND` cache-busters are stripped, other query strings and login requests stay outside the relay, and cookies are never forwarded.
-
-## Explore Catalogue and Game Info
-
-Explore is an optional online catalogue. Search the Silvergames catalogue, sort by rating or title, move through result pages, and see game covers, tags, ratings, and which games are already imported.
-
-Each result has a separate game-info window with a larger cover, source rating and vote count, age guidance, tags, and description. From there, open the game's Silvergames page or import it. Imported SWFs and selected catalogue details are stored locally, and a separate progress window tracks the download and importation. Age guidance is shown for reference but is not saved to the library.
-
-The Explore source tabs also include Y8. It contains both SWF and browser-only games that can be sorted by Popularity, Rating, and Date. SWF games import locally, while HTML5/WebGL games can be added as online-only entries and open on Y8 in a sandboxed window.
-
-Y8 game details show available tags, rating and vote count, site play count, likes, description, category, developer, and site-added date. Imports save only tags, rating, vote count, description, category, and developer, alongside the SWF and cover. Y8's 10-point ratings are converted to the library's 5-star scale and Y8's play counts do not become local play counts. Offline compatibility still depends on the individual game.
-
-Andkon is an optional additional catalogue, disabled by default in Settings because many of its games are domain-locked and have low offline compatibility.
-
-### In-app updates on Windows
-
-Settings includes **Check for updates on app start**, enabled by default. Disabling it skips the automatic startup check and the manual **Check for updates** action remains available. This preference does not automatically install updates.
-
-Packaged, extracted Windows portable folders support **Install and restart** when the GitHub release provides a supported ZIP with a SHA-256 digest. The updater downloads from the configured repository, checks the exact size and digest, stages the runtime, and checks write access before closing the app.
-
-The update dialog also offers **Open release page**, which opens the release in your default browser without closing the dialog. To update manually, download the Windows ZIP, back up your existing `library` folder, and close Flash Royale and all game windows. Extract the ZIP to a temporary folder, then copy the app files into your current Flash Royale folder, replacing existing app files. Keep your existing `library` folder; do not replace it with one from the archive. Launch Flash Royale again.
-
-The optional **Unblock the verified update files** checkbox is off by default. Selecting it explicitly authorizes removal of Mark of the Web from the staged runtime files before installation, including the executable and DLLs. This does not disable Windows security settings, bypass Smart App Control, or replace code signing.
-
-If PowerShell script execution is disabled, the update dialog offers a separate **Enable script execution** checkbox. Its choice is saved across app restarts. It applies only to the updater processes for each attempt, never changes your user/system execution policy, and remains independent of file unblocking. Organization policies or Windows application controls may still prevent execution.
-
-Close games and Explore and finish imports before updating. The updater replaces only known Electron runtime entries, it does not replace `library` or copy a library bundled in the release. It backs up replaced entries and attempts to restore them if replacement or launching fails. A helper error is shown separately, with an `error.txt` log in the temporary `flash-royale-update-*` folder, retaining that folder if manual recovery is needed. Successful updates restart the app and remove their temporary staging and backup folder.
-
-Release ZIPs should contain exactly one `Flash Royale.exe` alongside `resources/app.asar`, `locales`, and the Electron runtime files. Supported asset names are `Flash-Royale-v<version>-Windows.zip`, `Flash-Royale-<version>-Windows.zip`, `Flash Royale-ReadyToRun.zip`, and `flash-royale.zip`; release tags may have or omit the `v` prefix. Publish through GitHub Releases so the asset metadata includes its SHA-256 digest. Digest verification checks download integrity against GitHub metadata, it is not an independent publisher signature.
-
-## Future Improvements
-
-- Add support for major linux distributions. (Need more investigation)
-- Add support for HTML game packages in local. (Need more investigation)
-- Add theme support with at least 3 choices by default and the ability to add a custom one. (Need more investigation)
-- Add support for changing the library directory.
-- Add bulk editing for tags, categories and game deletion.
-- Add option to enable CRT Shaders for each games, and a toggle button in the game player second top menu. (Need more investigation)
-- Add controller config and mapping settings that can be set independantly for each games and up to 4 different controllers. (Need more investigation)
-
-## Tech Stack
-
-- Electron
-- Vite
-- React
-- TypeScript
-- Fuse.js
-- Ruffle
-- electron-builder
-
-## Build
-
-```powershell
-npm.cmd run build
-```
-
-## Packaging
-
-Build the unpacked Electron application:
-
-```powershell
-npm.cmd run package:win
-```
-
-Create a quick launcher in the project root and `release/Flash Royale-ReadyToRun.zip`:
-
-```powershell
-npm.cmd run package:fast
-```
-
-Create `flash-royale.zip` in the parent directory of the project, ready to share:
-
-```powershell
-npm.cmd run package:share
-```
-
-Share the complete archive or folder. Do not send `Flash Royale.exe` by itself.
-
-## Local Data
-
-By default, the library is stored next to the application:
-
-```text
-library/
-  games/
-    <Game Title> [game_id]/
-      <Game Title>.swf
-      cover/             # This game's cover image
-      settings.json      # This game's playback and compatibility settings
-      saves/             # This game's Ruffle/browser save storage
-      music/default/      # Extracted SWF tracks and tracks.json manifest
-      music/custom/       # Optional custom music file
-  db.json      # Game metadata
-  config.json  # Local configuration
-  window-state.json # Saved window positions and sizes
-```
-
-Game folder and SWF names use a filesystem-safe version of the title plus the stable game ID, so duplicate titles remain distinct. When existing games need migration, a startup progress window reports the work. Renaming a game in its details panel updates its folder and SWF the next time the app starts. Legacy Ruffle localStorage is copied into the per-game save folders, and the original browser profile is left untouched.
-
-`library/` contains personal data and game files and should not be committed to GitHub.
-
-## Project Structure
-
-```text
-electron/             Electron main process and preload
-src/                  React frontend
-scripts/              Ruffle and packaging scripts
-public/               Static asset entry point
-docs/                 Development documentation
-```
+<details open>
+  <summary>🗂️ <b>Import your local games</b></summary>
+  Import Flash and Shockwave games, organize them with categories, tags and favorites, and track your playtime.
+</details>
+<details>
+  <summary>▶️ <b>Flexible game players</b></summary>
+  Play with built-in emulators or choose external players, with per-game settings for fullscreen, scaling, volume and more.
+</details>
+<details>
+  <summary>🌐 <b>Online catalogs & Flashpoint</b></summary>
+  Discover and import games from supported websites, add supported browser-only games, or automatically import your Flashpoint downloads.
+</details>
+<details>
+  <summary>✨ <b>Automatic metadata</b></summary>
+  Find missing covers, descriptions, developers, release dates and more after importing games or search manually and choose what to keep.
+</details>
+<details>
+  <summary>📸 <b>Covers & screenshots</b></summary>
+  Generate covers automatically, import your own artwork, or capture and crop gameplay screenshots for covers and galleries.
+</details>
+<details>
+  <summary>🎵 <b>Game music</b></summary>
+  Automatically extract game music to play it in the library, choose default scanned tracks or custom songs, and optionally normalize their volume.
+</details>
+<details>
+  <summary>🎮 <b>Controller & touch support</b></summary>
+  Navigate the app with a controller, create per-game input mappings, configure on-screen controls, and use the virtual keyboard to enter text in games.
+</details>
+<details>
+  <summary>📖 <b>Guides & video walkthroughs</b></summary>
+  Keep manuals, e-books, maps and notes beside your games, with a built-in reader and YouTube/Vimeo video support.
+</details>
+<details>
+  <summary>📺 <b>FPS counter, CRT effects & bezels</b></summary>
+  Monitor your FPS, add retro screen filters, reflections and ambient lighting, globally or per game.
+</details>
+<details>
+  <summary>🎨 <b>Highly customizable</b></summary>
+  Choose from six themes, customize your own, change cursors, share your modifications, and adjust your library layout.
+</details>
+<details>
+  <summary>🚀 <b>Import in steam & game launchers</b></summary>
+  Create desktop shortcuts and Steam library entries/shortcuts with custom icons/artworks, add the game to a launcher like Playnite with its command line start argument or launch directly into a game without opening the library.
+</details>
+<details>
+  <summary>🛡️ <b>Security tools</b></summary>
+  Optional antivirus scanning, quarantine, security alerts, signed updates and controls over your games online access.
+</details>
+<details>
+  <summary>🌍 <b>Portable & multilingual</b></summary>
+  Keep your library and settings together, play local games offline, and choose from 11 interface languages.
+</details><br>
 
 ## Documentation
 
-See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for development and maintenance notes.
+Visit the [Flash Royale Wiki](https://github.com/MCC321-QC/Flash-Royale/wiki) for user guides, player compatibility, controllers, music, themes and troubleshooting.
 
-## Compatibility
-
-Flash playback depends on Ruffle. Some complex AS3 games, SWF files that rely on external assets, and games that Ruffle does not fully support may not run correctly.
-
-## Copyright and Content Notice
-
-This repository contains only the Flash Royale source code. Do not commit third-party SWF games, cover images, or personal libraries unless you have the right to share them.
+For contributors: [development](docs/DEVELOPMENT.md), [maintenance and release checklists](docs/maintenance/README.md), and [component licenses and notices](docs/LICENSE-AUDIT.md).

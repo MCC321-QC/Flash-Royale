@@ -1,0 +1,178 @@
+{
+  "rows": [
+    [
+      {
+        "value": "1",
+        "shifted": "!",
+        "code": "Digit1"
+      },
+      {
+        "value": "2",
+        "shifted": "@",
+        "code": "Digit2"
+      },
+      {
+        "value": "3",
+        "shifted": "#",
+        "code": "Digit3"
+      },
+      {
+        "value": "4",
+        "shifted": "$",
+        "code": "Digit4"
+      },
+      {
+        "value": "5",
+        "shifted": "%",
+        "code": "Digit5"
+      },
+      {
+        "value": "6",
+        "shifted": "^",
+        "code": "Digit6"
+      },
+      {
+        "value": "7",
+        "shifted": "&",
+        "code": "Digit7"
+      },
+      {
+        "value": "8",
+        "shifted": "*",
+        "code": "Digit8"
+      },
+      {
+        "value": "9",
+        "shifted": "(",
+        "code": "Digit9"
+      },
+      {
+        "value": "0",
+        "shifted": ")",
+        "code": "Digit0"
+      }
+    ],
+    [
+      {
+        "value": "ㅂ",
+        "shifted": "ㅃ",
+        "code": "KeyQ"
+      },
+      {
+        "value": "ㅈ",
+        "shifted": "ㅉ",
+        "code": "KeyW"
+      },
+      {
+        "value": "ㄷ",
+        "shifted": "ㄸ",
+        "code": "KeyE"
+      },
+      {
+        "value": "ㄱ",
+        "shifted": "ㄲ",
+        "code": "KeyR"
+      },
+      {
+        "value": "ㅅ",
+        "shifted": "ㅆ",
+        "code": "KeyT"
+      },
+      {
+        "value": "ㅛ",
+        "shifted": "ㅛ",
+        "code": "KeyY"
+      },
+      {
+        "value": "ㅕ",
+        "shifted": "ㅕ",
+        "code": "KeyU"
+      },
+      {
+        "value": "ㅑ",
+        "shifted": "ㅑ",
+        "code": "KeyI"
+      },
+      {
+        "value": "ㅐ",
+        "shifted": "ㅒ",
+        "code": "KeyO"
+      },
+      {
+        "value": "ㅔ",
+        "shifted": "ㅖ",
+        "code": "KeyP"
+      }
+    ],
+    [
+      {
+        "value": "ㅁ",
+        "code": "KeyA"
+      },
+      {
+        "value": "ㄴ",
+        "code": "KeyS"
+      },
+      {
+        "value": "ㅇ",
+        "code": "KeyD"
+      },
+      {
+        "value": "ㄹ",
+        "code": "KeyF"
+      },
+      {
+        "value": "ㅎ",
+        "code": "KeyG"
+      },
+      {
+        "value": "ㅗ",
+        "code": "KeyH"
+      },
+      {
+        "value": "ㅓ",
+        "code": "KeyJ"
+      },
+      {
+        "value": "ㅏ",
+        "code": "KeyK"
+      },
+      {
+        "value": "ㅣ",
+        "code": "KeyL"
+      }
+    ],
+    [
+      {
+        "value": "ㅋ",
+        "code": "KeyZ"
+      },
+      {
+        "value": "ㅌ",
+        "code": "KeyX"
+      },
+      {
+        "value": "ㅊ",
+        "code": "KeyC"
+      },
+      {
+        "value": "ㅍ",
+        "code": "KeyV"
+      },
+      {
+        "value": "ㅠ",
+        "code": "KeyB"
+      },
+      {
+        "value": "ㅜ",
+        "code": "KeyN"
+      },
+      {
+        "value": "ㅡ",
+        "code": "KeyM"
+      }
+    ]
+  ],
+  "symbols": "₩!@#$%^&*()[]{}<>/\\|`~_-+=.,:;'\"?",
+  "ime": "ko"
+}

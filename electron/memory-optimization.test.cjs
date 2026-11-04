@@ -92,6 +92,7 @@ test("music extraction jobs serialize and concurrent same-game requests share ex
       return [];
     },
     saveDetectedMusicTracks: async (_game, tracks) => { active -= 1; return tracks; },
+    readJson: async () => ({}), configPath: "", defaultConfig: {},
   });
   vm.runInContext(source.slice(start, end), context);
   const first = context.extractAndSaveMusic({ id: "one" });
@@ -111,7 +112,11 @@ test("music chunks write identical MP3 and WAV data without concatenating whole 
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const source = await fs.readFile(path.join(__dirname, "main.cjs"), "utf8");
   const context = vm.createContext({
-    Buffer, fs, path,
+    Buffer, fs, path, AbortController,
+    configPath: "config.json",
+    defaultConfig: {},
+    readJson: async () => ({}),
+    musicNormalizationSettings: require("./music-normalization.cjs").musicNormalizationSettings,
     getGamePaths: () => ({
       defaultMusicDirectory: directory,
       defaultMusicTrackPath: (index, ext) => path.join(directory, `track-${index}${ext}`),

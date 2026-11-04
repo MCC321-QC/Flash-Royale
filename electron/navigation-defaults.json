@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "enabled": true,
+  "showHints": true,
+  "touchControllerMode": "auto",
+  "keepControllerModeOnTouch": true,
+  "virtualKeyboardController": true,
+  "virtualKeyboardMouse": false,
+  "virtualKeyboardTouch": false,
+  "style": "auto",
+  "playerMenuButtons": [8, 9],
+  "screenshotButtons": [10, 11],
+  "pauseButtons": null,
+  "buttons": {
+    "up": 12,
+    "down": 13,
+    "left": 14,
+    "right": 15,
+    "confirm": 0,
+    "back": 1,
+    "previous": 4,
+    "next": 5,
+    "keyboard": 3,
+    "gameInfo": 2,
+    "launch": 9,
+    "explore": 8,
+    "previousPanel": 6,
+    "nextPanel": 7
+  },
+  "trackpad": { "sensitivity": 100, "acceleration": 100, "trackball": true, "haptics": 50 },
+  "desktopTrackpads": [
+    { "motion": "scroll", "click": { "kind": "mouseButton", "button": 2 } },
+    { "motion": "pointer", "click": { "kind": "mouseButton", "button": 0 } }
+  ]
+}

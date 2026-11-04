@@ -498,12 +498,21 @@ function listHandlers(providers, readDb = async () => ({ games: [] })) {
       handle: (name, handler) => { handlers[name] = handler; },
     },
     BrowserWindow: { fromWebContents: () => window },
-    exploreWindow: window, exploreEnabled: true, andkonEnabled: true,
+    panelManager: { fromWebContents: () => window },
+    exploreWindow: window, exploreEnabled: true, andkonEnabled: true, catalogsEnabled: {}, sourceDefinitions: null,
     exploreRefreshAvailableAt: 0, exploreRefreshCooldownMs: 60_000,
     exploreListController: null, AbortController, Date, URL, readDb,
+    catalogRegistry: new Map(Object.entries(providers).map(([id, provider]) => [id, { id, provider, generic: false }])),
+    refreshSourceDefinitions: async () => false,
     ...providers,
   });
   const source = fs.readFileSync(require.resolve("./main.cjs"), "utf8");
+  for (const name of ["isCatalogEnabled", "exploreCatalog", "withCoverVersion"]) {
+    const from = source.indexOf(`function ${name}(`);
+    const to = source.indexOf("\n}\n", from);
+    assert.ok(from >= 0 && to > from);
+    vm.runInContext(source.slice(from, to + 2), context);
+  }
   const start = source.indexOf('  ipcMain.on("explore:cancelList"');
   const end = source.indexOf('  ipcMain.handle("explore:openSite"', start);
   assert.ok(start >= 0 && end > start);

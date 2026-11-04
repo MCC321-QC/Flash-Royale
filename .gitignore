@@ -5,6 +5,10 @@ node_modules/
 dist/
 release/
 artifacts/
+third-party-notices/
+third-party-sources/
+third-party-sources.staging/
+vendor/license-sources/
 
 # Local game library and user data
 library/
@@ -14,6 +18,7 @@ library/
 
 # Generated Ruffle web assets copied by scripts/copy-ruffle.cjs
 public/ruffle/
+vendor/sdl3/
 
 # Electron runtime copied to the project root by package:fast
 Flash Royale.exe
@@ -46,6 +51,10 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# Signing keys (scripts/sign-sources.cjs keeps them outside the repository)
+*.pem
+*.key
+
 # Archives
 *.zip
 *.7z
@@ -56,3 +65,8 @@ yarn-error.log*
 Thumbs.db
 .idea/
 .vscode/
+
+*.dcr
+*.cct
+*.cst
+public/dirplayer/

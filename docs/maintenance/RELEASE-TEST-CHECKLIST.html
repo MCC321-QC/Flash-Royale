@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Flash Royale - Printable Release Checklist</title>
+  <style>
+    @page { size: Letter portrait; margin: 0.6in; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #111; background: #eee; font: 11pt/1.35 Arial, sans-serif; }
+    .page { width: 7.3in; margin: 24px auto; padding: 0; background: white; }
+    h1 { font-size: 19pt; margin: 0 0 10px; }
+    h2 { font-size: 14pt; margin: 20px 0 10px; padding-bottom: 5px; border-bottom: 1px solid #111; }
+    h3 { font-size: 12pt; margin: 16px 0 8px; }
+    p { margin: 8px 0; }
+    section { break-inside: avoid; page-break-inside: avoid; }
+    ul { list-style: none; margin: 8px 0; padding: 0; }
+    li { position: relative; padding-left: 22px; margin: 7px 0; break-inside: avoid; }
+    li::before { content: ""; position: absolute; left: 0; top: 3px; width: 11px; height: 11px; border: 1px solid #111; }
+    .meta { font-size: 10pt; }
+    .line { display: inline-block; min-width: 3.5in; border-bottom: 1px solid #555; height: 18px; }
+    .page-label { font-size: 9pt; border-bottom: 1px solid #aaa; padding-bottom: 6px; margin-bottom: 14px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10pt; }
+    th, td { border: 1px solid #555; padding: 7px; text-align: left; }
+    td { height: 55px; }
+    .notes { height: 30px; border-bottom: 1px solid #888; }
+    .print-help { max-width: 7.3in; margin: 20px auto; font-size: 11pt; }
+    @media print {
+      body { background: white; }
+      .print-help { display: none; }
+      .page { width: auto; margin: 0; break-after: page; page-break-after: always; }
+      .page:last-child { break-after: auto; page-break-after: auto; }
+    }
+  </style>
+</head>
+<body>
+  <p class="print-help">Print on <strong>Letter (8.5 x 11 inches), portrait, 100% scale</strong>.
+    Disable browser headers and footers. Five pages; each test section stays together.</p>
+
+  <main class="page">
+    <h1>Flash Royale - Release Test Checklist</h1>
+    <p class="meta"><strong>Build / version:</strong> ________________________________________<br>
+      <strong>Date:</strong> ____________________ &nbsp; <strong>Tester:</strong> ____________________</p>
+    <section>
+      <h2>Test Stations</h2>
+      <p>Check each station after completing its tests.</p>
+      <ul>
+        <li>ROG Ally - Windows</li>
+        <li>ROG Ally - Bazzite / Proton</li>
+        <li>Desktop computer - Windows</li>
+        <li>Desktop computer - Arch / Wine or Proton</li>
+        <li>Lenovo Legion - Windows (i5, RTX 3060, 16 GB RAM)</li>
+      </ul>
+      <p><strong>How to use:</strong> Print one set per station. Check only passing tests.
+        Write <strong>N/A</strong> for unavailable features. Record failures on page 5.</p>
+      <p><strong>Station / OS:</strong> <span class="line"></span></p>
+      <p><strong>Wine / Proton version:</strong> <span class="line"></span></p>
+      <p><strong>Resolution / scaling:</strong> <span class="line"></span></p>
+    </section>
+    <section>
+      <h2>1. Preparation and Startup</h2>
+      <ul>
+        <li>Back up the existing library before testing.</li>
+        <li>Use the same packaged build on every station.</li>
+        <li>Launch the packaged app successfully, without development tools.</li>
+        <li>Confirm the displayed version matches the build being tested.</li>
+        <li>Existing games, covers, favorites, notes, and settings are preserved.</li>
+        <li>App opens normally after a full close and relaunch.</li>
+        <li>On one station: test a fresh copy in a separate folder with an empty library.</li>
+      </ul>
+    </section>
+  </main>
+
+  <main class="page">
+    <p class="page-label">Flash Royale / Page 2 of 5 &nbsp; Station: __________________________</p>
+    <section>
+      <h2>2. Library and Game Details</h2>
+      <ul>
+        <li>Import a local game and confirm it appears in the library.</li>
+        <li>Import several games together.</li>
+        <li>Search, sort, categories, and tags work.</li>
+        <li>Open and close game details; resize the details sidebar.</li>
+        <li>Favorites, notes, and user ratings save after restarting.</li>
+        <li>Covers and rating badges display correctly.</li>
+        <li>Rating numbers look vertically centered beside the stars.</li>
+        <li>Change card size and scroll through a large library.</li>
+        <li>Bottom cards remain reachable; no unexpected layout jumps.</li>
+        <li>Delete a disposable test game: confirmation and cancellation both work.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>3. Playback and Fullscreen</h2>
+      <p><strong>Games tested:</strong> <span class="line"></span></p>
+      <ul>
+        <li>Launch at least three games with different controls or rendering styles.</li>
+        <li>Test each available player engine with a compatible game.</li>
+        <li>Keyboard and mouse controls work during gameplay.</li>
+        <li>Pause / resume, restart, and volume controls work.</li>
+        <li>Enter and leave fullscreen.</li>
+        <li>With a mouse, fullscreen top bar hides when moving away from the top.</li>
+        <li>Moving the mouse back to the top reveals the bar.</li>
+        <li>Pinning keeps the bar visible; unpinning restores automatic hiding.</li>
+        <li>Open player options with a mouse, then return to gameplay.</li>
+        <li>Enable / disable CRT and bezel; their buttons clearly show enabled state.</li>
+        <li>Close a game and launch another without problems.</li>
+      </ul>
+    </section>
+  </main>
+
+  <main class="page">
+    <p class="page-label">Flash Royale / Page 3 of 5 &nbsp; Station: __________________________</p>
+    <section>
+      <h2>4. Controller and Touch</h2>
+      <ul>
+        <li>Controller connects and navigates the library and Settings.</li>
+        <li>Focus borders are visible on tabs, buttons, and cards.</li>
+        <li>Open player options with the controller; Return to game works.</li>
+        <li>Controller gameplay and remapping work in a compatible game.</li>
+        <li>Switching between controller and mouse restores the expected pointer.</li>
+        <li>Touch taps activate controls once, without duplicate actions.</li>
+        <li>Touch scrolling and fling scrolling stay smooth.</li>
+        <li>Scrolling reaches both ends of the library and Settings.</li>
+        <li>On-screen keyboard opens, types, and dismisses correctly.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>5. Appearance, Settings, and Music</h2>
+      <ul>
+        <li>Briefly check all six built-in themes.</li>
+        <li>Enabled pin, CRT, bezel, and music buttons are visually distinct.</li>
+        <li>Armed warning / delete buttons keep their warning color when hovered.</li>
+        <li>Retro Royale rating badges are navy with yellow stars and numbers.</li>
+        <li>Retro Royale Settings stripes appear behind section boxes only.</li>
+        <li>Retro Royale left tabs and Language / Update / Close area stay navy.</li>
+        <li>Black separators appear below the Settings header and above Language.</li>
+        <li>Change theme and another setting; both persist after restarting.</li>
+        <li>Library music play / pause and volume work.</li>
+        <li>Music and scrolling do not noticeably freeze or stutter together.</li>
+      </ul>
+    </section>
+  </main>
+
+  <main class="page">
+    <p class="page-label">Flash Royale / Page 4 of 5 &nbsp; Station: __________________________</p>
+    <section>
+      <h2>6. Shortcuts, Connectivity, and Window Behavior</h2>
+      <ul>
+        <li>Create a desktop shortcut and launch its game.</li>
+        <li>Add a Steam shortcut and launch it through Steam.</li>
+        <li>Steam stops showing the game as running after it closes.</li>
+        <li>Explore / metadata lookup works with an internet connection.</li>
+        <li>Offline behavior shows a clear message without hanging.</li>
+        <li>Minimize and restore the app; the UI stays responsive.</li>
+        <li>Tray menu opens, dismisses, and opens again.</li>
+        <li>Resize the main window and Settings; controls remain usable.</li>
+        <li>Close the app fully and confirm no game remains running unexpectedly.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>7. Final Station Result</h2>
+      <ul>
+        <li>No crashes during normal use.</li>
+        <li>No lost library data or settings.</li>
+        <li>No stuck fullscreen, input, or unresponsive windows.</li>
+        <li>Any failures have been fixed and retested, or explicitly accepted.</li>
+      </ul>
+      <p><strong>Result:</strong> [ ] PASS &nbsp; [ ] NEEDS FIXES</p>
+      <h3>Station Summary</h3>
+      <div class="notes"></div><div class="notes"></div><div class="notes"></div>
+    </section>
+  </main>
+
+  <main class="page">
+    <p class="page-label">Flash Royale / Page 5 of 5 &nbsp; Station: __________________________</p>
+    <section>
+      <h2>Issues and Retest Notes</h2>
+      <p>Record the game, steps, expected result, and actual result.</p>
+      <table>
+        <thead><tr><th>#</th><th>Game / feature</th><th>Problem and reproduction steps</th><th>Retest</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td></td><td></td><td></td></tr>
+          <tr><td>2</td><td></td><td></td><td></td></tr>
+          <tr><td>3</td><td></td><td></td><td></td></tr>
+          <tr><td>4</td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <p><strong>Additional notes:</strong></p>
+      <div class="notes"></div><div class="notes"></div><div class="notes"></div>
+    </section>
+    <section>
+      <h2>Release Gate - Complete Once</h2>
+      <ul>
+        <li>All five real-device / OS stations have been tested.</li>
+        <li>Release-blocking issues are resolved and retested.</li>
+        <li>Final release version is updated consistently before packaging.</li>
+        <li>Final package is rebuilt and receives a last startup / playback check.</li>
+        <li>Changelog, known limitations, and installation instructions are ready.</li>
+        <li>Licenses / credits and intended signing checks are complete.</li>
+        <li>Download archive contains the expected files and no test artifacts.</li>
+        <li>Library backup is safe, and the final release build is saved.</li>
+      </ul>
+      <p><strong>Ready to release:</strong> [ ] YES &nbsp; <strong>Date:</strong> ____________________</p>
+    </section>
+  </main>
+</body>
+</html>

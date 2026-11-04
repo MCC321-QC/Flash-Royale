@@ -120,9 +120,11 @@ test("stalled endpoints time out, log a failure and return offline", async () =>
 test("Explore's availability API uses only the shared internet check and skips networking when disabled", async () => {
   let calls = 0;
   let online = true;
+  let blocked = false;
   const context = vm.createContext({
     exploreEnabled: true,
     isInternetAvailable: async () => { calls += 1; return online; },
+    securityMonitor: { isBlocked: () => blocked },
   });
   const source = fs.readFileSync(require.resolve("./main.cjs"), "utf8");
   const start = source.indexOf("async function getExploreAvailability()");
@@ -136,5 +138,11 @@ test("Explore's availability API uses only the shared internet check and skips n
   const disabled = await context.getExploreAvailability();
   assert.equal(disabled.enabled, false);
   assert.equal(disabled.online, false);
+  assert.equal(calls, 2);
+  context.exploreEnabled = true;
+  blocked = true;
+  online = true;
+  const paused = await context.getExploreAvailability();
+  assert.deepEqual({ ...paused }, { enabled: true, online: false, blocked: true });
   assert.equal(calls, 2);
 });

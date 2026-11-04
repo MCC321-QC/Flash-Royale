@@ -22,9 +22,10 @@ test("429 respects Retry-After seconds and blocks other URLs on the same origin"
     return requests === 1 ? response(429, "30") : response(200);
   } });
   await assert.rejects(request("https://example.com/a"), (error) =>
-    error instanceof CatalogueBackoffError && error.retryAt === 31_000 && /30 seconds/.test(error.message));
+    error instanceof CatalogueBackoffError && error.retryAt === 31_000 && error.status === 429 &&
+    /rate limiting.*HTTP 429/.test(error.message) && /30 seconds/.test(error.message));
   clock = 30_999;
-  await assert.rejects(request("https://example.com/b"), /retry in 1 seconds/);
+  await assert.rejects(request("https://example.com/b"), error => error.status === 429 && /retry in 1 seconds/.test(error.message));
   assert.equal(requests, 1);
   clock = 31_000;
   assert.equal((await request("https://example.com/b")).status, 200);
@@ -66,6 +67,23 @@ test("missing or invalid Retry-After uses exponential backoff capped at 60 secon
   await assert.rejects(request("https://example.com"), (error) => error.retryAt === clock + 5_000);
 });
 
+test("custom source policy can impose long persisted-style cooldowns for blocking responses", async () => {
+  let clock = 1_000;
+  let calls = 0;
+  const policy = { backoffStatuses: [403, 429], minimumBackoffMs: 15 * 60_000, maximumBackoffMs: 6 * 60 * 60_000 };
+  const request = createCatalogueFetcher({ now: () => clock, request: async () => {
+    calls += 1;
+    return response(403);
+  } });
+  await assert.rejects(request("https://www.newgrounds.com/a", {}, policy), (error) =>
+    error.status === 403 && error.retryAt === clock + 15 * 60_000 &&
+    /refusing automated access \(HTTP 403\)/.test(error.message) && /browser verification/.test(error.message));
+  await assert.rejects(request("https://www.newgrounds.com/b", {}, policy), CatalogueBackoffError);
+  assert.equal(calls, 1);
+  clock += 15 * 60_000;
+  await assert.rejects(request("https://www.newgrounds.com/c", {}, policy), (error) => error.retryAt === clock + 30 * 60_000);
+});
+
 test("network failures back off but caller cancellation does not", async () => {
   let clock = 1_000;
   let error = new TypeError("offline");
@@ -84,6 +102,24 @@ test("origins are independent and ordinary 404 responses do not establish backof
   await assert.rejects(request("https://busy.example"), CatalogueBackoffError);
   assert.equal((await request("https://other.example")).status, 404);
   assert.equal((await request("https://other.example")).status, 404);
+});
+
+test("403 explains refused automated access without changing the default retry policy", async () => {
+  let calls = 0;
+  let cancelled = 0;
+  const request = createCatalogueFetcher({ request: async () => {
+    calls += 1;
+    return { ...response(403), body: { cancel: async () => { cancelled += 1; } } };
+  } });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await assert.rejects(request("https://blocked.example/catalog"), (error) =>
+      !(error instanceof CatalogueBackoffError) &&
+      /blocked\.example is refusing automated access \(HTTP 403\)/.test(error.message) &&
+      /browser verification/.test(error.message) &&
+      /open the site in your browser/.test(error.message));
+  }
+  assert.equal(calls, 2);
+  assert.equal(cancelled, 2);
 });
 
 test("an in-flight success cannot erase backoff set by a concurrent failure", async () => {

@@ -16,6 +16,19 @@ function response(url, text, status = 200, headers = {}) {
   return { url: String(url), ok: status >= 200 && status < 300, status, headers: new Headers(headers), text: async () => text };
 }
 
+test("all cached catalog fetches surface access-denied guidance instead of the generic unavailable message", async (t) => {
+  t.mock.method(globalThis, "fetch", async (url) => response(url, "verification challenge", 403));
+  const fetchText = createCachedTextFetcher(createCatalogueCache(), {
+    validateUrl: () => {},
+    timeoutMs: 1000,
+    unavailableMessage: "Generic unavailable message",
+  });
+  await assert.rejects(fetchText("https://catalog-blocked.example/list"), (error) =>
+    /refusing automated access \(HTTP 403\)/.test(error.message) &&
+    /browser verification/.test(error.message) &&
+    !error.message.includes("Generic unavailable message"));
+});
+
 test("expired persisted HTTP data uses validators and 304 without downloading a response body", async (t) => {
   const directory = await directoryFor(t);
   let clock = 1_000;

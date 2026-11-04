@@ -1,28 +1,29 @@
 import { ArrowDown, ArrowDownUp, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Download, ExternalLink, Info, RefreshCw, Search, ThumbsUp, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { andkonMetadataLabels, confirmationActionLabels, detailPanelLabels, exploreDuplicateLabels, exploreFilterLabels, exploreRefreshLabels, importProgressLabels, messages, readLanguage, showOnlineOnlyGamesLabels, sourceMetadataLabels, type Language } from "./i18n";
+import { andkonMetadataLabels, confirmationActionLabels, detailPanelLabels, exploreDuplicateLabels, exploreFilterLabels, exploreRefreshLabels, importGameLabels, importProgressLabels, messages, readLanguage, showOnlineOnlyGamesLabels, sourceMetadataLabels, type Language } from "./i18n";
 import { StarRating } from "./StarRating";
+import { cachedDateTimeFormat } from "./intl-cache";
+import { PanelHeader } from "./WindowTitleBar";
 import { silvergamesAddedDateLabels, y8CategoryRequiredLabels, y8MetadataLabels, sortLabels as librarySortLabels, exploreSettingsLabels, translateError } from "./i18n";
 import { exploreLabels } from "./exploreLabels";
+import { historyLabels } from "./i18n-history";
 import { ConfirmationDialog } from "./ConfirmationDialog";
-import type { ExploreDetailsGame, ExplorePage, ExploreSortMode, ExploreSource } from "./types";
+import { useExplorePromptPreview } from "./devPreviews";
+import { SourceErrorHelp } from "./SourcesSettings";
+import { ControllerHintsSlot } from "./ControllerNavigation";
+import { focusControl } from "./controller-navigation";
+import type { ExploreDetailsGame, ExplorePage, ExploreSortMode, ExploreSource, ExploreSourceInfo } from "./types";
 import { includeCategoryOnlineOnlyGames, readCategoryOnlineOnlyPreferences, saveCategoryOnlineOnlyPreference } from "./explorePreferences";
+import { formatFileSize } from "./file-size";
 
 const sortModes: ExploreSortMode[] = ["rating", "name"];
 const y8SortModes: ExploreSortMode[] = ["popularity", "rating", "date"];
 const exploreRefreshCooldownMs = 60_000;
 
-function formatFileSize(bytes: number, language: Language) {
-  const formatter = new Intl.NumberFormat(language, { maximumFractionDigits: 1 });
-  if (bytes >= 1024 * 1024) return `${formatter.format(bytes / (1024 * 1024))} MB`;
-  if (bytes >= 1024) return `${formatter.format(bytes / 1024)} KB`;
-  return `${bytes.toLocaleString(language)} B`;
-}
-
 function formatUploadDate(value: string, language: Language) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
-  return new Intl.DateTimeFormat(language === "zh" ? "zh-CN" : language, {
+  return cachedDateTimeFormat(language === "zh" ? "zh-CN" : language, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -46,7 +47,7 @@ function DuplicateImportNotice({ notice, language, onClose }: {
       <section className="confirm-dialog" role="alertdialog" aria-modal="true" aria-label={labels.title}>
         <p>{labels.message.replace("{title}", notice.title).replace("{duplicate}", notice.duplicateOf)}</p>
         <div className="confirm-actions">
-          <button className="primary" type="button" autoFocus onClick={onClose}>{importProgressLabels[language].ok}</button>
+          <button className="primary" type="button" autoFocus data-controller-back="" onClick={onClose}>{importProgressLabels[language].ok}</button>
         </div>
       </section>
     </div>
@@ -54,19 +55,40 @@ function DuplicateImportNotice({ notice, language, onClose }: {
 }
 
 export function Explore() {
+  const returnInfoButton = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    const restore = () => {
+      const button = returnInfoButton.current;
+      returnInfoButton.current = null;
+      if (button?.isConnected && document.documentElement.classList.contains("controller-navigation-active")) {
+        document.documentElement.classList.add("controller-navigation-active", "controller-hide-pointer");
+        const card = button.parentElement?.querySelector<HTMLButtonElement>(".explore-game");
+        focusControl(card && !card.disabled ? card : button);
+      }
+    };
+    window.addEventListener("focus", restore);
+    return () => window.removeEventListener("focus", restore);
+  }, []);
   const language = readLanguage();
   const labels = exploreLabels[language];
   const text = messages[language];
   const sortText = librarySortLabels[language];
   const sortLabels: Record<ExploreSortMode, string> = { popularity: labels.popularity, rating: labels.rating, date: sortText.dateAdded, name: text.title };
   const duplicateLabels = exploreDuplicateLabels[language];
-  const [andkonEnabled, setAndkonEnabled] = useState(false);
+  const [sources, setSources] = useState<ExploreSourceInfo[]>([]);
   const [catalogPreferenceLoaded, setCatalogPreferenceLoaded] = useState(false);
   const [source, setSource] = useState<ExploreSource>(() => {
-    try { const saved = localStorage.getItem("flashroyale.exploreSource"); return saved === "y8" || saved === "andkon" ? saved : "silvergames"; }
+    try { return localStorage.getItem("flashroyale.exploreSource") || "silvergames"; }
     catch { return "silvergames"; }
   });
+  const sourceInfo = sources.find((entry) => entry.id === source);
+  // Built-in catalogs keep their own behavior; catalogs read from a data definition share one.
+  const kind: string = sourceInfo?.generic ? "generic" : source;
   const [duplicateNotice, setDuplicateNotice] = useState<{ title: string; duplicateOf: string } | null>(null);
+  useExplorePromptPreview(setDuplicateNotice);
+  useEffect(() => {
+    window.flashApi.setPanelBackdropDismissible?.(!duplicateNotice);
+  }, [duplicateNotice]);
   const [query, setQuery] = useState("");
   const [categoryOnlineOnlyPreferences, setCategoryOnlineOnlyPreferences] = useState(() => readCategoryOnlineOnlyPreferences(localStorage));
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -76,6 +98,7 @@ export function Explore() {
   const [catalog, setCatalog] = useState<ExplorePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [catalogFailed, setCatalogFailed] = useState(false);
   const [retry, setRetry] = useState(0);
   const [refreshRequest, setRefreshRequest] = useState(0);
   const [refreshAvailableAt, setRefreshAvailableAt] = useState(() => {
@@ -106,7 +129,7 @@ export function Explore() {
   const [layout, setLayout] = useState({ columns: 4, pageSize: 12 });
   const sourceRef = useRef(source);
   sourceRef.current = source;
-  const categoryOptions = source === "y8" ? catalog?.categories || [] : [];
+  const categoryOptions = kind === "y8" ? catalog?.categories || [] : [];
   const visibleGames = catalog?.games || [];
 
   useEffect(() => {
@@ -116,21 +139,23 @@ export function Explore() {
   useEffect(() => {
     let active = true;
     const refresh = async () => {
-      let enabled = false;
-      try { enabled = await window.flashApi.getAndkonEnabled(); } catch {}
+      let list: ExploreSourceInfo[] = [];
+      try { list = await window.flashApi.getExploreSources(); } catch {}
       if (!active) return;
-      setAndkonEnabled(enabled);
-      if (!enabled) {
-        setSource((current) => current === "andkon" ? "silvergames" : current);
-        try {
-          if (localStorage.getItem("flashroyale.exploreSource") === "andkon") localStorage.setItem("flashroyale.exploreSource", "silvergames");
-        } catch {}
+      setSources(list);
+      const current = sourceRef.current;
+      if (list.length && !list.some((entry) => entry.id === current)) {
+        applySourceRef.current(list[0]);
       }
       setCatalogPreferenceLoaded(true);
     };
     void refresh();
     const unsubscribe = window.flashApi.onExploreLibraryChanged(() => { void refresh(); });
-    return () => { active = false; unsubscribe(); };
+    const unsubscribeSources = window.flashApi.onSourcesChanged(() => {
+      void refresh();
+      setRetry((value) => value + 1);
+    });
+    return () => { active = false; unsubscribe(); unsubscribeSources(); };
   }, []);
 
   useEffect(() => {
@@ -205,41 +230,57 @@ export function Explore() {
     setRetry((value) => value + 1);
   }), []);
 
+  const cancelCatalogLoad = useRef<(() => void) | null>(null);
   useEffect(() => {
     let active = true;
     let requestPending = false;
     setLoading(true);
     setError("");
-    if (!catalogPreferenceLoaded || (source === "andkon" && !andkonEnabled)) return;
+    setCatalogFailed(false);
+    if (!catalogPreferenceLoaded || !sourceInfo) return;
     const forceRefresh = refreshRequest > consumedRefreshRequest.current;
     const timer = window.setTimeout(() => {
       if (forceRefresh) consumedRefreshRequest.current = refreshRequest;
       requestPending = true;
       window.flashApi.listExploreGames(query, page, layout.pageSize, sortMode, sortAscending, source, categoryFilter, forceRefresh, includeOnlineOnlyGames).then((result) => {
         if (!active) return;
-        if (source === "y8" && categoryFilter && !result.categories?.some((category) => category.slug === categoryFilter)) {
+        if (kind === "y8" && categoryFilter && !result.categories?.some((category) => category.slug === categoryFilter)) {
           setCategoryFilter("");
           setPage(1);
           return;
         }
         if (active) setCatalog(result);
       }).catch((reason) => {
-        if (active) setError(translateError(reason instanceof Error ? reason.message : "", language, text.gameLoadFailed));
+        if (!active) return;
+        const raw = reason instanceof Error ? reason.message : "";
+        setError(translateError(raw, language, text.gameLoadFailed));
+        // Waiting, offline and switched-off states are not caused by an outdated catalog definition.
+        setCatalogFailed(!/Please wait|disabled|internet|offline|paused|abort/i.test(raw));
       }).finally(() => {
         requestPending = false;
         if (active) setLoading(false);
       });
     }, forceRefresh ? 0 : 300);
+    const cancel = () => {
+      active = false;
+      window.clearTimeout(timer);
+      if (requestPending) window.flashApi.cancelExploreList();
+      setLoading(false);
+      setCatalogFailed(false);
+      if (!catalog) setError(historyLabels[language].status.cancelled);
+    };
+    cancelCatalogLoad.current = cancel;
     return () => {
       active = false;
       window.clearTimeout(timer);
       if (requestPending) window.flashApi.cancelExploreList();
+      if (cancelCatalogLoad.current === cancel) cancelCatalogLoad.current = null;
     };
-  }, [query, page, layout.pageSize, sortMode, sortAscending, retry, refreshRequest, source, categoryFilter, includeOnlineOnlyGames, catalogPreferenceLoaded, andkonEnabled]);
+  }, [query, page, layout.pageSize, sortMode, sortAscending, retry, refreshRequest, source, categoryFilter, includeOnlineOnlyGames, catalogPreferenceLoaded, Boolean(sourceInfo)]);
 
-  const chooseSource = (nextSource: ExploreSource) => {
-    if (nextSource === source) return;
-    setSource(nextSource);
+  const applySource = (next: ExploreSourceInfo) => {
+    const nextKind = next.generic ? "generic" : next.id;
+    setSource(next.id);
     setQuery("");
     setCategoryFilter("");
     setPage(1);
@@ -247,9 +288,15 @@ export function Explore() {
     setError("");
     setStatus({});
     setSortMenuOpen(false);
-    setSortMode(nextSource === "y8" ? "popularity" : nextSource === "andkon" ? "name" : "rating");
-    setSortAscending(nextSource === "andkon");
-    try { localStorage.setItem("flashroyale.exploreSource", nextSource); } catch {}
+    setSortMode(nextKind === "y8" ? "popularity" : nextKind === "silvergames" ? "rating" : "name");
+    setSortAscending(nextKind !== "y8" && nextKind !== "silvergames");
+    try { localStorage.setItem("flashroyale.exploreSource", next.id); } catch {}
+  };
+  const applySourceRef = useRef(applySource);
+  applySourceRef.current = applySource;
+
+  const chooseSource = (next: ExploreSourceInfo) => {
+    if (next.id !== source) applySource(next);
   };
 
   const chooseSortMode = (mode: ExploreSortMode) => {
@@ -301,19 +348,19 @@ export function Explore() {
 
   return (
     <main className="explore-window" dir={language === "ar" ? "rtl" : "ltr"}>
-      <header className="explore-header">
+      <PanelHeader className="explore-header" language={language}>
         <div className="explore-heading">
           <nav className="explore-catalog-switch" aria-label={labels.catalogs}>
-            <button type="button" className={source === "silvergames" ? "active" : ""} aria-pressed={source === "silvergames"} onClick={() => chooseSource("silvergames")}>SILVERGAMES.COM</button>
-            <button type="button" className={source === "y8" ? "active" : ""} aria-pressed={source === "y8"} onClick={() => chooseSource("y8")}>Y8.COM</button>
-            {andkonEnabled && <button type="button" className={source === "andkon" ? "active" : ""} aria-pressed={source === "andkon"} onClick={() => chooseSource("andkon")}>ANDKON.COM</button>}
+            {sources.map((entry) => (
+              <button key={entry.id} type="button" className={source === entry.id ? "active" : ""} aria-pressed={source === entry.id} onClick={() => chooseSource(entry)}>{entry.name.toUpperCase()}</button>
+            ))}
           </nav>
           <h1>{exploreSettingsLabels[language].open}</h1>
         </div>
         <div className="explore-search-actions">
           <div className="explore-header-options">
             <div className="explore-category-slot">
-              {source === "y8" && (
+              {kind === "y8" && (
                 <div className="explore-category-filter" ref={categoryControlRef}>
                   <button type="button" className="explore-category-trigger" aria-label={exploreFilterLabels[language].categories}
                     disabled={categoryOptions.length === 0}
@@ -352,7 +399,7 @@ export function Explore() {
               </button>
               {sortMenuOpen && (
                 <div className="sort-menu" role="menu" aria-label={sortText.sort}>
-                  {(source === "andkon" ? ["name"] as ExploreSortMode[] : source === "y8" ? y8SortModes : sortModes).map((mode) => (
+                  {(kind === "andkon" || kind === "generic" ? ["name"] as ExploreSortMode[] : kind === "y8" ? y8SortModes : sortModes).map((mode) => (
                     <div className="sort-menu-option" role="none" key={mode}>
                       <button type="button" role="menuitemradio" aria-checked={mode === sortMode}
                         className={mode === sortMode ? "category-option active" : "category-option"}
@@ -368,7 +415,7 @@ export function Explore() {
                       )}
                     </div>
                   ))}
-                  {source === "y8" && (
+                  {kind === "y8" && (
                     <>
                       <div className="sort-menu-divider" role="separator" />
                       <div className="sort-menu-filter-tooltip" role="none"
@@ -398,13 +445,16 @@ export function Explore() {
             <RefreshCw size={18} />
           </button>
         </div>
-      </header>
+      </PanelHeader>
       <section className="explore-results" ref={resultsRef} aria-live="polite">
-        {loading ? <div className="explore-message">{source === "y8" && !includeOnlineOnlyGames
-          ? labels.indexing : labels.loading}</div> : error ? (
+        {loading ? <div className="explore-message">
+          <p>{kind === "y8" && !includeOnlineOnlyGames ? labels.indexing : labels.loading}</p>
+          <button type="button" className="secondary" onClick={() => cancelCatalogLoad.current?.()}>{historyLabels[language].cancel}</button>
+        </div> : error ? (
           <div className="explore-message">
             <p>{error}</p>
             <button className="secondary" onClick={() => setRetry((value) => value + 1)}><RefreshCw size={16} /> {labels.retry}</button>
+            {catalogFailed && <SourceErrorHelp language={language} kind="catalog" ids={[source]} onUpdated={() => setRetry((value) => value + 1)} />}
           </div>
         ) : visibleGames.length ? (
           <div className="explore-grid" style={{ "--explore-columns": layout.columns } as CSSProperties}>
@@ -428,22 +478,27 @@ export function Explore() {
                   </span>
                   <span className="explore-game-info">
                     <strong>{game.title}</strong>
-                    <span className="explore-game-status">
+                    <span className={status[String(game.id)] || busyId === game.id || game.duplicateOf || game.imported || game.onlineOnly ? "explore-game-status" : "explore-game-status explore-import-hint"}>
                       {game.duplicateOf ? <><Copy size={12} /> {duplicateLabels.badge}</> : game.imported ? <><Check size={12} /> {labels.imported}</> : game.onlineOnly ? <><ExternalLink size={12} /> {y8MetadataLabels[language].onlineOnly}</> : status[String(game.id)] ? status[String(game.id)]
-                        : <><Download size={12} /> {busyId === game.id ? `${text.importSwf}…` : text.importSwf}</>}
+                        : <><Download size={12} /> {busyId === game.id ? `${importGameLabels[language].button}…` : importGameLabels[language].button}</>}
                     </span>
                     <span className="explore-rating-row">
                       {typeof game.sourceRating === "number" && Number.isFinite(game.sourceRating) && (
-                        <StarRating rating={game.sourceRating} label={game.source === "y8" ? sourceMetadataLabels[language].rating.replace(/silvergames/i, "Y8") : sourceMetadataLabels[language].rating} language={language} compact />
+                        <StarRating rating={game.sourceRating} label={game.source === "y8" ? sourceMetadataLabels[language].rating.replace(/silvergames/i, "Y8") : kind === "generic" ? sourceMetadataLabels[language].rating.replace(/silvergames/i, sourceInfo?.name ?? "") : sourceMetadataLabels[language].rating} language={language} compact />
                       )}
                     </span>
                   </span>
                 </button>
                 <button
                   className="explore-info-button"
-                  onClick={() => void window.flashApi.openExploreDetails(game.id, game.source).catch((reason) => {
-                    setStatus((current) => ({ ...current, [String(game.id)]: translateError(reason instanceof Error ? reason.message : "", language, text.gameLoadFailed) }));
-                  })}
+                  onClick={(event) => {
+                    const controller = document.documentElement.classList.contains("controller-navigation-active");
+                    returnInfoButton.current = controller ? event.currentTarget : null;
+                    void window.flashApi.openExploreDetails(game.id, game.source, controller).catch((reason) => {
+                      returnInfoButton.current = null;
+                      setStatus((current) => ({ ...current, [String(game.id)]: translateError(reason instanceof Error ? reason.message : "", language, text.gameLoadFailed) }));
+                    });
+                  }}
                   aria-label={`${detailPanelLabels[readLanguage()].show}: ${game.title}`}
                   title={detailPanelLabels[readLanguage()].show}
                 >
@@ -456,7 +511,8 @@ export function Explore() {
         ) : <div className="explore-message">{catalog?.games.length ? exploreFilterLabels[language].noMatches : labels.empty}</div>}
       </section>
       <footer className="explore-footer">
-        <span>{catalog && !error && !loading ? (catalog.totalIsPageCount ? labels.gamesOnPage : labels.games).replace("{count}", catalog.total.toLocaleString(language)) : source === "y8" ? "Y8.com" : source === "andkon" ? "Andkon.com" : "Silvergames.com"}</span>
+        <span>{catalog && !error && !loading ? (catalog.totalIsPageCount ? labels.gamesOnPage : labels.games).replace("{count}", catalog.total.toLocaleString(language)) : sourceInfo?.name ?? ""}</span>
+        <ControllerHintsSlot />
         <nav aria-label={labels.page.replace("{page}", page.toLocaleString(language))}>
           <button className="icon" title={labels.previous} aria-label={labels.previous} disabled={loading || !catalog || page <= 1} onClick={() => setPage((value) => value - 1)}><ChevronLeft size={18} /></button>
           <span>{!loading && !error && catalog?.totalPages ? (catalog.totalIsPageCount ? labels.page : labels.pageOf).replace("{page}", catalog.page.toLocaleString(language)).replace("{total}", catalog.totalPages.toLocaleString(language)) : ""}</span>
@@ -479,12 +535,32 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
+  const deleteButtonRef = useRef<HTMLButtonElement>(null);
+  const actionFocusPending = useRef(new URLSearchParams(location.search).get("controller") === "true");
+  useEffect(() => {
+    const cancelFocus = () => { actionFocusPending.current = false; };
+    window.addEventListener("controller-input-inactive", cancelFocus);
+    return () => window.removeEventListener("controller-input-inactive", cancelFocus);
+  }, []);
+  useEffect(() => {
+    if (!game || loading || importing || deleting || duplicateNotice || !actionFocusPending.current) return;
+    const button = game.imported ? deleteButtonRef.current : importButtonRef.current;
+    if (!button || button.disabled) return;
+    actionFocusPending.current = false;
+    document.documentElement.classList.add("controller-navigation-active", "controller-hide-pointer");
+    focusControl(button);
+  }, [game, loading, importing, deleting, duplicateNotice]);
   const [confirmation, setConfirmation] = useState<{
     message: string;
     confirmLabel: string;
     cancelLabel: string;
     resolve: (confirmed: boolean) => void;
   } | null>(null);
+
+  useEffect(() => {
+    window.flashApi.setPanelBackdropDismissible?.(!importing && !deleting && !confirmation && !duplicateNotice);
+  }, [confirmation, deleting, duplicateNotice, importing]);
 
   useEffect(() => {
     const paragraph = descriptionRef.current;
@@ -521,7 +597,7 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
       const removeFiles = await confirm(text.deleteFilesConfirm, actions.deleteFiles, actions.keepFiles);
       await window.flashApi.deleteGame(libraryGameId, removeFiles);
       setError("");
-      setGame(await window.flashApi.getExploreGameDetails(gameId, source));
+      window.close();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : text.deleteFailed);
     } finally {
@@ -551,6 +627,7 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
   }, [gameId, language, source]);
 
   const importGame = async () => {
+    actionFocusPending.current = document.documentElement.classList.contains("controller-navigation-active");
     setImporting(true);
     setError("");
     try {
@@ -570,12 +647,14 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
     }
   };
 
-  const sourceSiteUrl = source === "y8" ? game ? `https://www.y8.com/games/${game.slug}` : "https://www.y8.com/tags/flash" : game?.source === "andkon"
+  const generic = Boolean(game?.siteName);
+  const sourceSiteUrl = generic ? game?.siteUrl || "" : source === "y8" ? game ? `https://www.y8.com/games/${game.slug}` : "https://www.y8.com/tags/flash" : game?.source === "andkon"
     ? new URL(game.slug, "https://www.andkon.com").href
     : game ? `https://www.silvergames.com/en/${game.slug}` : "https://www.silvergames.com/en/";
-  const sourceName = source === "y8" ? "Y8" : game?.source === "andkon" ? "Andkon" : "SilverGames";
-  const detailsText = game?.source === "andkon" ? game.instructions : game?.description || "";
-  const detailsHeading = game?.source === "andkon" ? sourceMetadataLabels[language].instructionsControls : sourceMetadataLabels[language].description;
+  const sourceName = generic ? game?.siteName || "" : source === "y8" ? "Y8" : game?.source === "andkon" ? "Andkon" : "SilverGames";
+  const showInstructions = game?.source === "andkon" || (generic && !game?.description && Boolean(game?.instructions));
+  const detailsText = showInstructions ? game?.instructions || "" : game?.description || "";
+  const detailsHeading = showInstructions ? sourceMetadataLabels[language].instructionsControls : sourceMetadataLabels[language].description;
   const uploadDateMetadata = game?.source !== "y8" && game?.uploadDate && formatUploadDate(game.uploadDate, language) ? (
     <div className="explore-detail-age-rating">
       <strong>{source === "andkon" ? andkonMetadataLabels[language].added : source === "silvergames" ? silvergamesAddedDateLabels[language] : sourceMetadataLabels[language].uploadDate}:</strong> {formatUploadDate(game.uploadDate, language)}
@@ -589,9 +668,9 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
 
   return (
     <main className="explore-detail-window" dir={language === "ar" ? "rtl" : "ltr"}>
-      <header className="explore-detail-header">
+      <PanelHeader className="explore-detail-header" language={language}>
         <h1>{game?.title || messages[language].loadingGame}</h1>
-      </header>
+      </PanelHeader>
       <div className="explore-detail-scroll">
         {game ? (
           <>
@@ -612,7 +691,7 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
                 <section className="explore-detail-ratings">
                   {((game.sourceRating !== null && Number.isFinite(game.sourceRating)) || game.sourceRatingCount !== null || game.likes) && (
                     <div className="explore-detail-rating">
-                      {game.sourceRating !== null && Number.isFinite(game.sourceRating) && <StarRating rating={game.sourceRating} label={source === "y8" ? sourceMetadataLabels[language].rating.replace(/silvergames/i, "Y8") : sourceMetadataLabels[language].rating} language={language} />}
+                      {game.sourceRating !== null && Number.isFinite(game.sourceRating) && <StarRating rating={game.sourceRating} label={source === "y8" ? sourceMetadataLabels[language].rating.replace(/silvergames/i, "Y8") : generic ? sourceMetadataLabels[language].rating.replace(/silvergames/i, sourceName) : sourceMetadataLabels[language].rating} language={language} />}
                       <div className="explore-detail-rating-counts">
                       {game.sourceRatingCount !== null && (
                         <span>{game.sourceRatingCount.toLocaleString(language)} {sourceMetadataLabels[language].votes}</span>
@@ -629,7 +708,7 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
                   {source === "andkon" ? <>{authorInfoMetadata}{uploadDateMetadata}</> : <>{uploadDateMetadata}{authorInfoMetadata}</>}
                   {game.sitePlayCount != null && <div className="explore-detail-age-rating"><strong>{messages[language].plays}:</strong> {game.sitePlayCount.toLocaleString(language)} {messages[language].times}</div>}
                   {game.category && <div className="explore-detail-age-rating"><strong>{messages[language].category}:</strong> {game.category}</div>}
-                  {game.developer && <div className="explore-detail-age-rating"><strong>{messages[language].developer}:</strong> {game.developer}</div>}
+                  {game.developer && game.developer !== game.authorInfo && <div className="explore-detail-age-rating"><strong>{messages[language].developer}:</strong> {game.developer}</div>}
                   {game.addedDate && <div className="explore-detail-age-rating"><strong>{y8MetadataLabels[language].added}:</strong> {formatUploadDate(game.addedDate, language)}</div>}
                 </section>
               )}
@@ -657,7 +736,10 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
               )}
             </div>
           </>
-        ) : <div className="explore-message">{loading ? messages[language].loadingGame : error}</div>}
+        ) : <div className="explore-message">
+          <p>{loading ? messages[language].loadingGame : error}</p>
+          {loading && <button type="button" className="secondary" data-controller-back="" onClick={() => window.close()}>{historyLabels[language].cancel}</button>}
+        </div>}
       </div>
       <footer className="explore-detail-actions">
         <a className="secondary explore-detail-site-button" href={sourceSiteUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => {
@@ -667,16 +749,16 @@ export function ExploreDetails({ gameId, source }: { gameId: number | string; so
         {game && error && <span role="alert">{error}</span>}
         <div className="explore-detail-library-actions">
           {game?.imported && (
-            <button className="icon danger explore-detail-delete" type="button" title={messages[language].delete}
+            <button ref={deleteButtonRef} data-controller-autofocus="" className="icon danger explore-detail-delete" type="button" title={messages[language].delete}
               aria-label={messages[language].delete} disabled={!game.libraryGameId || importing || deleting}
               onClick={() => void deleteGame()}>
               <Trash2 size={18} />
             </button>
           )}
-          <button className="primary" title={game?.duplicateOf ? exploreDuplicateLabels[language].of.replace("{title}", game.duplicateOf) : undefined}
+          <button ref={importButtonRef} data-controller-autofocus="" className="primary" title={game?.duplicateOf ? exploreDuplicateLabels[language].of.replace("{title}", game.duplicateOf) : undefined}
             onClick={() => void importGame()} disabled={!game || game.imported || importing || deleting}>
             <Download size={17} />
-            <span>{game?.duplicateOf ? exploreDuplicateLabels[language].badge : game?.imported ? messages[language].alreadyInLibrary : game?.onlineOnly ? y8MetadataLabels[language].addOnlineOnly : importing ? `${messages[language].importSwf}…` : messages[language].importSwf}</span>
+            <span>{game?.duplicateOf ? exploreDuplicateLabels[language].badge : game?.imported ? messages[language].alreadyInLibrary : game?.onlineOnly ? y8MetadataLabels[language].addOnlineOnly : importing ? `${importGameLabels[language].button}…` : importGameLabels[language].button}</span>
           </button>
         </div>
       </footer>

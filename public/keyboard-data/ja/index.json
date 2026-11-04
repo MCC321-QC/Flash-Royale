@@ -1,0 +1,421 @@
+{
+  "schema": 1,
+  "readings": 744228,
+  "prefixes": {
+    "ぁ": {
+      "file": "3041.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 45
+    },
+    "あ": {
+      "file": "3042.json.gz",
+      "keys": 35441,
+      "uncompressedBytes": 1763347
+    },
+    "ぃ": {
+      "file": "3043.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    },
+    "い": {
+      "file": "3044.json.gz",
+      "keys": 27839,
+      "uncompressedBytes": 1313837
+    },
+    "ぅ": {
+      "file": "3045.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    },
+    "う": {
+      "file": "3046.json.gz",
+      "keys": 16198,
+      "uncompressedBytes": 780108
+    },
+    "ぇ": {
+      "file": "3047.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    },
+    "え": {
+      "file": "3048.json.gz",
+      "keys": 12352,
+      "uncompressedBytes": 586815
+    },
+    "ぉ": {
+      "file": "3049.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    },
+    "お": {
+      "file": "304a.json.gz",
+      "keys": 31618,
+      "uncompressedBytes": 1527302
+    },
+    "か": {
+      "file": "304b.json.gz",
+      "keys": 38039,
+      "uncompressedBytes": 1791603
+    },
+    "が": {
+      "file": "304c.json.gz",
+      "keys": 5410,
+      "uncompressedBytes": 243875
+    },
+    "き": {
+      "file": "304d.json.gz",
+      "keys": 24096,
+      "uncompressedBytes": 1161254
+    },
+    "ぎ": {
+      "file": "304e.json.gz",
+      "keys": 3279,
+      "uncompressedBytes": 141164
+    },
+    "く": {
+      "file": "304f.json.gz",
+      "keys": 15677,
+      "uncompressedBytes": 742165
+    },
+    "ぐ": {
+      "file": "3050.json.gz",
+      "keys": 4223,
+      "uncompressedBytes": 202481
+    },
+    "け": {
+      "file": "3051.json.gz",
+      "keys": 6492,
+      "uncompressedBytes": 306601
+    },
+    "げ": {
+      "file": "3052.json.gz",
+      "keys": 3372,
+      "uncompressedBytes": 150539
+    },
+    "こ": {
+      "file": "3053.json.gz",
+      "keys": 24610,
+      "uncompressedBytes": 1184669
+    },
+    "ご": {
+      "file": "3054.json.gz",
+      "keys": 5138,
+      "uncompressedBytes": 227151
+    },
+    "さ": {
+      "file": "3055.json.gz",
+      "keys": 21447,
+      "uncompressedBytes": 1022575
+    },
+    "ざ": {
+      "file": "3056.json.gz",
+      "keys": 1983,
+      "uncompressedBytes": 82003
+    },
+    "し": {
+      "file": "3057.json.gz",
+      "keys": 37096,
+      "uncompressedBytes": 1719316
+    },
+    "じ": {
+      "file": "3058.json.gz",
+      "keys": 16940,
+      "uncompressedBytes": 816058
+    },
+    "す": {
+      "file": "3059.json.gz",
+      "keys": 18552,
+      "uncompressedBytes": 945000
+    },
+    "ず": {
+      "file": "305a.json.gz",
+      "keys": 1174,
+      "uncompressedBytes": 51693
+    },
+    "せ": {
+      "file": "305b.json.gz",
+      "keys": 12064,
+      "uncompressedBytes": 574084
+    },
+    "ぜ": {
+      "file": "305c.json.gz",
+      "keys": 3101,
+      "uncompressedBytes": 136111
+    },
+    "そ": {
+      "file": "305d.json.gz",
+      "keys": 7702,
+      "uncompressedBytes": 352569
+    },
+    "ぞ": {
+      "file": "305e.json.gz",
+      "keys": 828,
+      "uncompressedBytes": 32782
+    },
+    "た": {
+      "file": "305f.json.gz",
+      "keys": 20727,
+      "uncompressedBytes": 980710
+    },
+    "だ": {
+      "file": "3060.json.gz",
+      "keys": 8415,
+      "uncompressedBytes": 400689
+    },
+    "ち": {
+      "file": "3061.json.gz",
+      "keys": 13277,
+      "uncompressedBytes": 638699
+    },
+    "ぢ": {
+      "file": "3062.json.gz",
+      "keys": 43,
+      "uncompressedBytes": 1200
+    },
+    "っ": {
+      "file": "3063.json.gz",
+      "keys": 55,
+      "uncompressedBytes": 1809
+    },
+    "つ": {
+      "file": "3064.json.gz",
+      "keys": 9953,
+      "uncompressedBytes": 479164
+    },
+    "づ": {
+      "file": "3065.json.gz",
+      "keys": 203,
+      "uncompressedBytes": 6569
+    },
+    "て": {
+      "file": "3066.json.gz",
+      "keys": 9101,
+      "uncompressedBytes": 408807
+    },
+    "で": {
+      "file": "3067.json.gz",
+      "keys": 6888,
+      "uncompressedBytes": 335518
+    },
+    "と": {
+      "file": "3068.json.gz",
+      "keys": 19746,
+      "uncompressedBytes": 1006328
+    },
+    "ど": {
+      "file": "3069.json.gz",
+      "keys": 6905,
+      "uncompressedBytes": 314777
+    },
+    "な": {
+      "file": "306a.json.gz",
+      "keys": 17162,
+      "uncompressedBytes": 805564
+    },
+    "に": {
+      "file": "306b.json.gz",
+      "keys": 14084,
+      "uncompressedBytes": 657144
+    },
+    "ぬ": {
+      "file": "306c.json.gz",
+      "keys": 1845,
+      "uncompressedBytes": 80725
+    },
+    "ね": {
+      "file": "306d.json.gz",
+      "keys": 4380,
+      "uncompressedBytes": 203839
+    },
+    "の": {
+      "file": "306e.json.gz",
+      "keys": 5550,
+      "uncompressedBytes": 272935
+    },
+    "は": {
+      "file": "306f.json.gz",
+      "keys": 20454,
+      "uncompressedBytes": 951633
+    },
+    "ば": {
+      "file": "3070.json.gz",
+      "keys": 7181,
+      "uncompressedBytes": 340183
+    },
+    "ぱ": {
+      "file": "3071.json.gz",
+      "keys": 4521,
+      "uncompressedBytes": 212401
+    },
+    "ひ": {
+      "file": "3072.json.gz",
+      "keys": 16374,
+      "uncompressedBytes": 795766
+    },
+    "び": {
+      "file": "3073.json.gz",
+      "keys": 4298,
+      "uncompressedBytes": 198111
+    },
+    "ぴ": {
+      "file": "3074.json.gz",
+      "keys": 2510,
+      "uncompressedBytes": 113398
+    },
+    "ふ": {
+      "file": "3075.json.gz",
+      "keys": 20580,
+      "uncompressedBytes": 1016229
+    },
+    "ぶ": {
+      "file": "3076.json.gz",
+      "keys": 6444,
+      "uncompressedBytes": 309878
+    },
+    "ぷ": {
+      "file": "3077.json.gz",
+      "keys": 4233,
+      "uncompressedBytes": 208028
+    },
+    "へ": {
+      "file": "3078.json.gz",
+      "keys": 3390,
+      "uncompressedBytes": 148332
+    },
+    "べ": {
+      "file": "3079.json.gz",
+      "keys": 3523,
+      "uncompressedBytes": 157130
+    },
+    "ぺ": {
+      "file": "307a.json.gz",
+      "keys": 1671,
+      "uncompressedBytes": 73805
+    },
+    "ほ": {
+      "file": "307b.json.gz",
+      "keys": 11422,
+      "uncompressedBytes": 521266
+    },
+    "ぼ": {
+      "file": "307c.json.gz",
+      "keys": 3436,
+      "uncompressedBytes": 149417
+    },
+    "ぽ": {
+      "file": "307d.json.gz",
+      "keys": 2598,
+      "uncompressedBytes": 125157
+    },
+    "ま": {
+      "file": "307e.json.gz",
+      "keys": 18890,
+      "uncompressedBytes": 921165
+    },
+    "み": {
+      "file": "307f.json.gz",
+      "keys": 17472,
+      "uncompressedBytes": 810456
+    },
+    "む": {
+      "file": "3080.json.gz",
+      "keys": 5488,
+      "uncompressedBytes": 240978
+    },
+    "め": {
+      "file": "3081.json.gz",
+      "keys": 6839,
+      "uncompressedBytes": 330540
+    },
+    "も": {
+      "file": "3082.json.gz",
+      "keys": 9427,
+      "uncompressedBytes": 454634
+    },
+    "や": {
+      "file": "3084.json.gz",
+      "keys": 9776,
+      "uncompressedBytes": 442865
+    },
+    "ゆ": {
+      "file": "3086.json.gz",
+      "keys": 5429,
+      "uncompressedBytes": 264245
+    },
+    "ょ": {
+      "file": "3087.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    },
+    "よ": {
+      "file": "3088.json.gz",
+      "keys": 8569,
+      "uncompressedBytes": 413077
+    },
+    "ら": {
+      "file": "3089.json.gz",
+      "keys": 6252,
+      "uncompressedBytes": 283866
+    },
+    "り": {
+      "file": "308a.json.gz",
+      "keys": 8743,
+      "uncompressedBytes": 411281
+    },
+    "る": {
+      "file": "308b.json.gz",
+      "keys": 2215,
+      "uncompressedBytes": 96757
+    },
+    "れ": {
+      "file": "308c.json.gz",
+      "keys": 5560,
+      "uncompressedBytes": 260062
+    },
+    "ろ": {
+      "file": "308d.json.gz",
+      "keys": 5420,
+      "uncompressedBytes": 258752
+    },
+    "ゎ": {
+      "file": "308e.json.gz",
+      "keys": 4,
+      "uncompressedBytes": 123
+    },
+    "わ": {
+      "file": "308f.json.gz",
+      "keys": 6374,
+      "uncompressedBytes": 304760
+    },
+    "ゐ": {
+      "file": "3090.json.gz",
+      "keys": 9,
+      "uncompressedBytes": 235
+    },
+    "ゑ": {
+      "file": "3091.json.gz",
+      "keys": 33,
+      "uncompressedBytes": 1033
+    },
+    "を": {
+      "file": "3092.json.gz",
+      "keys": 49,
+      "uncompressedBytes": 1458
+    },
+    "ん": {
+      "file": "3093.json.gz",
+      "keys": 99,
+      "uncompressedBytes": 2992
+    },
+    "ゔ": {
+      "file": "3094.json.gz",
+      "keys": 1933,
+      "uncompressedBytes": 95457
+    },
+    "ー": {
+      "file": "30fc.json.gz",
+      "keys": 1,
+      "uncompressedBytes": 39
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "dirplayer": {
+    "version": "0.8.1",
+    "runtimeArchiveSha256": "6f5000412c50833345a630ade25fb70359dc4e1aae66352c80de7da77542162c"
+  },
+  "archives": [
+    {
+      "file": "dirplayer-0.8.1.tar.gz",
+      "component": "DirPlayer",
+      "revision": "7f632b416b55ec351341feda4db2a444564217aa",
+      "url": "https://codeload.github.com/igorlira/dirplayer-rs/tar.gz/7f632b416b55ec351341feda4db2a444564217aa",
+      "sha256": "c261d07dfc55555abaac63a9b7450f8d5d66696220633fbc30b2ab7177a55a53",
+      "extractTo": "dirplayer"
+    },
+    {
+      "file": "dirplayer-ruffle-79d1ca0.tar.gz",
+      "component": "DirPlayer's Ruffle submodule",
+      "revision": "79d1ca0f45d79e28c3a0658bbc6b8430d26ef308",
+      "url": "https://codeload.github.com/chameleonxxl/ruffle/tar.gz/79d1ca0f45d79e28c3a0658bbc6b8430d26ef308",
+      "sha256": "40a2e5aa7702bae789f6dbc4c6060a0eaf0b66c7a39e10651f607e675b8d9c8a",
+      "extractTo": "dirplayer/ruffle"
+    }
+  ],
+  "unavailableSubmodules": [
+    {
+      "path": "xtras/bobba-xtra",
+      "repository": "https://github.com/chameleonxxl/bobba-xtra",
+      "revision": "3022f6f924d23ac1838be7b212cf745f52448dcd",
+      "runtime": "bobba_xtra.wasm"
+    },
+    {
+      "path": "xtras/groove-xtra",
+      "repository": "https://github.com/chameleonxxl/groove-xtra",
+      "revision": "86ea920f3b4d8add58b8f3e07629699cefa1763e",
+      "runtime": "groove_xtra.wasm"
+    }
+  ]
+}

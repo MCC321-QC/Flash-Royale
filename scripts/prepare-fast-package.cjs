@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { copyRecursive } = require("./copy-recursive.cjs");
 
 const root = path.resolve(__dirname, "..");
 const releaseDir = path.join(root, "release");
@@ -31,19 +32,6 @@ const packageReadme = [
   "Keep Flash Royale.exe, resources, locales, and the DLL files together.",
   "",
 ].join("\r\n");
-
-function copyRecursive(source, target) {
-  const stat = fs.statSync(source);
-  if (stat.isDirectory()) {
-    fs.mkdirSync(target, { recursive: true });
-    for (const entry of fs.readdirSync(source)) {
-      copyRecursive(path.join(source, entry), path.join(target, entry));
-    }
-    return;
-  }
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(source, target);
-}
 
 function copyRuntimeTo(targetDir) {
   if (!fs.existsSync(unpackedDir)) {

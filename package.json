@@ -1,8 +1,8 @@
 {
   "name": "flash-royale",
-  "version": "0.9.7",
+  "version": "1.0.0",
   "private": true,
-  "description": "Dominate your local flash games library with Flash Royale. Powered by Electron, React, and Ruffle.",
+  "description": "Dominate your local flash games library with Flash Royale. Powered by Electron, React, Ruffle and DirPlayer.",
   "author": "MCC321-QC",
   "contributors": [
     "xevil3301",
@@ -13,19 +13,26 @@
     "url": "https://github.com/MCC321-QC/Flash-Royale.git"
   },
   "bugs": {
-    "url": "https://github.com/xevil3301/flashmanager/issues"
+    "url": "https://github.com/MCC321-QC/Flash-Royale/issues"
   },
-  "homepage": "https://github.com/xevil3301/flashmanager#readme",
+  "homepage": "https://github.com/MCC321-QC/Flash-Royale",
   "main": "electron/main.cjs",
   "scripts": {
-    "postinstall": "node scripts/copy-ruffle.cjs",
+    "postinstall": "node scripts/copy-ruffle.cjs && node scripts/prepare-sdl.cjs && node scripts/setup-dirplayer.cjs && node scripts/setup-libreshockwave.cjs",
+    "setup:dirplayer": "node scripts/setup-dirplayer.cjs",
+    "setup:libreshockwave": "node scripts/setup-libreshockwave.cjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
+    "licenses": "node scripts/collect-licenses.cjs && node scripts/collect-license-sources.cjs",
+    "setup:license-sources": "node scripts/collect-license-sources.cjs --download",
+    "prebuild": "npm run licenses",
     "build": "tsc --noEmit && vite build",
     "package:win": "npm run build && electron-builder --win dir",
     "package:portable": "npm run package:fast",
     "package:fast": "npm run build && electron-builder --win dir && node scripts/prepare-fast-package.cjs",
     "package:share": "npm run build && electron-builder --win dir && node scripts/package-share-folder.cjs",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "sign-sources": "node scripts/sign-sources.cjs",
+    "sign-release": "node scripts/sign-sources.cjs --release"
   },
   "build": {
     "appId": "local.flashroyale.app",
@@ -38,7 +45,22 @@
       "electron/**/*",
       "!electron/*.test.*",
       "assets/**/*",
+      "!assets/steam/**/*",
       "public/ruffle/**/*",
+      "public/dirplayer/**/*",
+      "public/libreshockwave/**/*",
+      "public/crt-royale/**/*",
+      "public/selawik/provenance.json",
+      "public/selawik/COPYING",
+      "public/theme-fonts/provenance.json",
+      "public/theme-fonts/OFL-LilitaOne.txt",
+      "public/theme-fonts/OFL-Nunito.txt",
+      "public/theme-fonts/OFL-PlayfairDisplay.txt",
+      "public/theme-fonts/OFL-Cinzel.txt",
+      "public/theme-fonts/OFL-Orbitron.txt",
+      "public/theme-fonts/OFL-RussoOne.txt",
+      "sources/enabled/**/*",
+      "sources/disabled/**/*",
       "package.json"
     ],
     "win": {
@@ -51,13 +73,31 @@
     "portable": {
       "artifactName": "${productName}.${ext}"
     },
-    "asar": true
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "third-party-notices",
+        "to": "third-party-notices"
+      },
+      {
+        "from": "third-party-sources",
+        "to": "third-party-sources"
+      },
+      {
+        "from": "vendor/sdl3",
+        "to": "sdl3"
+      }
+    ]
   },
   "dependencies": {
-    "@ruffle-rs/ruffle": "latest",
+    "@ruffle-rs/ruffle": "0.7.1",
     "cheerio": "^1.2.0",
+    "foliate-js": "^1.0.1",
     "fuse.js": "^7.0.0",
+    "koffi": "^3.3.3",
     "lucide-react": "^0.468.0",
+    "marked": "^18.1.1",
+    "pdfjs-dist": "^6.4.299",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -67,7 +107,7 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^9.2.1",
-    "electron": "^42.2.0",
+    "electron": "^44.9.3",
     "electron-builder": "^26.8.1",
     "typescript": "^5.3.3",
     "vite": "^8.0.14",

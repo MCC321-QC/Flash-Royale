@@ -24,7 +24,7 @@ test("Explore has complete translations and matching placeholders in all eleven 
       assert.ok(translated.showOn.replace("{site}", site).includes(site));
     }
   }
-  assert.equal(labels.fr.showOn.replace("{site}", "Andkon"), "Voir sur Andkon");
+  assert.equal(labels.fr.showOn.replace("{site}", "Andkon"), "Afficher sur Andkon");
 });
 
 test("Explore JSX contains no untranslated visible text except site names and technical units", () => {

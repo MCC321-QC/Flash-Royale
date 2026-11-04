@@ -1,0 +1,240 @@
+/* Retro Royale skin, inspired by RuffleVita (github.com/ibrahim-dogan/vita-flash-emulator by İbrahim Doğan):
+   paper controls with ink outlines and hard shadows, sun headers, navy panels. theme.ts inserts this sheet after
+   styles.css only while a Retro Royale-based theme is active. Colors derive from the theme's roles, so custom
+   themes recolor it: ink = on-accent, paper = a pale accent mix, sun = accent, panels = surface, edge = shadow. */
+
+:root {
+  --ink: var(--fr-on-accent); --paper: color-mix(in oklab, var(--fr-accent) 10%, white); --sun: var(--fr-accent); --sun-bright: var(--fr-accent-bright);
+  --blue: var(--fr-wallpaper-color); --edge: var(--fr-shadow);
+  --navy: var(--fr-surface); --navy-2: var(--fr-surface-2);
+  --green: color-mix(in oklab, var(--fr-success) 78%, var(--ink));
+  --green-light: color-mix(in oklab, var(--green) 80%, var(--paper));
+  --green-stripes: repeating-linear-gradient(135deg, var(--green) 0 7px, var(--green-light) 7px 14px);
+  --paper-hover: color-mix(in oklab, var(--paper) 30%, white);
+  --card-focus: color-mix(in oklab, var(--fr-danger) 35%, var(--paper));
+  --tomato: var(--fr-danger); --tomato-hover: color-mix(in oklab, var(--fr-danger) 90%, var(--ink));
+  --tomato-ink: color-mix(in oklab, var(--fr-danger) 55%, var(--ink)); --tomato-wash: color-mix(in oklab, var(--fr-danger) 15%, var(--paper));
+  --online: var(--fr-info); --online-ink: color-mix(in oklab, var(--fr-info) 45%, var(--ink));
+  /* Root colors, for popups that sit inside re-scoped (paper or sun) areas. */
+  --root-text: var(--fr-text); --root-text-soft: var(--fr-text-soft); --root-text-muted: var(--fr-text-muted); --root-text-dim: var(--fr-text-dim);
+  --root-accent: var(--fr-accent); --root-accent-bright: var(--fr-accent-bright); --root-raised: var(--fr-raised);
+  /* Dark-on-paper and dark-on-sun text. */
+  --ink-soft: color-mix(in oklab, var(--ink) 88%, var(--paper)); --ink-muted: color-mix(in oklab, var(--ink) 72%, var(--paper));
+  --ink-dim: color-mix(in oklab, var(--ink) 58%, var(--paper)); --ink-link: color-mix(in oklab, var(--fr-wallpaper-color) 85%, var(--ink));
+}
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--sun); }
+
+/* Paper controls: dark text variables re-scoped so their contents stay readable. */
+.game-card, .searchbox, .secondary, .icon, .library-stat, .settings-trigger, .toast, .settings-section-links button,
+.controller-file-path input, .confirm-prompt-field input, .player-custom-fields input[type="text"], .music-normalization-path input,
+.antivirus-key-row input, .controller-name-editor input, .color-picker-hex input, .theme-name-field input {
+  --fr-text: var(--ink); --fr-text-soft: var(--ink-soft); --fr-text-muted: var(--ink-muted); --fr-text-dim: var(--ink-dim); --fr-overlay: var(--ink);
+  --fr-accent: var(--ink-link); --fr-accent-bright: var(--ink-link); --fr-info-text: var(--ink-link);
+  --fr-success-text: color-mix(in oklab, var(--fr-success) 55%, var(--ink)); --fr-danger-text: var(--tomato-ink);
+  --fr-raised: color-mix(in oklab, var(--paper) 94%, var(--ink)); --fr-surface: var(--paper); --fr-surface-2: color-mix(in oklab, var(--paper) 60%, white);
+  --fr-border: color-mix(in oklab, var(--paper) 78%, var(--ink)); --fr-depth: color-mix(in oklab, var(--paper) 85%, var(--ink));
+}
+.game-card, .searchbox, .primary, .secondary, .save, .icon, .library-stat, .settings-trigger, .toast {
+  border: 3px solid var(--ink) !important; box-shadow: 4px 4px 0 var(--edge);
+}
+.icon, .library-stat, .searchbox, .settings-trigger, .toast, .secondary { background: var(--paper) !important; color: var(--ink) !important; }
+.primary { background: var(--sun) !important; color: var(--ink) !important; font-size: 17px; --fr-text: var(--ink); }
+.primary:disabled { background: color-mix(in oklab, var(--paper) 50%, var(--ink)) !important; color: rgb(from var(--ink) r g b / 0.6) !important; opacity: 1; }
+
+/* Solid hovers: no translucent tints that let the backdrop show through. */
+.icon:hover:not(:disabled), .secondary:hover:not(:disabled), .settings-trigger:hover, .toast:hover, .library-stat:hover { background: var(--paper-hover) !important; color: var(--ink) !important; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--edge); }
+.primary:hover:not(:disabled) { background: var(--sun-bright) !important; color: var(--ink) !important; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--edge); }
+.primary:active, .icon:active, .secondary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--edge); }
+
+.icon:is(.active, .pinned, [aria-pressed="true"]), .secondary[aria-pressed="true"] {
+  background: var(--sun) !important; color: var(--ink) !important;
+}
+.icon:is(.active, .pinned, [aria-pressed="true"]):hover:not(:disabled), .secondary[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--sun-bright) !important; color: var(--ink) !important;
+}
+
+.controller-file-path input, .confirm-prompt-field input, .player-custom-fields input[type="text"], .music-normalization-path input,
+.antivirus-key-row input, .controller-name-editor input, .color-picker-hex input, .theme-name-field input {
+  background: var(--paper) !important; color: var(--ink) !important; border: 2px solid var(--ink) !important; border-radius: 10px;
+}
+
+/* Wallpaper behind the library, with paper text on it. */
+.sidebar, .library-info { --fr-text: var(--paper); --fr-text-soft: var(--paper); --fr-text-muted: color-mix(in oklab, var(--root-text-muted) 50%, var(--paper)); --fr-text-dim: var(--root-text-muted); --fr-overlay: var(--paper); --fr-accent: var(--sun); }
+.sidebar { background: transparent; backdrop-filter: none; box-shadow: none; }
+.window-titlebar { background: var(--navy); border-bottom: 0; }
+.brand h1, .brand strong { color: var(--paper); text-shadow: 3px 3px 0 var(--ink); }
+.nav-section button.active { color: var(--ink) !important; background: var(--sun) !important; outline: 3px solid var(--ink); outline-offset: -3px; box-shadow: 3px 3px 0 var(--ink); --fr-text: var(--ink); --fr-text-soft: var(--ink); --fr-text-muted: var(--ink); --fr-text-dim: var(--ink-soft); }
+
+/* Game cards: paper, sun when selected, lighter on hover. */
+.game-card { border-radius: 14px; background: var(--paper) !important; box-shadow: 5px 5px 0 var(--ink); }
+.game-card:hover { background: var(--paper-hover) !important; transform: translate(-1px, -1px); box-shadow: 6px 6px 0 var(--ink); }
+.game-card.selected, .game-card.selected:hover { background: var(--sun) !important; }
+.cover-wrap { border-bottom: 3px solid var(--ink); }
+.fav-badge { background: var(--paper); border: 2px solid var(--ink); color: var(--ink); --fr-text-dim: var(--ink-dim); }
+.cover-rating {
+  background: var(--navy); border: 2px solid var(--ink);
+  --fr-text-soft: var(--paper); --fr-text-muted: var(--paper); --fr-border: var(--fr-surface-2);
+}
+
+/* Large panels: navy with ink edges. */
+.details { background: var(--navy) !important; backdrop-filter: none; border-left: 3px solid var(--ink); box-shadow: none; }
+.modal-backdrop { background: rgb(from var(--ink) r g b / 0.6); backdrop-filter: none; }
+.settings-window, .confirm-dialog { border: 3px solid var(--ink) !important; box-shadow: 8px 8px 0 var(--edge); border-radius: 16px; background: var(--navy) !important; }
+.settings-tabbed > header { background: var(--sun); border-bottom: 3px solid var(--edge) !important; --fr-text: var(--ink); --fr-text-soft: var(--ink); --fr-text-muted: var(--ink-soft); --fr-text-dim: var(--ink-muted); --fr-overlay: var(--ink); }
+.settings-tabbed > header .settings-heading { color: var(--ink); }
+.settings-tabbed > .settings-about-footer { background: var(--navy-2); border-top: 3px solid var(--edge); }
+.settings-sidebar { background: var(--navy-2); border-right: 3px solid var(--edge); }
+.settings-sidebar-scroll { border-bottom: 3px solid var(--edge); }
+.settings-tab-entry > button { border-radius: 11px; font-weight: 800; }
+.settings-tab-entry > button[aria-selected="true"] { background: var(--sun) !important; color: var(--ink) !important; outline: 3px solid var(--edge); outline-offset: -3px; box-shadow: 3px 3px 0 var(--edge); --fr-text: var(--ink); --fr-text-soft: var(--ink); --fr-text-muted: var(--ink); }
+.settings-section-links button { background: var(--paper) !important; border: 2px solid var(--ink); border-radius: 10px; color: var(--ink) !important; }
+.settings-section-links button:hover { background: var(--paper-hover) !important; }
+.settings-tab-content { background: var(--green-stripes); }
+.settings-controller-collapse, .settings-tab-content > .settings-tab-page > .settings-section, .settings-general-options > .settings-controller-collapse {
+  border: 3px solid var(--edge) !important; border-radius: 14px; box-shadow: 4px 4px 0 var(--edge); background: var(--navy-2) !important;
+}
+
+/* Sections inside a framed settings box stack flush: one divider line, only the outer corners rounded. */
+.settings-tabbed .settings-controller-collapse .settings-section:not(.settings-section .settings-section) { margin: 0; border-width: 1px 0 0; border-radius: 0; }
+.settings-tabbed .settings-controller-collapse > .settings-controller-subsection > .settings-section:first-child { border-top-width: 0; border-top-left-radius: 11px; border-top-right-radius: 11px; }
+.settings-tabbed .settings-controller-collapse > .settings-controller-subsection > .settings-section:last-child { border-bottom-left-radius: 11px; border-bottom-right-radius: 11px; }
+.settings-tabbed .settings-controller-collapse .settings-section > .settings-section-title { border-radius: 0; }
+.settings-tabbed .players-settings .players-list { gap: 0; }
+.settings-tabbed .players-settings .players-settings-actions { margin: 0; padding: 12px; border-top: 1px solid var(--fr-border); }
+.settings-tab-page :is(.theme-settings-description, .cursor-settings-description) { padding: 10px 12px 0; }
+/* Shortcut logo choice: one sun fill instead of a second outline. */
+.shortcut-logo-choices > button[aria-pressed="true"] { outline: 0; background: var(--sun) !important; }
+.shortcut-logo-choices > button[aria-pressed="true"]:hover { background: var(--sun-bright) !important; }
+.shortcut-icon-preview, .shortcut-icon-banner { border: 3px solid var(--edge); background: var(--navy-2); }
+
+/* Explore window. */
+.explore-window { background: var(--fr-wallpaper, var(--blue)) !important; border: 3px solid var(--ink) !important; }
+.explore-header { background: var(--sun) !important; border-bottom: 3px solid var(--ink) !important; --fr-text: var(--ink); --fr-text-soft: var(--ink); --fr-text-muted: var(--ink-soft); --fr-text-dim: var(--ink-muted); --fr-overlay: var(--ink); --fr-accent: var(--ink); }
+.explore-heading h2, .explore-header h1, .explore-header h2 { color: var(--ink); }
+.explore-search { background: var(--paper) !important; border: 3px solid var(--ink) !important; box-shadow: 3px 3px 0 var(--ink); }
+.explore-results { background: transparent !important; }
+.explore-game { background: var(--paper) !important; border: 3px solid var(--ink) !important; border-radius: 12px; box-shadow: 4px 4px 0 var(--ink); color: var(--ink);
+  --fr-text: var(--ink); --fr-text-soft: var(--ink-soft); --fr-text-muted: var(--ink-muted); --fr-text-dim: var(--ink-dim); --fr-overlay: var(--ink);
+  --fr-success-text: color-mix(in oklab, var(--fr-success) 55%, var(--ink)); --fr-accent: var(--ink-link); }
+.explore-game:hover { background: var(--paper-hover) !important; transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.explore-art { border-bottom: 3px solid var(--ink); }
+.explore-footer { background: var(--navy-2) !important; border-top: 0 !important; }
+.explore-tags { background: rgb(from var(--ink) r g b / 0.85); color: var(--paper); }
+
+/* Explore catalog tabs: same chip box for every tab so the active one is centered and readable. */
+.explore-catalog-switch { gap: 6px; }
+.explore-catalog-switch button { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 12px !important; border: 2px solid transparent !important; border-radius: 9px; color: var(--ink) !important; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; line-height: 1; }
+.explore-catalog-switch button:hover:not(.active) { border-color: var(--ink) !important; background: rgb(from var(--ink) r g b / 0.08) !important; }
+.explore-catalog-switch button.active { background: var(--ink) !important; color: var(--sun) !important; border-color: var(--ink) !important; box-shadow: 3px 3px 0 rgb(from var(--ink) r g b / 0.35); }
+
+/* Popups inside sun headers get the regular panel colors back instead of the header's ink re-scope. */
+:is(.explore-header, .remap-header, .onscreen-editor-header, .settings-tabbed > header) :is([role="listbox"], [role="menu"], [class*="-menu"]:not(button), [class*="popover"], [class*="dropdown"]:not(button)) {
+  --fr-text: var(--root-text); --fr-text-soft: var(--root-text-soft); --fr-text-muted: var(--root-text-muted); --fr-text-dim: var(--root-text-dim); --fr-overlay: var(--root-text);
+  --fr-accent: var(--root-accent); --fr-accent-bright: var(--root-accent-bright); --fr-highlight: var(--root-accent); color: var(--fr-text);
+}
+.explore-category-trigger { background: var(--paper) !important; color: var(--ink) !important; border: 3px solid var(--ink) !important; border-radius: 10px !important; box-shadow: 4px 4px 0 var(--edge); font-weight: 700; }
+.explore-category-trigger:hover, .explore-category-trigger[aria-expanded="true"] { background: var(--paper-hover) !important; }
+.explore-category-trigger svg { color: var(--ink); }
+.explore-category-menu { background: var(--navy) !important; border: 3px solid var(--ink) !important; border-radius: 12px !important; box-shadow: 5px 5px 0 var(--edge) !important; }
+.category-option { color: var(--fr-text-soft); font-weight: 600; }
+.category-option:hover { background: var(--root-raised) !important; color: var(--fr-text) !important; }
+.category-option.active { background: var(--sun) !important; color: var(--ink) !important; box-shadow: none !important; font-weight: 800; }
+
+/* Online-only games keep their left-edge marker. */
+.game-card.online-only, .explore-game.online-only { border-left: 9px solid var(--online) !important; }
+.explore-game.online-only .explore-game-status { color: var(--online-ink) !important; }
+
+/* Shared aux window shell (history, remap, guides). */
+.remap-window { border: 3px solid var(--ink) !important; background: var(--navy) !important; }
+.remap-header, .onscreen-editor-header { background: var(--sun) !important; border-bottom: 3px solid var(--ink) !important; --fr-text: var(--ink); --fr-text-soft: var(--ink); --fr-text-muted: var(--ink-soft); --fr-text-dim: var(--ink-muted); --fr-overlay: var(--ink); --fr-accent: var(--ink); color: var(--ink); }
+.remap-header svg, .onscreen-editor-header svg { color: var(--ink); }
+.remap-header :is(h1, h2, .remap-game-title), .onscreen-editor-header :is(h1, p, small, span) { color: var(--ink); }
+.remap-tab[aria-selected="true"], .remap-tab.active { color: var(--ink) !important; background: var(--sun); border-color: var(--ink) !important; }
+.history-entry { background: var(--navy-2) !important; border: 2px solid var(--edge); border-radius: 12px; box-shadow: 3px 3px 0 var(--edge); }
+
+/* Player chrome (game area and bezel art are left alone). */
+.player-modal .player-chrome > header, .player-modal header { background: var(--navy) !important; border-bottom: 3px solid var(--edge) !important; }
+.player-modal .player-menu, .player-guides-menu, [role="menu"] { background: var(--navy) !important; border: 3px solid var(--ink) !important; border-radius: 12px; box-shadow: 5px 5px 0 var(--edge) !important; }
+.online-player-header { background: var(--navy) !important; border-bottom: 3px solid var(--edge) !important; }
+.online-player-header strong { font-size: 15px; }
+.online-player-shell { background: var(--fr-depth) !important; }
+
+.crt-settings-panel { border: 3px solid var(--ink) !important; border-radius: 16px; box-shadow: 8px 8px 0 var(--edge) !important; background: var(--navy) !important; }
+.crt-settings-panel > header { background: var(--navy-2); border-bottom: 3px solid var(--edge); }
+
+.secondary:disabled, .icon:disabled { background: var(--paper) !important; color: rgb(from var(--ink) r g b / 0.45) !important; opacity: 0.6; box-shadow: none; }
+.secondary.danger, .icon.danger { color: var(--tomato-ink) !important; }
+.secondary.danger:hover:not(:disabled), .icon.danger:hover:not(:disabled) { background: var(--tomato-wash) !important; }
+
+/* Icon-only buttons: no side padding so the icon stays centered inside the thicker border. */
+.icon { padding: 0 !important; }
+.icon.small { box-shadow: 3px 3px 0 var(--edge) !important; }
+.icon.small:hover:not(:disabled) { box-shadow: 4px 4px 0 var(--edge) !important; }
+
+/* Text that marks a single-click destructive action stays red on paper buttons. */
+.music-actions :is(.remove-music, .recapture-cover), .music-actions :is(.remove-music, .recapture-cover):is(:hover, :disabled) { color: var(--tomato-ink) !important; }
+
+/* Shortcut split button: one joined control with rounded outer corners. */
+.shortcut-split { overflow: visible !important; border-radius: 10px; }
+.shortcut-split > button { border-radius: 0 !important; }
+.shortcut-split > button:first-child { border-start-start-radius: 10px !important; border-end-start-radius: 10px !important; }
+.shortcut-split > button:last-child { border-start-end-radius: 10px !important; border-end-end-radius: 10px !important; }
+.shortcut-split > button + button { border-inline-start-width: 0 !important; }
+
+/* Keep focus gold independent of paper controls' re-scoped link colors. */
+:root:is(.controller-navigation-active, .keyboard-focus) :is([data-controller-focused],
+  :is(.searchbox, .explore-search, .category-combo, .date-combo, .theme-volume-panel, .remap-slider, .card-size-control, .player-volume):has([data-controller-focused]),
+  label:has(> input[data-controller-focused])) {
+  --fr-accent-bright: var(--root-accent-bright);
+}
+:root:is(.controller-navigation-active, .keyboard-focus) :is(.icon, .secondary, .primary, .settings-trigger, .library-stat, .toast,
+  .settings-tab-entry > button, .nav-section button, .settings-section-links button)[data-controller-focused] {
+  outline: 3px solid var(--root-accent-bright) !important; outline-offset: -3px !important;
+  box-shadow: inset 0 0 0 2px var(--edge) !important;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) :is(.searchbox, .explore-search, .category-combo, .date-combo):has(> input[data-controller-focused]) {
+  box-shadow: inset 0 0 0 2px var(--edge) !important;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) :is(.settings-tab-entry > button, .nav-section button)[data-controller-focused] {
+  box-shadow: inset 0 0 0 5px var(--edge) !important;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) .settings-section-links button[data-controller-focused] {
+  box-shadow: inset 0 0 0 3px var(--edge) !important;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) :is(.explore-search, .category-combo, .date-combo):has(> input[data-controller-focused]) {
+  box-shadow: inset 0 0 0 4px var(--edge) !important;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) .game-card[data-controller-focused] {
+  outline: 3px solid var(--card-focus); outline-offset: 0;
+}
+:root:is(.controller-navigation-active, .keyboard-focus) .game-card[data-controller-focused]::after {
+  border: 4px solid var(--card-focus);
+}
+/* Move titles: sun outline wrapped in ink so it reads on sun headers and navy panels alike. */
+:is(.controller-navigation-active, .keyboard-focus) :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-focused] {
+  outline: 3px solid var(--sun) !important; outline-offset: 0 !important; box-shadow: 0 0 0 6px var(--ink) !important;
+}
+.controller-navigation-active :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-resizing] {
+  outline: 3px solid var(--sun) !important; outline-offset: 0 !important; box-shadow: 0 0 0 6px var(--ink), inset 0 0 0 2px var(--ink) !important;
+}
+.controller-navigation-active :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-resizing]::after,
+.controller-navigation-active :is(.remap-slider, .card-size-control, .theme-volume-panel, .player-volume):has(input[type="range"][data-controller-resizing])::after {
+  background: var(--sun) !important; color: var(--ink) !important; border: 2px solid var(--ink) !important; top: calc(100% + 8px);
+}
+.controller-navigation-active :is(.remap-slider, .card-size-control, .theme-volume-panel, .player-volume):has(input[type="range"][data-controller-resizing])::after { top: -3px; }
+.controller-navigation-active :is(.remap-slider, .card-size-control, .player-volume, .theme-volume-panel):has(input[data-controller-resizing]) { outline: 3px solid var(--sun) !important; box-shadow: 0 0 0 6px var(--ink) !important; }
+
+/* Always-destructive buttons stay red. */
+.secondary.settings-close-app, .primary.stop-playing, .confirm-destructive {
+  background: var(--tomato) !important; color: var(--ink) !important; border: 3px solid var(--ink) !important; box-shadow: 4px 4px 0 var(--edge) !important;
+  --fr-text: var(--ink); --fr-text-soft: var(--ink);
+}
+.secondary.settings-close-app:hover:not(:disabled), .primary.stop-playing:hover:not(:disabled), .confirm-destructive:hover:not(:disabled) { background: var(--tomato-hover) !important; color: var(--ink) !important; }
+/* Armed second-click confirmations turn tomato. */
+.confirming, .is-confirming, .danger-confirm, .desktop-shortcut-footer button.secondary.danger {
+  background: var(--tomato) !important; color: var(--ink) !important; border-color: var(--ink) !important; box-shadow: 0 0 0 2px var(--sun), 4px 4px 0 var(--edge) !important;
+}
+:is(.icon, .secondary, .primary):is(.confirming, .is-confirming, .danger-confirm):hover:not(:disabled), .desktop-shortcut-footer button.secondary.danger:hover:not(:disabled) {
+  background: var(--tomato-hover) !important; color: var(--ink) !important; border-color: var(--ink) !important;
+}
+.icon.danger.confirming, .icon.danger.confirming svg, .secondary.danger.confirming, .player-chrome .icon.confirming svg { color: var(--ink) !important; }

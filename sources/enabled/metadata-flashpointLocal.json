@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "kind": "metadata",
+  "id": "flashpointLocal",
+  "builtin": true,
+  "name": "Flashpoint (installed)",
+  "order": 10
+}

@@ -1,0 +1,251 @@
+/* Shared structure of the styled built-in skins (Card Suits, Casino, Neon, Classic Flash). theme.ts inserts it after
+   styles.css, followed by the skin's own sheet, which sets the --sk-* variables below and adds its flourishes.
+   Every color derives from the theme roles so custom themes recolor the skin. Radius and shadow variables carry their
+   own calc() with --fr-roundness / --fr-shadow-scale, because the build-time scale rewrite skips var() values.
+
+   Lessons from Retro Royale applied everywhere: hovers are solid (never a tint over the backdrop), text inside a
+   filled area is re-scoped to that area's ink, icon-only buttons have no side padding, destructive and armed
+   confirmation buttons are always danger-colored, and online-only games keep a colored left edge. */
+
+:root {
+  /* Bars (title bar, footers, sidebars) and large panels. */
+  --sk-bar: var(--fr-depth);
+  --sk-panel: var(--fr-surface); --sk-panel-2: var(--fr-surface-2);
+  --sk-line: var(--fr-border);
+  /* Controls (buttons, search, inputs). */
+  --sk-ctl: var(--fr-raised); --sk-ctl-hover: color-mix(in oklab, var(--fr-raised) 80%, var(--fr-text));
+  --sk-ctl-bg: var(--sk-ctl); --sk-ctl-bg-hover: var(--sk-ctl-hover);
+  --sk-ctl-line: var(--fr-border); --sk-ctl-line-hover: var(--fr-accent);
+  --sk-ctl-ink: var(--fr-text); --sk-ctl-ink-soft: var(--fr-text-soft); --sk-ctl-ink-muted: var(--fr-text-muted); --sk-ctl-ink-dim: var(--fr-text-dim);
+  --sk-ctl-link: var(--fr-accent); --sk-ctl-danger-ink: var(--fr-danger-text);
+  --sk-field: var(--fr-depth); --sk-field-ink: var(--fr-text);
+  /* Game cards (library and Explore). */
+  --sk-card: var(--fr-surface-2); --sk-card-hover: var(--fr-raised); --sk-card-sel: var(--fr-raised);
+  --sk-card-bg: var(--sk-card); --sk-card-bg-hover: var(--sk-card-hover); --sk-card-bg-sel: var(--sk-card-sel);
+  --sk-card-line: var(--fr-border); --sk-card-line-hover: var(--fr-accent); --sk-card-line-sel: var(--fr-highlight);
+  --sk-card-ink: var(--fr-text); --sk-card-ink-soft: var(--fr-text-soft); --sk-card-ink-muted: var(--fr-text-muted); --sk-card-ink-dim: var(--fr-text-dim);
+  --sk-card-link: var(--fr-accent); --sk-card-raised: var(--fr-raised); --sk-card-border: var(--fr-border); --sk-card-success: var(--fr-success-text);
+  --sk-card-sel-ink: var(--sk-card-ink); --sk-card-sel-ink-soft: var(--sk-card-ink-soft);
+  /* Panel headers (Settings, Explore, aux windows). */
+  --sk-head: var(--fr-depth); --sk-head-bg: var(--sk-head); --sk-head-line: var(--fr-accent);
+  --sk-head-ink: var(--fr-text); --sk-head-ink-soft: var(--fr-text-soft); --sk-head-ink-muted: var(--fr-text-muted); --sk-head-title: var(--fr-accent);
+  /* Filled accents: primary buttons and the selected tab or nav entry. */
+  --sk-primary: var(--fr-accent); --sk-primary-bg: var(--sk-primary); --sk-primary-bg-hover: var(--fr-accent-bright); --sk-primary-ink: var(--fr-on-accent);
+  --sk-sel: var(--fr-accent); --sk-sel-bg: var(--sk-sel); --sk-sel-ink: var(--fr-on-accent);
+  /* Danger: always-destructive buttons and armed second clicks. */
+  --sk-danger: var(--fr-danger); --sk-danger-hover: color-mix(in oklab, var(--fr-danger) 90%, var(--fr-depth)); --sk-danger-ink: var(--fr-text);
+  --sk-danger-bg: var(--sk-danger); --sk-danger-bg-hover: var(--sk-danger-hover);
+  --sk-danger-ring: var(--fr-highlight);
+  --sk-online: var(--fr-info); --sk-online-ink: var(--fr-info-text);
+  --sk-ring: var(--fr-highlight); --sk-ring-back: var(--fr-depth);
+  /* Shape. */
+  --sk-bw: 1px; --sk-pw: 1px;
+  --sk-r-ctl: calc(10px * var(--fr-roundness)); --sk-r-card: calc(12px * var(--fr-roundness)); --sk-r-panel: calc(16px * var(--fr-roundness));
+  --sk-r-small: calc(8px * var(--fr-roundness));
+  --sk-sh-ctl: none; --sk-sh-ctl-hover: none; --sk-sh-primary: none; --sk-sh-primary-hover: none;
+  --sk-sh-card: none; --sk-sh-card-hover: none; --sk-sh-card-sel: none; --sk-sh-panel: none; --sk-sh-menu: none;
+  --sk-lift: none;
+  /* Root colors, for popups inside re-scoped areas. */
+  --root-text: var(--fr-text); --root-text-soft: var(--fr-text-soft); --root-text-muted: var(--fr-text-muted); --root-text-dim: var(--fr-text-dim);
+  --root-accent: var(--fr-accent); --root-accent-bright: var(--fr-accent-bright); --root-raised: var(--fr-raised); --root-highlight: var(--fr-highlight);
+}
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--fr-accent); }
+
+/* Controls: text re-scoped to the control ink, so light control fills stay readable. */
+.searchbox, .secondary, .icon, .library-stat, .settings-trigger, .toast, .settings-section-links button {
+  --fr-text: var(--sk-ctl-ink); --fr-text-soft: var(--sk-ctl-ink-soft); --fr-text-muted: var(--sk-ctl-ink-muted); --fr-text-dim: var(--sk-ctl-ink-dim); --fr-overlay: var(--sk-ctl-ink);
+  --fr-accent: var(--sk-ctl-link); --fr-accent-bright: var(--sk-ctl-link); --fr-danger-text: var(--sk-ctl-danger-ink);
+}
+.searchbox, .secondary, .icon, .library-stat, .settings-trigger, .toast {
+  background: var(--sk-ctl-bg) !important; color: var(--sk-ctl-ink) !important;
+  border: var(--sk-bw) solid var(--sk-ctl-line) !important; box-shadow: var(--sk-sh-ctl);
+}
+.primary, .save { border: var(--sk-bw) solid var(--sk-ctl-line) !important; }
+.primary {
+  background: var(--sk-primary-bg) !important; color: var(--sk-primary-ink) !important; box-shadow: var(--sk-sh-primary);
+  --fr-text: var(--sk-primary-ink); --fr-text-soft: var(--sk-primary-ink); --fr-overlay: var(--sk-primary-ink);
+}
+.primary:disabled { background: color-mix(in oklab, var(--sk-ctl) 70%, var(--sk-primary)) !important; color: rgb(from var(--sk-ctl-ink) r g b / 0.55) !important; opacity: 1; box-shadow: none; }
+
+/* Solid hovers. */
+.icon:hover:not(:disabled), .secondary:hover:not(:disabled), .settings-trigger:hover, .toast:hover, .library-stat:hover {
+  background: var(--sk-ctl-bg-hover) !important; color: var(--sk-ctl-ink) !important; border-color: var(--sk-ctl-line-hover) !important;
+  box-shadow: var(--sk-sh-ctl-hover); transform: var(--sk-lift);
+}
+.primary:hover:not(:disabled) { background: var(--sk-primary-bg-hover) !important; color: var(--sk-primary-ink) !important; box-shadow: var(--sk-sh-primary-hover); transform: var(--sk-lift); }
+.primary:active, .icon:active, .secondary:active { transform: none; }
+.secondary:disabled, .icon:disabled { background: var(--sk-ctl-bg) !important; color: rgb(from var(--sk-ctl-ink) r g b / 0.45) !important; opacity: 0.6; box-shadow: none; }
+.secondary.danger, .icon.danger { color: var(--sk-ctl-danger-ink) !important; }
+.secondary.danger:hover:not(:disabled), .icon.danger:hover:not(:disabled) { background: color-mix(in oklab, var(--sk-ctl) 78%, var(--sk-danger)) !important; border-color: var(--sk-danger) !important; }
+
+.icon:is(.active, .pinned, [aria-pressed="true"]), .secondary[aria-pressed="true"] {
+  background: var(--root-accent) !important; color: var(--fr-on-accent) !important; border-color: var(--root-accent) !important;
+}
+.icon:is(.active, .pinned, [aria-pressed="true"]):hover:not(:disabled), .secondary[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--root-accent-bright) !important; color: var(--fr-on-accent) !important; border-color: var(--root-accent-bright) !important;
+}
+
+/* Icon-only buttons: no side padding so the icon stays centered inside the border. */
+.icon { padding: 0 !important; }
+.icon > svg { margin: 0 !important; }
+
+/* Text fields. */
+.controller-file-path input, .confirm-prompt-field input, .player-custom-fields input[type="text"], .music-normalization-path input,
+.antivirus-key-row input, .controller-name-editor input, .color-picker-hex input, .theme-name-field input {
+  background: var(--sk-field) !important; color: var(--sk-field-ink) !important; border: var(--sk-bw) solid var(--sk-ctl-line) !important; border-radius: var(--sk-r-small);
+  --fr-text: var(--sk-field-ink);
+}
+.searchbox:focus-within { border-color: var(--fr-accent) !important; }
+.settings-section-links button { background: var(--sk-ctl-bg) !important; color: var(--sk-ctl-ink) !important; border: var(--sk-bw) solid var(--sk-ctl-line); border-radius: var(--sk-r-small); }
+.settings-section-links button:hover { background: var(--sk-ctl-bg-hover) !important; border-color: var(--sk-ctl-line-hover); }
+
+/* Library sidebar sits on the wallpaper. */
+.sidebar { background: rgb(from var(--sk-bar) r g b / 0.55); backdrop-filter: none; box-shadow: none; border-right: var(--sk-pw) solid rgb(from var(--sk-line) r g b / 0.6); }
+.window-titlebar { background: var(--sk-bar); border-bottom: var(--sk-pw) solid var(--sk-line); }
+.nav-section button.active {
+  background: var(--sk-sel-bg) !important; color: var(--sk-sel-ink) !important; box-shadow: var(--sk-sh-primary);
+  --fr-text: var(--sk-sel-ink); --fr-text-soft: var(--sk-sel-ink); --fr-text-muted: var(--sk-sel-ink); --fr-text-dim: var(--sk-sel-ink);
+}
+.nav-section button:not(.active):hover { background: var(--fr-raised) !important; color: var(--fr-text) !important; }
+
+/* Game cards. */
+.game-card, .explore-game {
+  --fr-text: var(--sk-card-ink); --fr-text-soft: var(--sk-card-ink-soft); --fr-text-muted: var(--sk-card-ink-muted); --fr-text-dim: var(--sk-card-ink-dim); --fr-overlay: var(--sk-card-ink);
+  --fr-accent: var(--sk-card-link); --fr-accent-bright: var(--sk-card-link); --fr-info-text: var(--sk-card-link); --fr-success-text: var(--sk-card-success);
+  --fr-raised: var(--sk-card-raised); --fr-surface: var(--sk-card); --fr-border: var(--sk-card-border);
+  background: var(--sk-card-bg) !important; color: var(--sk-card-ink);
+  border: var(--sk-bw) solid var(--sk-card-line) !important; border-radius: var(--sk-r-card); box-shadow: var(--sk-sh-card);
+}
+.game-card:hover, .explore-game:hover { background: var(--sk-card-bg-hover) !important; border-color: var(--sk-card-line-hover) !important; box-shadow: var(--sk-sh-card-hover); transform: var(--sk-lift); }
+.game-card.selected, .game-card.selected:hover {
+  background: var(--sk-card-bg-sel) !important; border-color: var(--sk-card-line-sel) !important; box-shadow: var(--sk-sh-card-sel);
+  --fr-text: var(--sk-card-sel-ink); --fr-text-soft: var(--sk-card-sel-ink-soft); color: var(--sk-card-sel-ink);
+}
+.cover-wrap, .explore-art { border-bottom: var(--sk-bw) solid var(--sk-card-line); }
+.cover-rating, .fav-badge { background: rgb(from var(--fr-depth) r g b / 0.82); border: 1px solid rgb(from var(--root-text) r g b / 0.25); color: var(--root-text); --fr-text-dim: var(--root-text-muted); }
+
+/* Large panels. */
+.details { background: var(--sk-panel) !important; backdrop-filter: none; border-left: var(--sk-pw) solid var(--sk-line); box-shadow: none; }
+.modal-backdrop { background: rgb(from var(--fr-depth) r g b / 0.66); backdrop-filter: none; }
+.settings-window, .confirm-dialog {
+  background: var(--sk-panel) !important; border: var(--sk-pw) solid var(--sk-line) !important; border-radius: var(--sk-r-panel); box-shadow: var(--sk-sh-panel);
+}
+.settings-tabbed > header, .explore-header, .remap-header, .onscreen-editor-header {
+  background: var(--sk-head-bg) !important; border-bottom: var(--sk-pw) solid var(--sk-head-line) !important;
+  --fr-text: var(--sk-head-ink); --fr-text-soft: var(--sk-head-ink-soft); --fr-text-muted: var(--sk-head-ink-muted); --fr-overlay: var(--sk-head-ink); color: var(--sk-head-ink);
+}
+.settings-tabbed > header .settings-heading, .explore-heading h2, .explore-header :is(h1, h2), .remap-header :is(h1, h2, .remap-game-title), .onscreen-editor-header p { color: var(--sk-head-title); }
+.settings-tabbed > .settings-about-footer { background: var(--sk-bar); border-top: var(--sk-pw) solid var(--sk-line); }
+.settings-sidebar { background: var(--sk-bar); border-right: var(--sk-pw) solid var(--sk-line); }
+.settings-tab-entry > button { border-radius: var(--sk-r-ctl); font-weight: 700; }
+.settings-tab-entry > button:hover:not([aria-selected="true"]) { background: var(--fr-raised) !important; color: var(--fr-text) !important; }
+.settings-tab-entry > button[aria-selected="true"] {
+  background: var(--sk-sel-bg) !important; color: var(--sk-sel-ink) !important; box-shadow: var(--sk-sh-primary);
+  --fr-text: var(--sk-sel-ink); --fr-text-soft: var(--sk-sel-ink); --fr-text-muted: var(--sk-sel-ink);
+}
+.settings-tab-content { background: var(--sk-panel); }
+.settings-controller-collapse, .settings-tab-content > .settings-tab-page > .settings-section, .settings-general-options > .settings-controller-collapse {
+  background: var(--sk-panel-2) !important; border: var(--sk-pw) solid var(--sk-line) !important; border-radius: var(--sk-r-card); box-shadow: none;
+}
+
+/* Sections inside a framed settings box stack flush: one divider line, only the outer corners rounded. */
+.settings-tabbed .settings-controller-collapse .settings-section:not(.settings-section .settings-section) { margin: 0; border-width: 1px 0 0; border-radius: 0; }
+.settings-tabbed .settings-controller-collapse > .settings-controller-subsection > .settings-section:first-child { border-top-width: 0; border-top-left-radius: calc(var(--sk-r-card) - var(--sk-pw)); border-top-right-radius: calc(var(--sk-r-card) - var(--sk-pw)); }
+.settings-tabbed .settings-controller-collapse > .settings-controller-subsection > .settings-section:last-child { border-bottom-left-radius: calc(var(--sk-r-card) - var(--sk-pw)); border-bottom-right-radius: calc(var(--sk-r-card) - var(--sk-pw)); }
+.settings-tabbed .settings-controller-collapse .settings-section > .settings-section-title { border-radius: 0; }
+.settings-tabbed .players-settings .players-list { gap: 0; }
+.settings-tabbed .players-settings .players-settings-actions { margin: 0; padding: 12px; border-top: 1px solid var(--fr-border); }
+.settings-tab-page :is(.theme-settings-description, .cursor-settings-description) { padding: 10px 12px 0; }
+/* Shortcut logo choice: one accent fill instead of a second outline. */
+.shortcut-logo-choices > button[aria-pressed="true"] { outline: 0; background: var(--sk-sel-bg) !important; color: var(--sk-sel-ink) !important; --fr-text: var(--sk-sel-ink); }
+.shortcut-logo-choices > button[aria-pressed="true"]:hover { background: var(--sk-primary-bg-hover) !important; }
+.shortcut-icon-preview, .shortcut-icon-banner { border: var(--sk-pw) solid var(--sk-line); background: var(--sk-panel-2); }
+
+/* Explore window. */
+.explore-window { background: var(--fr-wallpaper, var(--sk-panel)) !important; border: var(--sk-pw) solid var(--sk-line) !important; }
+.explore-search { background: var(--sk-ctl-bg) !important; border: var(--sk-bw) solid var(--sk-ctl-line) !important; --fr-text: var(--sk-ctl-ink); }
+.explore-results { background: transparent !important; }
+.explore-footer { background: var(--sk-bar) !important; border-top: var(--sk-pw) solid var(--sk-line) !important; }
+.explore-tags { background: rgb(from var(--fr-depth) r g b / 0.85); color: var(--root-text); }
+
+/* Explore catalog tabs: one chip box for every tab so the active one is centered and readable. */
+.explore-catalog-switch { gap: 6px; }
+.explore-catalog-switch button {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 12px !important;
+  border: var(--sk-bw) solid transparent !important; border-radius: var(--sk-r-small); color: var(--sk-head-ink-soft) !important;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.02em; line-height: 1;
+}
+.explore-catalog-switch button:hover:not(.active) { background: var(--fr-raised) !important; border-color: var(--sk-ctl-line) !important; color: var(--sk-head-ink) !important; }
+.explore-catalog-switch button.active { background: var(--sk-sel-bg) !important; color: var(--sk-sel-ink) !important; border-color: var(--sk-sel) !important; }
+
+/* Popups inside headers get the regular panel colors back. */
+:is(.explore-header, .remap-header, .onscreen-editor-header, .settings-tabbed > header) :is([role="listbox"], [role="menu"], [class*="-menu"]:not(button), [class*="popover"], [class*="dropdown"]:not(button)) {
+  --fr-text: var(--root-text); --fr-text-soft: var(--root-text-soft); --fr-text-muted: var(--root-text-muted); --fr-text-dim: var(--root-text-dim); --fr-overlay: var(--root-text);
+  --fr-accent: var(--root-accent); --fr-accent-bright: var(--root-accent-bright); color: var(--fr-text);
+}
+.explore-category-trigger { background: var(--sk-ctl-bg) !important; color: var(--sk-ctl-ink) !important; border: var(--sk-bw) solid var(--sk-ctl-line) !important; border-radius: var(--sk-r-ctl) !important; box-shadow: var(--sk-sh-ctl); font-weight: 700; }
+.explore-category-trigger:hover, .explore-category-trigger[aria-expanded="true"] { background: var(--sk-ctl-bg-hover) !important; border-color: var(--sk-ctl-line-hover) !important; }
+.explore-category-trigger svg { color: var(--sk-ctl-ink); }
+.explore-category-menu { background: var(--sk-panel) !important; border: var(--sk-pw) solid var(--sk-line) !important; border-radius: var(--sk-r-card) !important; box-shadow: var(--sk-sh-menu) !important; }
+.category-option { color: var(--root-text-soft); font-weight: 600; }
+.category-option:hover { background: var(--root-raised) !important; color: var(--root-text) !important; }
+.category-option.active { background: var(--sk-sel-bg) !important; color: var(--sk-sel-ink) !important; box-shadow: none !important; font-weight: 800; }
+
+/* Online-only games keep their left-edge marker. */
+.game-card.online-only, .explore-game.online-only { border-left: 7px solid var(--sk-online) !important; }
+
+/* Shared aux window shell (history, remap, guides). */
+.remap-window { background: var(--sk-panel) !important; border: var(--sk-pw) solid var(--sk-line) !important; }
+.remap-header svg, .onscreen-editor-header svg { color: var(--sk-head-ink); }
+.onscreen-editor-header :is(small, span) { color: var(--sk-head-ink-soft); }
+.remap-tab[aria-selected="true"], .remap-tab.active { color: var(--fr-accent) !important; border-color: var(--fr-accent) !important; }
+.history-entry { background: var(--sk-panel-2) !important; border: var(--sk-pw) solid var(--sk-line); border-radius: var(--sk-r-card); }
+
+/* Player chrome (game area and bezel art are left alone). */
+.player-modal .player-chrome > header, .player-modal header { background: var(--sk-bar) !important; border-bottom: var(--sk-pw) solid var(--sk-line) !important; }
+.player-modal .player-menu, .player-guides-menu, [role="menu"] { background: var(--sk-panel) !important; border: var(--sk-pw) solid var(--sk-line) !important; border-radius: var(--sk-r-card); box-shadow: var(--sk-sh-menu) !important; }
+.online-player-header { background: var(--sk-bar) !important; border-bottom: var(--sk-pw) solid var(--sk-line) !important; }
+.online-player-shell { background: var(--fr-depth) !important; }
+
+.crt-settings-panel { background: var(--sk-panel) !important; border: var(--sk-pw) solid var(--sk-line) !important; border-radius: var(--sk-r-panel); box-shadow: var(--sk-sh-panel) !important; }
+.crt-settings-panel > header { background: var(--sk-head-bg); border-bottom: var(--sk-pw) solid var(--sk-head-line); }
+
+/* Text that marks a single-click destructive action stays red. */
+.music-actions :is(.remove-music, .recapture-cover), .music-actions :is(.remove-music, .recapture-cover):is(:hover, :disabled) { color: var(--sk-ctl-danger-ink) !important; }
+
+/* Shortcut split button: one joined control with rounded outer corners. */
+.shortcut-split { overflow: visible !important; border-radius: var(--sk-r-ctl); }
+.shortcut-split > button { border-radius: 0 !important; }
+.shortcut-split > button:first-child { border-start-start-radius: var(--sk-r-ctl) !important; border-end-start-radius: var(--sk-r-ctl) !important; }
+.shortcut-split > button:last-child { border-start-end-radius: var(--sk-r-ctl) !important; border-end-end-radius: var(--sk-r-ctl) !important; }
+.shortcut-split > button + button { border-inline-start-width: 0 !important; }
+
+/* Move titles (focus/edit): highlight outline wrapped in a dark ring so it reads on any header or panel. */
+:is(.controller-navigation-active, .keyboard-focus) :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-focused] {
+  outline: 3px solid var(--sk-ring) !important; outline-offset: 0 !important; box-shadow: 0 0 0 6px var(--sk-ring-back) !important;
+}
+.controller-navigation-active :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-resizing] {
+  outline: 3px solid var(--sk-ring) !important; outline-offset: 0 !important; box-shadow: 0 0 0 6px var(--sk-ring-back), inset 0 0 0 2px var(--sk-ring-back) !important;
+}
+.controller-navigation-active :is([data-controller-move], .settings-heading, .crt-settings-panel h2)[data-controller-resizing]::after,
+.controller-navigation-active :is(.remap-slider, .card-size-control, .theme-volume-panel, .player-volume):has(input[type="range"][data-controller-resizing])::after {
+  background: var(--sk-ring) !important; color: var(--sk-ring-back) !important; border: 2px solid var(--sk-ring-back) !important; top: calc(100% + 8px);
+}
+.controller-navigation-active :is(.remap-slider, .card-size-control, .theme-volume-panel, .player-volume):has(input[type="range"][data-controller-resizing])::after { top: -3px; }
+.controller-navigation-active :is(.remap-slider, .card-size-control, .player-volume, .theme-volume-panel):has(input[data-controller-resizing]) { outline: 3px solid var(--sk-ring) !important; box-shadow: 0 0 0 6px var(--sk-ring-back) !important; }
+
+/* Always-destructive buttons stay red. */
+.secondary.settings-close-app, .primary.stop-playing, .confirm-destructive {
+  background: var(--sk-danger-bg) !important; color: var(--sk-danger-ink) !important; border: var(--sk-bw) solid color-mix(in oklab, var(--sk-danger) 70%, var(--fr-depth)) !important; box-shadow: none !important;
+  --fr-text: var(--sk-danger-ink); --fr-text-soft: var(--sk-danger-ink);
+}
+.secondary.settings-close-app:hover:not(:disabled), .primary.stop-playing:hover:not(:disabled), .confirm-destructive:hover:not(:disabled) { background: var(--sk-danger-bg-hover) !important; color: var(--sk-danger-ink) !important; }
+/* Armed second-click confirmations turn red with a highlight ring. */
+.confirming, .is-confirming, .danger-confirm, .desktop-shortcut-footer button.secondary.danger {
+  background: var(--sk-danger-bg) !important; color: var(--sk-danger-ink) !important; border-color: var(--sk-danger) !important; box-shadow: 0 0 0 2px var(--sk-danger-ring) !important;
+  --fr-text: var(--sk-danger-ink);
+}
+:is(.icon, .secondary, .primary):is(.confirming, .is-confirming, .danger-confirm):hover:not(:disabled), .desktop-shortcut-footer button.secondary.danger:hover:not(:disabled) {
+  background: var(--sk-danger-bg-hover) !important; color: var(--sk-danger-ink) !important; border-color: var(--sk-danger) !important;
+}
+.icon.danger.confirming, .icon.danger.confirming svg, .secondary.danger.confirming, .player-chrome .icon.confirming svg { color: var(--sk-danger-ink) !important; }

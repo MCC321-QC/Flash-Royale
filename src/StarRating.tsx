@@ -1,5 +1,6 @@
 import { Star } from "lucide-react";
 import type { Language } from "./i18n";
+import { cachedNumberFormat } from "./intl-cache";
 
 const stars = [0, 1, 2, 3, 4];
 
@@ -11,7 +12,7 @@ export function StarRating({ rating, label, language, compact = false }: {
 }) {
   if (!Number.isFinite(rating)) return null;
   const value = Math.max(0, Math.min(5, rating));
-  const formattedValue = value.toLocaleString(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const formattedValue = cachedNumberFormat(language, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
   const description = `${label}: ${formattedValue} / 5`;
 
   return (

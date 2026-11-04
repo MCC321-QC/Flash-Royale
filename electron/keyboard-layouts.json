@@ -1,0 +1,14 @@
+{
+  "en": "English (QWERTY)",
+  "fr": "Français (AZERTY)",
+  "fr-CA": "Français canadien (QWERTY)",
+  "de": "Deutsch (QWERTZ)",
+  "es": "Español (QWERTY)",
+  "pt-BR": "Português (QWERTY)",
+  "ru": "Русский (ЙЦУКЕН)",
+  "ar": "العربية",
+  "hi": "हिन्दी (InScript)",
+  "ko": "한국어 (두벌식)",
+  "ja": "日本語 (ローマ字)",
+  "zh": "中文 (拼音)"
+}

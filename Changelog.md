@@ -1,5 +1,97 @@
 # Flash Royale - Changelog
 
+## v1.0.0
+
+Changes since the published **v0.9.7** release.
+
+### Game players and compatibility
+
+- Added Shockwave/Director game imports for `.dcr`, `.dxr` and `.dir`, with bundled DirPlayer playback and support for importing companion-asset folders.
+- Added LibreShockwave as an optional alternative Shockwave engine. Both Shockwave engines are experimental; compatibility varies by game.
+- Added external player detection and configuration for installed Flashpoint Flash/Shockwave runtimes, Adobe Flash Player projector, Newgrounds Player and custom executables.
+- Added per-game player selection, compatibility estimates and personal **works / issues / broken** results.
+- Added a choice between bundled Ruffle Stable and downloadable Nightly builds, with verified downloads and offline use after installation.
+- Expanded player controls with pause/resume, rotation, remembered game volume, screenshots and guide access. Paused built-in gameplay no longer adds playtime.
+- Improved fullscreen toolbar auto-hide, mouse/controller/touch transitions and pin behavior. Reload and toolbar-close actions now require a second activation to help prevent accidental progress loss.
+- Added global game-fullscreen and FPS-counter overrides alongside per-game settings.
+
+### Library, Flashpoint and metadata
+
+- Added Flashpoint Infinity download detection and selective imports of supported downloaded games, including available artwork and metadata. Previously handled downloads are remembered.
+- Added automatic and manual metadata searches using local/online Flashpoint and configurable website providers, with source priorities and per-game manual matching.
+- Added a review workflow for metadata additions and overwrites. Exact-match missing fields are selected by default; ambiguous matches and overwrites require a choice.
+- Automatic metadata searches run after successful imports, with one automatic attempt per game's lifetime in the library. App startup alone no longer triggers a metadata scan; manual retries remain available.
+- Added configurable library-card sizing and metadata visibility/order, screenshot showcases and expanded game details.
+- Added an in-app file picker for supported workflows, with controller navigation.
+- Improved import feedback, cancellation and progress reporting.
+
+### Controllers, touch and keyboard
+
+- Added controller navigation across the library, settings, dialogs, file selection and supported readers, with configurable bindings and Xbox, PlayStation, Nintendo, Steam and generic prompts.
+- Added per-game controller-to-keyboard/mouse mappings for up to four players, controller assignments/nicknames, dead zones, pointer tuning, built-in presets and shared user presets.
+- Added configurable controller shortcuts for entering the player toolbar, screenshots and pause/resume. Game mappings release their outputs while navigating the toolbar.
+- Added optional native Steam Controller support through SDL, including grips, trackpads, gyro, acceleration, haptics and desktop pointer/scroll controls. Native input is disabled when Steam Input is detected.
+- Added an on-screen gamepad with global/per-game controls, layouts and mappings, plus optional long-press right-click.
+- Added a virtual keyboard for app fields and supported games, with separate controller/mouse/touch opening preferences and offline Chinese/Japanese conversion.
+- Improved touch scrolling, gestures and focus handling, including Wine/Proton mouse-and-pen event classification to prevent duplicate taps.
+
+### Themes, CRT shaders and bezels
+
+- Added six built-in themes: Default, Retro Royale, Card Suits, Casino, Neon and Classic Flash.
+- Added custom theme editing, duplication and import/export, with configurable colors, fonts, wallpaper, corner roundness and shadows.
+- Added built-in and custom cursor packs, image/hotspot editing and import/export.
+- Added the twelve-pass CRT-Royale shader pipeline with phosphor-mask choices, gamma, diffusion, picture presets and Flash input smoothing/resolution controls.
+- Added built-in monitor bezels and custom artwork import, editable templates, screen-opening detection, inner borders, screen reflections, ambient lighting, curvature and corner-radius controls.
+- Added independent global defaults, per-game inheritance/overrides and temporary player-session switches for CRT and bezel effects.
+- Improved enabled-button visibility, destructive-action hover colors and controller focus outlines across themes, including Retro Royale.
+
+### Artwork, screenshots, music and guides
+
+- Added gameplay screenshots, a screenshot gallery/showcase and a controller-accessible 16:9 cover-crop editor. Shortcut icons are managed separately from library covers.
+- Expanded music extraction to supported Director files and local companion assets, alongside Flash extraction and custom song imports.
+- Added missing-music import/re-import workflows, optional FFmpeg-based loudness normalization, library music checks and backup/restore management. Originals and custom-track choices are preserved by the relevant processing workflows.
+- Improved music selection, repeat, library volume controls, progress reporting and cancellation.
+- Added per-game guides and manuals from local files or links, including PDF, text, Markdown, HTML, e-books, comics and images.
+- Added local video and YouTube/Vimeo walkthrough support. Supported readers remember reading position and layout/video state and can remain open beside a fullscreen game.
+- Added format-specific reader controls such as search, contents, zoom, fit modes, two-page layouts and reading themes, with controller/touch navigation.
+
+### Shortcuts, Steam and Wine/Proton
+
+- Added Windows desktop and Steam shortcuts with dedicated game artwork, plus existing-shortcut detection, updates and removal.
+- Added direct game launch by Flash Royale ID, including handoff to an existing app instance and support for multiple running games.
+- Steam game shortcuts retain their running state until the game closes. Wine integration handles Steam's in-memory shortcut list and queues changes that require Steam to close.
+- Improved Wine/Proton rendering, fullscreen, touch, tray menus and font display. These are compatibility improvements to the Windows build, not a native Linux release.
+- Added targeted handheld presentation fixes for scrolling stalls and stale UI frames without switching the normal graphics backend.
+
+### Security and updates
+
+- Added optional antivirus provider configuration, file scanning and quarantine with Microsoft Defender and configured VirusTotal/MetaDefender lookups. Unknown-file uploads require explicit opt-in.
+- Added detected-threat review, reports, hash-specific restore decisions and encrypted storage for scanner API keys.
+- Added installed-component advisory monitoring and an app-wide online-access guard, with evidence and explicit controls for blocking alerts. Local games and assets remain available while online features are paused.
+- Added external-link confirmation and restricted handling of remote game/document content.
+- Added signed catalog/metadata source definitions, provider priorities and independent catalog/metadata switches, so supported source updates do not require a complete app release.
+- Strengthened application updates with publisher-signature verification alongside archive size/hash checks, while preserving manual-update fallback and the portable library.
+
+### Performance and reliability
+
+- Virtualized the library grid so large collections mount visible cards rather than every game at once.
+- Added cached WebP cover thumbnails while retaining full-size originals, and isolated player discovery to prevent slow drive checks from delaying artwork.
+- Reduced controller-navigation DOM scanning, unnecessary hidden-window updates and native-controller sensor broadcasts to ordinary UI.
+- Added on-demand virtual-keyboard layouts and sharded conversion dictionaries to reduce opening-time memory use.
+- Bounded CRT rendering work and optimized reflection texture reuse to reduce GPU queues and repeated readback.
+- Improved catalog cache reuse, persistent provider cooldowns and cancellation. Access-denied and rate-limit messages now distinguish provider restrictions from connection failures.
+- Added activity history and shared long-task progress, with cancellation where supported.
+- Improved per-game storage migration, stable IDs, delayed folder operations and cleanup of files locked by running sessions.
+
+### Documentation and credits
+
+- Prepared user guides and component references for the GitHub wiki, and shortened the main README to features, setup and documentation links.
+- Reorganized contributor documentation, release procedures, printable checklists and historical performance notes.
+- Reorganized About: playback/rendering engines appear in App overview, reader libraries appear under Third-party software, and runtime entries include their license texts.
+- Grouped Google Fonts into one expandable entry while preserving each font's attribution and license.
+- Corrected component links to the matching DirPlayer release and pinned CRT-Royale/LibreShockwave source revisions.
+- Expanded packaged third-party notices and included verified dependency source archives and build materials.
+
 ## v0.9.7
 
 - Made duplicated games in catalogue be orange instead of green on import.

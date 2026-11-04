@@ -35,10 +35,17 @@ function getGamePaths(gamesRoot, game) {
   const musicDirectory = path.join(directory, "music");
   const defaultMusicDirectory = path.join(musicDirectory, "default");
   const customMusicDirectory = path.join(musicDirectory, "custom");
+  const remapDirectory = path.join(directory, "remap");
+  const contentDirectory = path.join(directory, "content");
+  // Director movies keep their original file name so relative companion casts and Lingo paths still resolve.
+  const moviePath = game.format === "dcr"
+    ? path.join(contentDirectory, path.basename(String(game.originalFileName || "game.dcr")))
+    : path.join(directory, `${safeGameTitle(game.title)}.swf`);
   return {
     folderName,
     directory,
-    swfPath: path.join(directory, `${safeGameTitle(game.title)}.swf`),
+    swfPath: moviePath,
+    contentDirectory,
     coverDirectory,
     coverPath: (extension = ".svg") => path.join(coverDirectory, `cover${extension}`),
     settingsPath: path.join(directory, "settings.json"),
@@ -50,6 +57,13 @@ function getGamePaths(gamesRoot, game) {
     defaultMusicTrackPath: (index, extension) => path.join(defaultMusicDirectory, `track-${String(index + 1).padStart(2, "0")}${extension}`),
     customMusicDirectory,
     customMusicPath: (extension) => path.join(customMusicDirectory, `custom-music${extension}`),
+    remapDirectory,
+    remapConfigPath: path.join(remapDirectory, "remap.json"),
+    screenshotsDirectory: path.join(directory, "screenshots"),
+    // Screenshots copied from sources such as Flashpoint, kept apart from the ones the user takes.
+    importedScreenshotsDirectory: path.join(directory, "imported-screenshots"),
+    // Guides, manuals and e-books the user added for the game, plus where each one was left.
+    guidesDirectory: path.join(directory, "guides"),
   };
 }
 
@@ -86,6 +100,7 @@ async function migrateGameStorage(gamesRoot, legacyCoversRoot, game, previousGam
   await fs.mkdir(paths.savesDirectory, { recursive: true });
   await fs.mkdir(paths.defaultMusicDirectory, { recursive: true });
   await fs.mkdir(paths.customMusicDirectory, { recursive: true });
+  if (!game.onlineOnly) await fs.mkdir(path.dirname(paths.swfPath), { recursive: true });
 
   const oldSwfPath = previousGame?.filePath;
   if (!game.onlineOnly) {
@@ -96,7 +111,7 @@ async function migrateGameStorage(gamesRoot, legacyCoversRoot, game, previousGam
     ].filter(Boolean);
     if (!(await exists(paths.swfPath))) {
       const source = await swfCandidates.reduce(async (found, candidate) => (await found) || (await exists(candidate) ? candidate : null), Promise.resolve(null));
-      if (!source) throw new Error(`Missing SWF for ${game.title}`);
+      if (!source) throw new Error(`Missing game file for ${game.title}`);
       if (path.resolve(source) === path.resolve(oldSwfPath || "")) {
         const sourceDirectory = path.resolve(path.dirname(source));
         if (sourceDirectory === path.resolve(paths.directory)) await fs.rename(source, paths.swfPath);

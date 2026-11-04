@@ -1,0 +1,191 @@
+{
+  "rows": [
+    [
+      {
+        "value": "1",
+        "shifted": "!",
+        "code": "Digit1"
+      },
+      {
+        "value": "2",
+        "shifted": "@",
+        "code": "Digit2"
+      },
+      {
+        "value": "3",
+        "shifted": "#",
+        "code": "Digit3"
+      },
+      {
+        "value": "4",
+        "shifted": "$",
+        "code": "Digit4"
+      },
+      {
+        "value": "5",
+        "shifted": "%",
+        "code": "Digit5"
+      },
+      {
+        "value": "6",
+        "shifted": "^",
+        "code": "Digit6"
+      },
+      {
+        "value": "7",
+        "shifted": "&",
+        "code": "Digit7"
+      },
+      {
+        "value": "8",
+        "shifted": "*",
+        "code": "Digit8"
+      },
+      {
+        "value": "9",
+        "shifted": "(",
+        "code": "Digit9"
+      },
+      {
+        "value": "0",
+        "shifted": ")",
+        "code": "Digit0"
+      }
+    ],
+    [
+      {
+        "value": "й",
+        "code": "KeyQ"
+      },
+      {
+        "value": "ц",
+        "code": "KeyW"
+      },
+      {
+        "value": "у",
+        "code": "KeyE"
+      },
+      {
+        "value": "к",
+        "code": "KeyR"
+      },
+      {
+        "value": "е",
+        "code": "KeyT"
+      },
+      {
+        "value": "н",
+        "code": "KeyY"
+      },
+      {
+        "value": "г",
+        "code": "KeyU"
+      },
+      {
+        "value": "ш",
+        "code": "KeyI"
+      },
+      {
+        "value": "щ",
+        "code": "KeyO"
+      },
+      {
+        "value": "з",
+        "code": "KeyP"
+      },
+      {
+        "value": "х",
+        "code": "BracketLeft"
+      },
+      {
+        "value": "ъ",
+        "code": "BracketRight"
+      }
+    ],
+    [
+      {
+        "value": "ф",
+        "code": "KeyA"
+      },
+      {
+        "value": "ы",
+        "code": "KeyS"
+      },
+      {
+        "value": "в",
+        "code": "KeyD"
+      },
+      {
+        "value": "а",
+        "code": "KeyF"
+      },
+      {
+        "value": "п",
+        "code": "KeyG"
+      },
+      {
+        "value": "р",
+        "code": "KeyH"
+      },
+      {
+        "value": "о",
+        "code": "KeyJ"
+      },
+      {
+        "value": "л",
+        "code": "KeyK"
+      },
+      {
+        "value": "д",
+        "code": "KeyL"
+      },
+      {
+        "value": "ж",
+        "code": "Semicolon"
+      },
+      {
+        "value": "э",
+        "code": "Quote"
+      }
+    ],
+    [
+      {
+        "value": "я",
+        "code": "KeyZ"
+      },
+      {
+        "value": "ч",
+        "code": "KeyX"
+      },
+      {
+        "value": "с",
+        "code": "KeyC"
+      },
+      {
+        "value": "м",
+        "code": "KeyV"
+      },
+      {
+        "value": "и",
+        "code": "KeyB"
+      },
+      {
+        "value": "т",
+        "code": "KeyN"
+      },
+      {
+        "value": "ь",
+        "code": "KeyM"
+      },
+      {
+        "value": "б",
+        "code": "Comma"
+      },
+      {
+        "value": "ю",
+        "code": "Period"
+      }
+    ]
+  ],
+  "symbols": "ё№₽!@#$%^&*()[]{}<>/\\|`~_-+=.,:;'\"?"
+}

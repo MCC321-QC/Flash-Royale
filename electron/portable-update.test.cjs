@@ -7,7 +7,8 @@ const crypto = require("node:crypto");
 const vm = require("node:vm");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
-const { selectUpdateAsset, downloadUpdate, prepareUpdate, cleanupPreparedUpdate, launchUpdate, scriptExecutionArgs } = require("./portable-update.cjs");
+const { selectUpdateAsset, verifyUpdateSignature, downloadUpdate, prepareUpdate, cleanupPreparedUpdate, launchUpdate, scriptExecutionArgs } = require("./portable-update.cjs");
+const signing = require("./signing.cjs");
 
 const runFile = promisify(execFile);
 const repositoryPath = "/MCC321-QC/Flash-Royale";
@@ -41,7 +42,7 @@ test("script consent reaches preparation, bootstrap and install without changing
   const bytes = Buffer.from("verified update");
   const expected = { url: asset.browser_download_url, size: bytes.length, sha256: crypto.createHash("sha256").update(bytes).digest("hex") };
   for (const enabled of [false, true]) {
-    const prepared = await module.exports.prepareUpdate(expected, os.tmpdir(), false, enabled);
+    const prepared = await module.exports.prepareUpdate(expected, os.tmpdir(), false, enabled, async () => {});
     t.after(() => fs.rm(prepared.directory, { recursive: true, force: true }));
     await module.exports.launchUpdate(prepared);
     const preparation = calls[calls.length - 2];
@@ -54,6 +55,26 @@ test("script consent reaches preparation, bootstrap and install without changing
     assert.equal(prepared.enableScriptExecution, enabled);
     assert.equal(JSON.parse(await fs.readFile(prepared.planPath, "utf8")).unblock, false);
   }
+});
+
+test("cancelling update preparation removes staging and never starts installation", async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-update-cancel-test-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const source = await fs.readFile(require.resolve("./portable-update.cjs"), "utf8");
+  const module = { exports: {} };
+  const abort = new AbortController();
+  const bytes = Buffer.from("verified update");
+  vm.runInNewContext(source, {
+    module, process, __dirname, AbortSignal, Buffer, console,
+    require: name => name === "node:os" ? { tmpdir: () => directory }
+      : name === "node:util" ? { promisify: () => async () => assert.fail("Preparation must not start after cancellation") }
+      : require(name),
+    fetch: async (_url, { signal }) => { assert.equal(signal.aborted, false); return new Response(bytes); },
+  });
+  const expected = { url: asset.browser_download_url, size: bytes.length, sha256: crypto.createHash("sha256").update(bytes).digest("hex") };
+  await assert.rejects(module.exports.prepareUpdate(expected, directory, false, false, async () => {}, () => abort.abort(), abort.signal),
+    { name: "AbortError" });
+  assert.deepEqual(await fs.readdir(directory), []);
 });
 
 test("selects only supported repository assets with a digest and bounded size", () => {
@@ -100,12 +121,54 @@ test("download surfaces HTTP errors", async (t) => {
   await assert.rejects(downloadUpdate(asset, "unused.zip"), /404/);
 });
 
+test("finds the release's .sig asset only on the repository's download path", () => {
+  const sig = (overrides = {}) => ({
+    name: `${asset.name}.sig`,
+    size: 300,
+    browser_download_url: `https://github.com${repositoryPath}/releases/download/v1.0.0/${asset.name}.sig`,
+    ...overrides,
+  });
+  const select = (extra) => selectUpdateAsset({ tag_name: "v1.0.0", assets: [asset, ...extra] }, repositoryPath);
+  assert.equal(select([]).signatureUrl, "");
+  assert.equal(select([sig()]).signatureUrl, sig().browser_download_url);
+  assert.equal(select([sig()]).name, asset.name);
+  assert.equal(select([sig({ size: 5000 })]).signatureUrl, "");
+  assert.equal(select([sig({ browser_download_url: "https://example.com/x.sig" })]).signatureUrl, "");
+  assert.equal(select([sig({ name: "other.zip.sig" })]).signatureUrl, "");
+});
+
+test("an update installs only with a signature from a trusted key that matches the archive", async (t) => {
+  const { privateKey } = crypto.generateKeyPairSync("ed25519");
+  const pem = privateKey.export({ type: "pkcs8", format: "pem" });
+  const keys = [{ id: "test", publicKey: signing.publicKeyText(pem) }];
+  const bytes = Buffer.from("signed update");
+  const expected = { name: asset.name, url: asset.browser_download_url, size: bytes.length, sha256: crypto.createHash("sha256").update(bytes).digest("hex"), signatureUrl: `${asset.browser_download_url}.sig` };
+  let signature = JSON.stringify(signing.createReleaseSignature(asset.name, bytes, pem));
+  t.mock.method(globalThis, "fetch", async () => new Response(signature));
+  await verifyUpdateSignature(expected, keys);
+  await assert.rejects(verifyUpdateSignature({ ...expected, sha256: digest }, keys), /does not match/);
+  await assert.rejects(verifyUpdateSignature({ ...expected, signatureUrl: "" }, keys), /no signature/);
+  const other = crypto.generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "pem" });
+  signature = JSON.stringify(signing.createReleaseSignature(asset.name, bytes, other));
+  await assert.rejects(verifyUpdateSignature(expected, keys), /trusted key/);
+  const tampered = JSON.parse(JSON.stringify(signing.createReleaseSignature(asset.name, bytes, pem)));
+  tampered.size += 1;
+  signature = JSON.stringify(tampered);
+  await assert.rejects(verifyUpdateSignature({ ...expected, size: tampered.size }, keys), /trusted key/);
+});
+
+test("preparation refuses an unsigned update before downloading it", async (t) => {
+  const fetchMock = t.mock.method(globalThis, "fetch", async () => new Response("unused"));
+  await assert.rejects(prepareUpdate({ ...asset, signatureUrl: "" }, os.tmpdir(), false), /no signature/);
+  assert.equal(fetchMock.mock.callCount(), 0);
+});
+
 test("preparation preserves its original error and diagnostic log instead of deleting staging", async (t) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-failure-test-"));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   t.mock.method(fs, "mkdtemp", async () => directory);
   t.mock.method(globalThis, "fetch", async () => new Response("", { status: 503 }));
-  await assert.rejects(prepareUpdate(asset, directory, false), (error) => {
+  await assert.rejects(prepareUpdate(asset, directory, false, false, async () => {}), (error) => {
     assert.match(error.message, /Update download failed \(503\)/);
     assert.ok(error.message.includes(directory));
     return true;

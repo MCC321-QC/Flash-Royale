@@ -1,0 +1,179 @@
+{
+  "rows": [
+    [
+      {
+        "value": "1",
+        "shifted": "!",
+        "code": "Digit1"
+      },
+      {
+        "value": "2",
+        "shifted": "@",
+        "code": "Digit2"
+      },
+      {
+        "value": "3",
+        "shifted": "#",
+        "code": "Digit3"
+      },
+      {
+        "value": "4",
+        "shifted": "$",
+        "code": "Digit4"
+      },
+      {
+        "value": "5",
+        "shifted": "%",
+        "code": "Digit5"
+      },
+      {
+        "value": "6",
+        "shifted": "^",
+        "code": "Digit6"
+      },
+      {
+        "value": "7",
+        "shifted": "&",
+        "code": "Digit7"
+      },
+      {
+        "value": "8",
+        "shifted": "*",
+        "code": "Digit8"
+      },
+      {
+        "value": "9",
+        "shifted": "(",
+        "code": "Digit9"
+      },
+      {
+        "value": "0",
+        "shifted": ")",
+        "code": "Digit0"
+      }
+    ],
+    [
+      {
+        "value": "q",
+        "code": "KeyQ"
+      },
+      {
+        "value": "w",
+        "code": "KeyW"
+      },
+      {
+        "value": "e",
+        "code": "KeyE"
+      },
+      {
+        "value": "r",
+        "code": "KeyR"
+      },
+      {
+        "value": "t",
+        "code": "KeyT"
+      },
+      {
+        "value": "z",
+        "code": "KeyY"
+      },
+      {
+        "value": "u",
+        "code": "KeyU"
+      },
+      {
+        "value": "i",
+        "code": "KeyI"
+      },
+      {
+        "value": "o",
+        "code": "KeyO"
+      },
+      {
+        "value": "p",
+        "code": "KeyP"
+      },
+      {
+        "value": "ü",
+        "code": "BracketLeft"
+      }
+    ],
+    [
+      {
+        "value": "a",
+        "code": "KeyA"
+      },
+      {
+        "value": "s",
+        "code": "KeyS"
+      },
+      {
+        "value": "d",
+        "code": "KeyD"
+      },
+      {
+        "value": "f",
+        "code": "KeyF"
+      },
+      {
+        "value": "g",
+        "code": "KeyG"
+      },
+      {
+        "value": "h",
+        "code": "KeyH"
+      },
+      {
+        "value": "j",
+        "code": "KeyJ"
+      },
+      {
+        "value": "k",
+        "code": "KeyK"
+      },
+      {
+        "value": "l",
+        "code": "KeyL"
+      },
+      {
+        "value": "ö",
+        "code": "Semicolon"
+      },
+      {
+        "value": "ä",
+        "code": "Quote"
+      }
+    ],
+    [
+      {
+        "value": "y",
+        "code": "KeyZ"
+      },
+      {
+        "value": "x",
+        "code": "KeyX"
+      },
+      {
+        "value": "c",
+        "code": "KeyC"
+      },
+      {
+        "value": "v",
+        "code": "KeyV"
+      },
+      {
+        "value": "b",
+        "code": "KeyB"
+      },
+      {
+        "value": "n",
+        "code": "KeyN"
+      },
+      {
+        "value": "m",
+        "code": "KeyM"
+      }
+    ]
+  ],
+  "symbols": "ß€!@#$%^&*()[]{}<>/\\|`~_-+=.,:;'\"?"
+}

@@ -2,8 +2,10 @@ const { load } = require("cheerio");
 const silvergames = require("./silvergames.cjs");
 const { createCatalogueCache } = require("./catalogue-cache.cjs");
 const { createCachedTextFetcher } = require("./catalogue-http.cjs");
-const { fetchCatalogue } = require("./catalogue-backoff.cjs");
+const { fetchCatalogue, politeBackoff, politePageLimit } = require("./catalogue-backoff.cjs");
+const { createRequestLimiter } = require("./request-limiter.cjs");
 const { getCachedSwfHeader } = require("./swf-header-cache.cjs");
+const { normalizeCatalogTitle } = require("./catalogue-title.cjs");
 
 const baseUrl = "https://www.andkon.com";
 const maxSwfBytes = 40 * 1024 * 1024;
@@ -12,6 +14,8 @@ const catalogPages = ["/arcade/", "/arcade/page2.php", "/arcade/page3.php"];
 const catalogCache = createCatalogueCache();
 const fetchCachedText = createCachedTextFetcher(catalogCache, {
   timeoutMs: 20000,
+  limit: createRequestLimiter(politePageLimit),
+  backoff: politeBackoff,
   unavailableMessage: "Andkon is unavailable. Please try again later.",
   validateUrl: (url) => {
     const target = new URL(url);
@@ -71,13 +75,8 @@ function configureCache(directory) {
   catalogCache.configureDirectory(directory);
 }
 
-function normalizedTitle(title) {
-  return String(title || "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-}
-
 function libraryStatus(game, libraryGames) {
-  const entry = libraryGames.find((item) => item.andkonPagePath === game.pagePath || normalizedTitle(item.title) === normalizedTitle(game.title));
+  const entry = libraryGames.find((item) => item.andkonPagePath === game.pagePath || normalizeCatalogTitle(item.title) === normalizeCatalogTitle(game.title));
   return {
     imported: Boolean(entry),
     libraryGameId: entry?.id ?? null,

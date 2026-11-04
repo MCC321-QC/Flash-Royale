@@ -2,8 +2,10 @@ const { load } = require("cheerio");
 const zlib = require("node:zlib");
 const { createCatalogueCache } = require("./catalogue-cache.cjs");
 const { createCachedTextFetcher } = require("./catalogue-http.cjs");
-const { fetchCatalogue, CatalogueBackoffError } = require("./catalogue-backoff.cjs");
+const { fetchCatalogue, CatalogueBackoffError, politeBackoff, politePageLimit } = require("./catalogue-backoff.cjs");
+const { createRequestLimiter } = require("./request-limiter.cjs");
 const { getCachedSwfHeader } = require("./swf-header-cache.cjs");
+const { normalizeCatalogTitle } = require("./catalogue-title.cjs");
 
 const catalogUrl = "https://www.silvergames.com/search/core.json";
 const playerOrigin = "https://files.silvergames.com";
@@ -11,7 +13,7 @@ const imageOrigin = "https://media.silvergames.com";
 const swfOrigins = [playerOrigin, imageOrigin];
 const maxSwfBytes = 40 * 1024 * 1024;
 const catalogCache = createCatalogueCache();
-const fetchCachedText = createCachedTextFetcher(catalogCache, {
+const textFetchOptions = {
   timeoutMs: 15000,
   unavailableMessage: "Silvergames is unavailable. Please try again later.",
   validateUrl: (url) => {
@@ -20,10 +22,17 @@ const fetchCachedText = createCachedTextFetcher(catalogCache, {
   validateText: (text, url) => {
     if (url === catalogUrl && !Array.isArray(JSON.parse(text))) throw new Error("Silvergames returned an invalid catalog.");
   },
+};
+const fetchCachedCatalog = createCachedTextFetcher(catalogCache, textFetchOptions);
+// Metadata scans can request many game pages, so those are paced separately from the single catalogue file.
+const fetchCachedPage = createCachedTextFetcher(catalogCache, {
+  ...textFetchOptions,
+  limit: createRequestLimiter(politePageLimit),
+  backoff: politeBackoff,
 });
 
 async function fetchText(url) {
-  return (await fetchCachedText(url)).text;
+  return (await (url === catalogUrl ? fetchCachedCatalog : fetchCachedPage)(url)).text;
 }
 
 async function getCatalog() {
@@ -46,16 +55,11 @@ function configureCache(directory) {
   catalogCache.configureDirectory(directory);
 }
 
-function normalizedTitle(title) {
-  return String(title || "").normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-}
-
 function isInLibrary(game, libraryGames) {
-  const title = normalizedTitle(game.title);
+  const title = normalizeCatalogTitle(game.title);
   return libraryGames.some((entry) => entry.silvergamesId === game.id ||
     entry.silvergamesIds?.includes(game.id) ||
-    (entry.silvergamesId == null && title && normalizedTitle(entry.title) === title));
+    (entry.silvergamesId == null && title && normalizeCatalogTitle(entry.title) === title));
 }
 
 function getLibraryStatus(game, libraryGames) {
@@ -155,8 +159,17 @@ function readSwfRect(buffer) {
   return { width, height, byteLength };
 }
 
+function readActionScript3Flag(body, offset, swfVersion) {
+  if (swfVersion < 9) return false;
+  if (body.length < offset + 2) return null;
+  const tagHeader = body.readUInt16LE(offset);
+  if (tagHeader >> 6 !== 69) return false;
+  const flagsOffset = offset + ((tagHeader & 0x3f) === 0x3f ? 6 : 2);
+  return body.length > flagsOffset ? (body[flagsOffset] & 0x08) !== 0 : null;
+}
+
 function parseSwfMetadata(buffer, responseSize = null) {
-  const metadata = { swfVersion: null, stageWidth: null, stageHeight: null, frameRate: null, fileSizeBytes: null };
+  const metadata = { swfVersion: null, stageWidth: null, stageHeight: null, frameRate: null, fileSizeBytes: null, actionScript3: null };
   if (buffer.length < 8 || !["FWS", "CWS", "ZWS"].includes(buffer.toString("ascii", 0, 3))) return metadata;
 
   metadata.swfVersion = buffer[3];
@@ -182,6 +195,8 @@ function parseSwfMetadata(buffer, responseSize = null) {
     const frameRate = body.readUInt16LE(rect.byteLength) / 256;
     if (Number.isFinite(frameRate) && frameRate > 0 && frameRate <= 1000) metadata.frameRate = frameRate;
   }
+  // FileAttributes follows the header (rect, frame rate, frame count) and flags ActionScript 3 content.
+  metadata.actionScript3 = readActionScript3Flag(body, rect.byteLength + 4, metadata.swfVersion);
   return metadata;
 }
 

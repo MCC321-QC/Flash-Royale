@@ -1,0 +1,58 @@
+/* Classic Flash skin: a 2000s Flash game portal. Gunmetal panels with glossy two-tone buttons, glossy orange primary
+   buttons and tabs, a glossy header bar with an orange stripe, pinstripe backdrop. Loaded after styled-base.css. */
+
+:root {
+  --orange: var(--fr-accent);
+  --gloss-top: rgb(from var(--fr-text) r g b / 0.2);
+  --gunmetal: linear-gradient(180deg, color-mix(in oklab, var(--fr-raised) 82%, var(--fr-text)) 0%, var(--fr-raised) 48%,
+    color-mix(in oklab, var(--fr-raised) 82%, var(--fr-depth)) 52%, color-mix(in oklab, var(--fr-raised) 70%, var(--fr-depth)) 100%);
+  --gunmetal-hover: linear-gradient(180deg, color-mix(in oklab, var(--fr-raised) 68%, var(--fr-text)) 0%, color-mix(in oklab, var(--fr-raised) 86%, var(--fr-text)) 48%,
+    var(--fr-raised) 52%, color-mix(in oklab, var(--fr-raised) 82%, var(--fr-depth)) 100%);
+  --orange-gloss: linear-gradient(180deg, color-mix(in oklab, var(--orange) 55%, var(--fr-text)) 0%, var(--fr-accent-bright) 46%,
+    var(--orange) 52%, color-mix(in oklab, var(--orange) 80%, var(--fr-depth)) 100%);
+  --orange-gloss-hover: linear-gradient(180deg, color-mix(in oklab, var(--orange) 35%, var(--fr-text)) 0%, color-mix(in oklab, var(--fr-accent-bright) 80%, var(--fr-text)) 46%,
+    var(--fr-accent-bright) 52%, var(--orange) 100%);
+
+  --sk-ctl: var(--fr-raised); --sk-ctl-hover: color-mix(in oklab, var(--fr-raised) 86%, var(--fr-text));
+  --sk-ctl-bg: var(--gunmetal); --sk-ctl-bg-hover: var(--gunmetal-hover);
+  --sk-ctl-line: color-mix(in oklab, var(--fr-border) 70%, var(--fr-depth)); --sk-ctl-line-hover: var(--orange);
+  --sk-field: color-mix(in oklab, var(--fr-depth) 70%, var(--fr-surface));
+
+  --sk-card: var(--fr-surface-2); --sk-card-hover: var(--fr-raised); --sk-card-sel: color-mix(in oklab, var(--fr-surface-2) 84%, var(--orange));
+  --sk-card-bg: linear-gradient(180deg, var(--fr-raised) 0%, var(--fr-surface-2) 55%);
+  --sk-card-bg-hover: linear-gradient(180deg, color-mix(in oklab, var(--fr-raised) 88%, var(--fr-text)) 0%, var(--fr-raised) 55%);
+  --sk-card-bg-sel: linear-gradient(180deg, color-mix(in oklab, var(--fr-raised) 78%, var(--orange)) 0%, var(--sk-card-sel) 55%);
+  --sk-card-line: color-mix(in oklab, var(--fr-border) 80%, var(--fr-depth)); --sk-card-line-hover: var(--orange); --sk-card-line-sel: var(--orange);
+
+  --sk-head-bg: var(--gunmetal); --sk-head-line: var(--orange); --sk-head-title: var(--fr-text);
+
+  --sk-primary: var(--orange); --sk-primary-bg: var(--orange-gloss); --sk-primary-bg-hover: var(--orange-gloss-hover);
+  --sk-sel: var(--orange); --sk-sel-bg: var(--orange-gloss);
+  --sk-danger-ink: var(--fr-text);
+  --sk-danger-bg: linear-gradient(180deg, color-mix(in oklab, var(--fr-danger) 62%, var(--fr-text)) 0%, var(--fr-danger) 50%, color-mix(in oklab, var(--fr-danger) 78%, var(--fr-depth)) 100%);
+  --sk-danger-bg-hover: linear-gradient(180deg, color-mix(in oklab, var(--fr-danger) 72%, var(--fr-text)) 0%, var(--sk-danger-hover) 50%, color-mix(in oklab, var(--fr-danger) 68%, var(--fr-depth)) 100%);
+
+  --sk-bw: 1px; --sk-pw: 1px;
+  --sk-r-ctl: calc(8px * var(--fr-roundness)); --sk-r-card: calc(10px * var(--fr-roundness)); --sk-r-panel: calc(12px * var(--fr-roundness));
+  --sk-sh-ctl: inset 0 1px 0 var(--gloss-top), 0 calc(1px * var(--fr-shadow-scale)) calc(3px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.55);
+  --sk-sh-ctl-hover: inset 0 1px 0 var(--gloss-top), 0 calc(2px * var(--fr-shadow-scale)) calc(6px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.6);
+  --sk-sh-primary: inset 0 1px 0 rgb(from var(--fr-text) r g b / 0.45), 0 calc(2px * var(--fr-shadow-scale)) calc(5px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.55);
+  --sk-sh-primary-hover: inset 0 1px 0 rgb(from var(--fr-text) r g b / 0.55), 0 0 calc(12px * var(--fr-shadow-scale)) rgb(from var(--orange) r g b / 0.5);
+  --sk-sh-card: inset 0 1px 0 var(--gloss-top), 0 calc(3px * var(--fr-shadow-scale)) calc(8px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.6);
+  --sk-sh-card-hover: inset 0 1px 0 var(--gloss-top), 0 calc(5px * var(--fr-shadow-scale)) calc(14px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.65);
+  --sk-sh-card-sel: 0 0 0 1px var(--orange), 0 0 calc(16px * var(--fr-shadow-scale)) rgb(from var(--orange) r g b / 0.5);
+  --sk-sh-panel: 0 calc(12px * var(--fr-shadow-scale)) calc(36px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.75);
+  --sk-sh-menu: 0 calc(6px * var(--fr-shadow-scale)) calc(18px * var(--fr-shadow-scale)) rgb(from var(--fr-shadow) r g b / 0.65);
+  --sk-lift: translateY(-1px);
+}
+
+/* Glossy header bar with an orange stripe, and embossed titles. */
+.settings-tabbed > header, .explore-header, .remap-header, .onscreen-editor-header, .crt-settings-panel > header { border-bottom-width: 3px !important; }
+.settings-tabbed > header .settings-heading, .explore-heading h2, .remap-header :is(h1, h2), .brand h1, .brand strong { text-shadow: 0 2px 0 var(--fr-depth); }
+.settings-section-title, .confirm-dialog h2 { color: var(--orange); }
+
+/* Glossy red for destructive buttons and armed confirmations. */
+.secondary.settings-close-app, .primary.stop-playing, .confirm-destructive,
+.confirming, .is-confirming, .danger-confirm, .desktop-shortcut-footer button.secondary.danger {
+  text-shadow: 0 1px 0 rgb(from var(--fr-depth) r g b / 0.5);
+}

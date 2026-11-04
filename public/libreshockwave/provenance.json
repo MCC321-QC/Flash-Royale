@@ -1,0 +1,22 @@
+{
+  "version": "20260810-zlib",
+  "revision": "3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2",
+  "emscripten": "4.0.12",
+  "license": "AGPL-3.0",
+  "source": "https://github.com/LibreShockwave/LibreShockwave/tree/3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2",
+  "sourceArchive": "https://github.com/LibreShockwave/LibreShockwave/archive/3bdea8d0ced8b7f99eabb4dfea807a1b9e220ec2.tar.gz",
+  "sourceSha256": "8d9666dba51dd2eb86dca1714cb31358cb792758a47a16e7b83f430981981be3",
+  "build": "scripts/build-libreshockwave.cjs",
+  "files": {
+    "libreshockwave-cpp-player.js": "0b4569e8a038a29652fe5f07e9ddc35c275fc379734c64b2c8c7f49d2fae518e",
+    "libreshockwave-cpp-worker.js": "f93b45e1c2381ccaa4c292eeaf8cc18f9a076ee23a062b685438814e1a596e6e",
+    "libreshockwave-cpp-wasm.js": "0cf21471b9451effa3e2deb90c4d8fce83728abfabc81036009dfc51f7300e97",
+    "libreshockwave-cpp-wasm.wasm": "cce12fe82dfd381d5b5f1e67008746c62a9b278af87cefadfd6387357c464551",
+    "COPYING": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+    "SOURCE.txt": "d56cff1a1f0f6b4e1431d4a9e6a6f6b23fba5bbbe365a00458fe48a839b62f32",
+    "source.tar.gz": "8d9666dba51dd2eb86dca1714cb31358cb792758a47a16e7b83f430981981be3",
+    "zlib-source.tar.gz": "17e88863f3600672ab49182f217281b6fc4d3c762bde361935e436a95214d05c",
+    "LICENSE.zlib.txt": "845efc77857d485d91fb3e0b884aaa929368c717ae8186b66fe1ed2495753243",
+    "LICENSE.emscripten.txt": "620a78084fc7ca97c0b5dea9abf891f3ffcadfdbf305276f099c9c4e12fc1d86"
+  }
+}
