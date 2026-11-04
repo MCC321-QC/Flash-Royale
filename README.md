@@ -1,7 +1,6 @@
-<details><br>
-  <summary>🛑 <b>Windows 11 Smart App Control Block</b></summary>
-
-> [!WARNING]
+<details>
+  <summary>🛑 <b>Windows 11 Smart App Control Block</b></summary><br>
+  
 > Because this is a **portable .exe** and an open-source project without an expensive commercial signature, **Windows Smart App Control** or **SmartScreen** will block it immediately upon launch. 
 > 
 > To bypass this restriction, you just need to remove the "Mark of the Web" from the file. Follow these steps before running the app:
@@ -15,7 +14,7 @@
 > ```powershell
 > Unblock-File -Path ".\Flash Royale.exe"
 > ```
-</details><br>
+</details>
 
 # Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/0.9.7/Flash-Royale-v0.9.7-Windows.zip)
 
