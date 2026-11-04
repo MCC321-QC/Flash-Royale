@@ -23,6 +23,54 @@ async function collectNotices(directory, prefix = "", depth = 0) {
   return notices;
 }
 
+async function verifyNativeInventory(directory, component, sbom) {
+  if (sbom.metadata?.component?.name !== component.name || sbom.metadata.component.version !== component.version) {
+    throw new Error(`Native inventory identity mismatch: ${component.name}`);
+  }
+  const binaries = (sbom.components || []).filter(entry => entry.type === "file" && /\.node$/i.test(entry.name));
+  const installed = (await fs.readdir(directory)).filter(file => /\.node$/i.test(file)).sort();
+  if (!binaries.length || JSON.stringify(binaries.map(entry => entry.name).sort()) !== JSON.stringify(installed)) {
+    throw new Error(`Native inventory binary list mismatch: ${component.name}`);
+  }
+  const verified = [];
+  for (const binary of binaries) {
+    if (path.basename(binary.name) !== binary.name || /[/\\]/.test(binary.name)) throw new Error("Invalid native inventory path");
+    const expected = binary.hashes?.find(hash => hash.alg === "SHA-256")?.content;
+    if (!/^[a-f0-9]{64}$/.test(expected || "")) throw new Error(`Missing native binary SHA-256: ${binary.name}`);
+    verified.push({ file: binary.name, sha256: await verifyFile(path.join(directory, binary.name), expected) });
+  }
+  return verified;
+}
+
+async function collectCanvasNativeNotices(component, sbom, directory = path.join(__dirname, "license-supplements", "canvas-native")) {
+  const provenance = JSON.parse(await fs.readFile(path.join(directory, "provenance.json"), "utf8"));
+  if (component.name !== provenance.package || component.version !== provenance.version ||
+      !sbom.components.some(entry => entry.type === "file" && entry.hashes?.some(hash => hash.alg === "SHA-256" && hash.content === provenance.binarySha256))) {
+    throw new Error("Canvas native binary changed; review its pinned supplemental notices.");
+  }
+  const credits = [];
+  const expectedLibraries = sbom.components.filter(entry => entry["bom-ref"]?.startsWith("skia-vendored:")).map(entry => entry["bom-ref"]).sort();
+  const suppliedLibraries = provenance.components.filter(library => library.name !== "skia").map(library => `skia-vendored:${library.name}@${library.revision}`).sort();
+  if (JSON.stringify(expectedLibraries) !== JSON.stringify(suppliedLibraries)) {
+    throw new Error("Canvas native dependency list changed; review its supplemental notices.");
+  }
+  for (const library of provenance.components) {
+    const notices = [];
+    for (const notice of library.files) {
+      if (path.basename(notice.file) !== notice.file || /[/\\]/.test(notice.file)) throw new Error("Invalid native notice path");
+      const file = path.join(directory, notice.file);
+      await verifyFile(file, notice.sha256);
+      notices.push({ file: notice.file, source: notice.source, text: await fs.readFile(file, "utf8") });
+    }
+    credits.push({
+      name: `${library.name} (embedded in canvas)`, version: library.revision, license: library.license,
+      location: component.location, repository: library.repository, notices,
+      noticeSource: "Pinned native source notices; canvas SBOM verified against the installed binary",
+    });
+  }
+  return credits;
+}
+
 async function collectLicenses(root) {
   const lock = JSON.parse(await fs.readFile(path.join(root, "package-lock.json"), "utf8"));
   const components = [];
@@ -118,22 +166,31 @@ async function collectLicenses(root) {
     });
   }
   const nativeInventories = [];
+  const nativeNotices = [];
   for (const component of components) {
     if (!component.location.startsWith("node_modules/@napi-rs/canvas-")) continue;
     const file = path.join(root, ...component.location.split("/"), "sbom.cdx.json");
+    let sbom;
     try {
-      const sbom = JSON.parse(await fs.readFile(file, "utf8"));
-      nativeInventories.push({
-        package: `${component.name}@${component.version}`,
-        file, output: `${component.name.replace(/[@/]/g, "_")}-sbom.cdx.json`,
-        components: sbom.components?.length ?? 0,
-        missingLicenseMetadata: (sbom.components ?? []).filter(entry => !entry.licenses?.length).map(entry => entry.name),
-      });
+      sbom = JSON.parse(await fs.readFile(file, "utf8"));
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
       nativeInventories.push({ package: `${component.name}@${component.version}`, missing: true });
+      continue;
     }
+    const verifiedBinaries = await verifyNativeInventory(path.dirname(file), component, sbom);
+    if (component.name === "@napi-rs/canvas-win32-x64-msvc") {
+      nativeNotices.push(...await collectCanvasNativeNotices(component, sbom));
+    }
+    nativeInventories.push({
+      package: `${component.name}@${component.version}`,
+      file, output: `${component.name.replace(/[@/]/g, "_")}-sbom.cdx.json`,
+      components: sbom.components?.length ?? 0,
+      verifiedBinaries,
+      missingLicenseMetadata: (sbom.components ?? []).filter(entry => !entry.licenses?.length).map(entry => entry.name),
+    });
   }
+  components.push(...nativeNotices);
   const royaleRoot = path.join(root, "public", "crt-royale");
   const royale = JSON.parse(await fs.readFile(path.join(royaleRoot, "upstream.json"), "utf8"));
   components.push({
@@ -147,16 +204,6 @@ async function collectLicenses(root) {
     scope: "Installed production lockfile packages, Electron, bundled SDL, DirPlayer, LibreShockwave, CRT-Royale, derived fonts and keyboard data; embedded upstream code requires separate review.",
     components, skipped, embedded, nativeInventories,
     missingNotices: components.filter(component => !component.notices.length).map(({ name, version, location }) => ({ name, version, location })),
-    reviewRequired: [
-      "LibreShockwave is AGPL-3.0: review integration, corresponding-source (including build dependencies), distribution and network-use obligations before publishing. Source links and notices alone do not establish compliance.",
-      "DirPlayer is GPL-3.0-only: establish a compliant distribution/source arrangement and review integration obligations before publishing.",
-      "DirPlayer bundles bobba_xtra.wasm and groove_xtra.wasm, but their pinned upstream source repositories were unavailable during review. Included source archives do not resolve these missing submodules.",
-      "CRT-Royale is GPL-2.0-or-later: review distribution/integration obligations and provide the corresponding shader and browser-host sources before publishing.",
-      "Native Koffi/canvas binaries use matching source-package notices here; audit their embedded native dependencies separately (including Skia).",
-      "Ruffle and DirPlayer WASM binaries may contain Rust/native dependencies not enumerated by npm; obtain upstream third-party inventories.",
-      "Confirm the project's own license and permission to redistribute inherited code, artwork, fonts, cursors and bundled content.",
-      "Repeat collection on every target platform and validate the final packaged archive; absent optional platform packages are excluded here.",
-    ],
   };
   const destination = path.join(root, "third-party-notices");
   await fs.mkdir(destination, { recursive: true });
@@ -174,6 +221,10 @@ async function collectLicenses(root) {
     "\nEmbedded notices preserved in Foliate vendor modules",
     ...embedded.flatMap(entry => [entry.file, ...entry.notices]),
     "\nElectron's Chromium notices are provided separately in LICENSES.chromium.html.",
+    ...(nativeNotices.length ? [
+      "\nThis software is based in part on the work of the Independent JPEG Group.",
+      "Portions of this software are copyright \u00a9 The FreeType Project (www.freetype.org). All rights reserved.",
+    ] : []),
   ].join("\n");
   await fs.writeFile(path.join(destination, "THIRD-PARTY-NOTICES.txt"), text);
   await copyGeneratedNotice(path.join(root, "node_modules", "electron", "dist", "LICENSES.chromium.html"), path.join(destination, "LICENSES.chromium.html"));
@@ -195,7 +246,7 @@ async function copyGeneratedNotice(source, destination) {
   await fs.utimes(destination, generatedAt, generatedAt);
 }
 
-module.exports = { collectNotices, collectLicenses, verifyFile, copyGeneratedNotice };
+module.exports = { collectNotices, collectLicenses, verifyFile, copyGeneratedNotice, verifyNativeInventory, collectCanvasNativeNotices };
 
 async function collectFontLicenses(root) {
   const fontRoot = path.join(root, "public");

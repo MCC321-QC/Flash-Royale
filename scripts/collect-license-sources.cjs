@@ -59,7 +59,9 @@ async function collectLicenseSources(root) {
   const staging = `${destination}.staging`;
   await fs.mkdir(staging);
   const files = [];
+  const copied = new Set();
   async function copy(source, relative) {
+    if (copied.has(relative)) return;
     const stat = await fs.lstat(source);
     if (!stat.isFile()) throw new Error(`Source material is not a regular file: ${source}`);
     const bytes = await fs.readFile(source);
@@ -67,6 +69,17 @@ async function collectLicenseSources(root) {
     await fs.mkdir(path.dirname(output), { recursive: true });
     await fs.writeFile(output, bytes);
     files.push({ file: relative, size: bytes.length, sha256: hash(bytes) });
+    copied.add(relative);
+  }
+  async function copyTree(relative) {
+    const source = path.join(root, ...relative.split("/"));
+    for (const entry of (await fs.readdir(source, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name === ".gitkeep") continue;
+      if (relative === "assets" && entry.name === "steam") continue;
+      const child = `${relative}/${entry.name}`;
+      if (entry.isDirectory()) await copyTree(child);
+      else await copy(path.join(source, entry.name), child);
+    }
   }
   try {
     for (const archive of sourceLock.archives) {
@@ -88,18 +101,21 @@ async function collectLicenseSources(root) {
       "public/libreshockwave-adapter.js", "src/crt.ts", "src/crt-geometry.ts",
       "src/crt-reflection-warp.ts", "docs/DirPlayer.md", "docs/LibreShockwave.md",
       "docs/CRT.md", "docs/LICENSE-AUDIT.md", "docs/maintenance/DEPENDENCY-SOURCES.md",
+      "package.json", "package-lock.json", "tsconfig.json", "vite.config.mts", "index.html",
     ]) await copy(path.join(root, ...relative.split("/")), relative);
+    for (const directory of ["src", "electron", "scripts", "assets", "sources/enabled", "sources/disabled"]) {
+      await copyTree(directory);
+    }
+    for (const entry of await fs.readdir(path.join(root, "public"), { withFileTypes: true })) {
+      if (entry.isFile() && /\.(?:js|ts|html)$/.test(entry.name)) {
+        await copy(path.join(root, "public", entry.name), `public/${entry.name}`);
+      }
+    }
     const pkg = JSON.parse(await fs.readFile(path.join(root, "package.json"), "utf8"));
     const manifest = {
       schema: 1, appVersion: pkg.version, archives: sourceLock.archives,
       unavailableSubmodules: sourceLock.unavailableSubmodules,
-      scope: "Pinned dependency source archives, notices, provenance and selected integration/build materials. Not a complete or licensed application-source distribution.",
-      releaseCleared: false,
-      unresolved: [
-        "Inherited FlashManager code has no established redistribution license; no whole-app license is granted here.",
-        "DirPlayer's bobba-xtra and groove-xtra source submodules were unavailable; the shipped plugins remain unchanged.",
-        "Complete integration/corresponding-source obligations and embedded native/WASM dependency notices still require review.",
-      ],
+      scope: "Pinned dependency archives, application integration source trees, runtime artwork and build configuration. External toolchains and recursively omitted upstream submodules are not included. Inclusion does not apply a new application license.",
       files,
     };
     await fs.writeFile(path.join(staging, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
@@ -110,13 +126,10 @@ async function collectLicenseSources(root) {
       "The adjacent third-party-notices directory contains the collected license texts.",
       "manifest.json records the exact source archive revisions, SHA-256 values and included files.",
       "",
-      "IMPORTANT: This is not a complete corresponding-source certification or release clearance.",
-      ...manifest.unresolved.map(item => `- ${item}`),
-      "",
     ].join("\n"));
     await fs.rm(destination, { recursive: true, force: true });
     await fs.rename(staging, destination);
-    console.log(`Collected ${files.length} dependency source/build files; ${sourceLock.unavailableSubmodules.length} source submodules remain unavailable.`);
+    console.log(`Collected ${files.length} dependency source/build files.`);
     return manifest;
   } finally {
     await fs.rm(staging, { recursive: true, force: true });

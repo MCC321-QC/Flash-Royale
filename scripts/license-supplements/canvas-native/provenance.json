@@ -1,0 +1,197 @@
+{
+  "package": "@napi-rs/canvas-win32-x64-msvc",
+  "version": "1.0.13",
+  "binarySha256": "5d00cf716176a32c2a289f48cad19637131fe7de394c4fed58ae48043325943a",
+  "canvasRevision": "00a115d9903647f116daf86eccd2c6ba36128371",
+  "components": [
+    {
+      "name": "skia",
+      "revision": "b94213a11b3a2edadfae89f0c57a7f4ab72772c9",
+      "repository": "https://skia.googlesource.com/skia",
+      "license": "BSD-3-Clause",
+      "files": [
+        {
+          "file": "skia-LICENSE.txt",
+          "source": "https://skia.googlesource.com/skia/+/b94213a11b3a2edadfae89f0c57a7f4ab72772c9/LICENSE?format=TEXT",
+          "sha256": "5f787c1dee3c56547f09ccc2906ab5f5293c4d8dd6c8654e573216c38e908dbd"
+        }
+      ]
+    },
+    {
+      "name": "expat",
+      "revision": "6154446fccefbf3ca644894f598969113b0c7bcd",
+      "repository": "https://chromium.googlesource.com/external/github.com/libexpat/libexpat.git",
+      "license": "MIT",
+      "files": [
+        {
+          "file": "expat-COPYING.txt",
+          "source": "https://chromium.googlesource.com/external/github.com/libexpat/libexpat/+/6154446fccefbf3ca644894f598969113b0c7bcd/COPYING?format=TEXT",
+          "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87"
+        }
+      ]
+    },
+    {
+      "name": "freetype",
+      "revision": "264b5fbf5b912b39f98d038bf75d39be0a73f21b",
+      "repository": "https://chromium.googlesource.com/chromium/src/third_party/freetype2.git",
+      "license": "FTL",
+      "files": [
+        {
+          "file": "freetype-docs-FTL.TXT.txt",
+          "source": "https://chromium.googlesource.com/chromium/src/third_party/freetype2/+/264b5fbf5b912b39f98d038bf75d39be0a73f21b/docs/FTL.TXT?format=TEXT",
+          "sha256": "5a5ee54c5001bbad1cdc1a57cc3dd4c42199b2da09d39c7ee41fab002d02967f"
+        }
+      ]
+    },
+    {
+      "name": "brotli",
+      "revision": "6d03dfbedda1615c4cba1211f8d81735575209c8",
+      "repository": "https://skia.googlesource.com/external/github.com/google/brotli.git",
+      "license": "MIT",
+      "files": [
+        {
+          "file": "brotli-LICENSE.txt",
+          "source": "https://skia.googlesource.com/external/github.com/google/brotli/+/6d03dfbedda1615c4cba1211f8d81735575209c8/LICENSE?format=TEXT",
+          "sha256": "3d180008e36922a4e8daec11c34c7af264fed5962d07924aea928c38e8663c94"
+        }
+      ]
+    },
+    {
+      "name": "harfbuzz",
+      "revision": "9cb1fee51069b206effb4736e443b038d230789d",
+      "repository": "https://chromium.googlesource.com/external/github.com/harfbuzz/harfbuzz.git",
+      "license": "MIT",
+      "files": [
+        {
+          "file": "harfbuzz-COPYING.txt",
+          "source": "https://chromium.googlesource.com/external/github.com/harfbuzz/harfbuzz/+/9cb1fee51069b206effb4736e443b038d230789d/COPYING?format=TEXT",
+          "sha256": "ba8f810f2455c2f08e2d56bb49b72f37fcf68f1f4fade38977cfd7372050ad64"
+        }
+      ]
+    },
+    {
+      "name": "icu",
+      "revision": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
+      "repository": "https://chromium.googlesource.com/chromium/deps/icu.git",
+      "license": "ICU",
+      "files": [
+        {
+          "file": "icu-LICENSE.txt",
+          "source": "https://chromium.googlesource.com/chromium/deps/icu/+/d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738/LICENSE?format=TEXT",
+          "sha256": "e55522d81edc687a341a4411e0776e54ca654e90147f354a90458aaced4116af"
+        }
+      ]
+    },
+    {
+      "name": "libjxl",
+      "revision": "332feb17d17311c748445f7ee75c4fb55cc38530",
+      "repository": "https://chromium.googlesource.com/external/gitlab.com/wg1/jpeg-xl.git",
+      "license": "BSD-3-Clause",
+      "files": [
+        {
+          "file": "libjxl-LICENSE.txt",
+          "source": "https://chromium.googlesource.com/external/gitlab.com/wg1/jpeg-xl/+/332feb17d17311c748445f7ee75c4fb55cc38530/LICENSE?format=TEXT",
+          "sha256": "8405932022a556380c2d8c272eff154a923feb197233f348ce5f7334fb0a5ede"
+        },
+        {
+          "file": "libjxl-PATENTS.txt",
+          "source": "https://chromium.googlesource.com/external/gitlab.com/wg1/jpeg-xl/+/332feb17d17311c748445f7ee75c4fb55cc38530/PATENTS?format=TEXT",
+          "sha256": "91915f8ae056a68a3c5bdf05d9f6f78bb6903e27a8ca3a8434c9e4ac87300575"
+        }
+      ]
+    },
+    {
+      "name": "highway",
+      "revision": "457c891775a7397bdb0376bb1031e6e027af1c48",
+      "repository": "https://chromium.googlesource.com/external/github.com/google/highway.git",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "file": "highway-LICENSE.txt",
+          "source": "https://chromium.googlesource.com/external/github.com/google/highway/+/457c891775a7397bdb0376bb1031e6e027af1c48/LICENSE?format=TEXT",
+          "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+        }
+      ]
+    },
+    {
+      "name": "libjpeg-turbo",
+      "revision": "e14cbfaa85529d47f9f55b0f104a579c1061f9ad",
+      "repository": "https://chromium.googlesource.com/chromium/deps/libjpeg_turbo.git",
+      "license": "BSD-3-Clause AND IJG AND Zlib",
+      "files": [
+        {
+          "file": "libjpeg-turbo-LICENSE.md.txt",
+          "source": "https://chromium.googlesource.com/chromium/deps/libjpeg_turbo/+/e14cbfaa85529d47f9f55b0f104a579c1061f9ad/LICENSE.md?format=TEXT",
+          "sha256": "96f5b328adbb78eeaaec6980d73fd558cb1e4d62560ed615646bc3cf5e532430"
+        },
+        {
+          "file": "libjpeg-turbo-README.ijg.txt",
+          "source": "https://chromium.googlesource.com/chromium/deps/libjpeg_turbo/+/e14cbfaa85529d47f9f55b0f104a579c1061f9ad/README.ijg?format=TEXT",
+          "sha256": "75815e3bf6484201a3c3d17a1bbf10f2e8e3237f84df10a2357ea896db2a81d6"
+        },
+        {
+          "file": "libjpeg-turbo-simd-nasm-jsimdext.inc.txt",
+          "source": "https://chromium.googlesource.com/chromium/deps/libjpeg_turbo/+/e14cbfaa85529d47f9f55b0f104a579c1061f9ad/simd/nasm/jsimdext.inc?format=TEXT",
+          "sha256": "000b2df5469d2f94ea20a1b3d638b94031dad296f006600e1dbff79eded5facb"
+        }
+      ]
+    },
+    {
+      "name": "libpng",
+      "revision": "d5515b5b8be3901aac04e5bd8bd5c89f287bcd33",
+      "repository": "https://skia.googlesource.com/third_party/libpng.git",
+      "license": "libpng-2.0",
+      "files": [
+        {
+          "file": "libpng-LICENSE.txt",
+          "source": "https://skia.googlesource.com/third_party/libpng/+/d5515b5b8be3901aac04e5bd8bd5c89f287bcd33/LICENSE?format=TEXT",
+          "sha256": "bdb0a645ea18c60507d0368379b1ac5474b92255fcc2d115e07486a7672ba526"
+        }
+      ]
+    },
+    {
+      "name": "libwebp",
+      "revision": "845d5476a866141ba35ac133f856fa62f0b7445f",
+      "repository": "https://chromium.googlesource.com/webm/libwebp.git",
+      "license": "BSD-3-Clause",
+      "files": [
+        {
+          "file": "libwebp-COPYING.txt",
+          "source": "https://chromium.googlesource.com/webm/libwebp/+/845d5476a866141ba35ac133f856fa62f0b7445f/COPYING?format=TEXT",
+          "sha256": "5aec868f669e384a22372a4e8a1a6cd7d44c64cd451f960ca69cc170d1e13acf"
+        },
+        {
+          "file": "libwebp-PATENTS.txt",
+          "source": "https://chromium.googlesource.com/webm/libwebp/+/845d5476a866141ba35ac133f856fa62f0b7445f/PATENTS?format=TEXT",
+          "sha256": "cc3273e0694ea5896145e0677699b53471b03ea43021ddc50e7923fbb9f5023c"
+        }
+      ]
+    },
+    {
+      "name": "wuffs",
+      "revision": "e3f919ccfe3ef542cfc983a82146070258fb57f8",
+      "repository": "https://skia.googlesource.com/external/github.com/google/wuffs-mirror-release-c.git",
+      "license": "Apache-2.0",
+      "files": [
+        {
+          "file": "wuffs-LICENSE.txt",
+          "source": "https://skia.googlesource.com/external/github.com/google/wuffs-mirror-release-c/+/e3f919ccfe3ef542cfc983a82146070258fb57f8/LICENSE?format=TEXT",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        }
+      ]
+    },
+    {
+      "name": "zlib",
+      "revision": "646b7f569718921d7d4b5b8e22572ff6c76f2596",
+      "repository": "https://chromium.googlesource.com/chromium/src/third_party/zlib",
+      "license": "Zlib",
+      "files": [
+        {
+          "file": "zlib-LICENSE.txt",
+          "source": "https://chromium.googlesource.com/chromium/src/third_party/zlib/+/646b7f569718921d7d4b5b8e22572ff6c76f2596/LICENSE?format=TEXT",
+          "sha256": "e1cfcc55c325b3f78cf55df9664abaa066e2271dffe8213347d9fccdfbac8f2c"
+        }
+      ]
+    }
+  ]
+}

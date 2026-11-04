@@ -1,11 +1,9 @@
 # Dependency source materials
 
-[Maintenance index](README.md) | [License review](../LICENSE-AUDIT.md)
+[Maintenance index](README.md) | [License notices](../LICENSE-AUDIT.md)
 
 The app's build includes available pinned dependency sources and relevant build
 material in `resources/third-party-sources`, next to `third-party-notices`.
-This improves source access; it does **not** certify complete corresponding
-source, grant a license to inherited app code, or clear a release.
 
 ## Preparing and building
 
@@ -40,11 +38,31 @@ from an archive while describing that archive as including these materials.
 - **CRT-Royale:** the distributed original shader sources/masks and provenance,
   plus the browser-host source files.
 - **Fonts:** OFL notices, derivation provenance and generator scripts.
-- Selected host adapters and component documentation, not the complete app source.
+- Application integration trees (`src/`, `electron/`, `scripts/`), build
+  configuration and npm lockfile, enabled/disabled source definitions, runtime
+  artwork (excluding the separate Steam artwork), and top-level public
+  JavaScript/HTML/TypeScript adapters.
+- Canvas native-library supplemental notices and their pinned provenance, also
+  included in the aggregate notices.
 
-`manifest.json` hashes every copied source/build file and identifies known
-missing submodules. It says `releaseCleared: false` intentionally.
+`manifest.json` hashes every copied source/build file and records submodule
+provenance.
 No new license is applied to the application or its integration files.
+The source bundle is not a standalone offline checkout: installed npm packages,
+toolchains, public runtime/data assets and omitted upstream submodules must still
+be supplied as described by their build recipes and provenance.
+
+## Native notice verification
+
+For the installed Windows x64 canvas package, notice generation verifies package
+name/version and the actual `.node` binary's SHA-256 against its supplied SBOM.
+Supplemental Skia and twelve native-library notice sets are pinned to that binary
+and exact upstream source revisions in
+[canvas provenance](../../scripts/license-supplements/canvas-native/provenance.json).
+Generation rejects a changed native dependency list or altered notice file.
+
+See [inventory coverage](../LICENSE-AUDIT.md#inventory-coverage) for the
+upstream SBOM and runtime lockfile counts.
 
 ## Reading the source archives
 
@@ -55,27 +73,9 @@ top-level folder. Preserve the included notices.
 DirPlayer's own `package.json`, Rust manifests/lockfile and `.github/workflows/`
 describe the upstream build. It uses Rust/wasm-pack, wasm-bindgen-cli 0.2.108 and
 Node/npm; `build-all` includes VM, Xtras, embedded Ruffle and polyfill builds.
-**That full build cannot be claimed reproducible from this bundle**, because
-the Xtra source submodules below are missing. The omitted reference-snapshot
-test submodule is also not represented as a bundled test suite.
+The source bundle contains the archives listed above, rather than a complete
+recursive checkout or the reference-snapshot test suite.
 
 LibreShockwave's build is described in [its guide](../LibreShockwave.md).
 The copied recipe expects the sources at `public/libreshockwave/` in the
 repository layout. Toolchain/dependency installation can require internet.
-
-## Known gaps that remain
-
-On 2026-11-03 the following pinned DirPlayer submodules returned 404:
-
-| Shipped plugin | Source repository | Revision |
-| --- | --- | --- |
-| `bobba_xtra.wasm` | `chameleonxxl/bobba-xtra` | `3022f6f924d23ac1838be7b212cf745f52448dcd` |
-| `groove_xtra.wasm` | `chameleonxxl/groove-xtra` | `86ea920f3b4d8add58b8f3e07629699cefa1763e` |
-
-These binaries are kept unchanged for compatibility. Their presence is **not**
-evidence that matching source or complete notices have been obtained.
-The Ruffle archive does not supply these independent plugins.
-
-Permission for inherited app code, whole-integration licensing and embedded
-dependency/source coverage remain separate review items in the license guide.
-Do not mark them resolved merely because generation or packaging passes.

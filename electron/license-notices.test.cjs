@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
-const { collectNotices, collectFontLicenses, verifyFile, copyGeneratedNotice } = require("../scripts/collect-licenses.cjs");
+const { collectNotices, collectFontLicenses, verifyFile, copyGeneratedNotice, verifyNativeInventory, collectCanvasNativeNotices } = require("../scripts/collect-licenses.cjs");
 const { prepareArchives, collectLicenseSources } = require("../scripts/collect-license-sources.cjs");
 const crypto = require("node:crypto");
 
@@ -38,6 +38,66 @@ test("license collection includes nested asset notices but excludes dependencies
     const notices = await collectNotices(directory);
     assert.deepEqual(notices.map(notice => notice.file).sort(), ["LICENSE", "LICENSE.chromium.html", "fonts/LICENSE_FOXIT"]);
     assert.equal(notices.find(notice => notice.file === "fonts/LICENSE_FOXIT").text, "font notice");
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("native inventories match the installed package and binary bytes, not just a component count", async () => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-native-inventory-"));
+  const component = { name: "test-native", version: "1.0.0" };
+  const bytes = Buffer.from("native binary");
+  const sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
+  const sbom = {
+    metadata: { component },
+    components: [{ type: "file", name: "test.node", hashes: [{ alg: "SHA-256", content: sha256 }] }],
+  };
+  try {
+    await fs.writeFile(path.join(directory, "test.node"), bytes);
+    assert.deepEqual(await verifyNativeInventory(directory, component, sbom), [{ file: "test.node", sha256 }]);
+    await assert.rejects(verifyNativeInventory(directory, { ...component, version: "2.0.0" }, sbom), /identity mismatch/);
+    await fs.writeFile(path.join(directory, "test.node"), "changed");
+    await assert.rejects(verifyNativeInventory(directory, component, sbom), /License provenance changed/);
+    await fs.writeFile(path.join(directory, "extra.node"), bytes);
+    await assert.rejects(verifyNativeInventory(directory, component, sbom), /binary list mismatch/);
+    await fs.rm(path.join(directory, "extra.node"));
+    await fs.writeFile(path.join(directory, "test.node"), bytes);
+    sbom.components[0].hashes = [];
+    await assert.rejects(verifyNativeInventory(directory, component, sbom), /Missing native binary SHA-256/);
+    await fs.rm(path.join(directory, "test.node"));
+    await assert.rejects(verifyNativeInventory(directory, component, sbom), /binary list mismatch/);
+  } finally {
+    await fs.rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("canvas native notices cover the pinned Skia libraries and reject changed evidence", async () => {
+  const root = path.resolve(__dirname, "..");
+  const component = { name: "@napi-rs/canvas-win32-x64-msvc", version: "1.0.13", location: "node_modules/@napi-rs/canvas-win32-x64-msvc" };
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-canvas-notices-"));
+  try {
+    await fs.cp(path.join(root, "scripts", "license-supplements", "canvas-native"), directory, { recursive: true });
+    const provenance = JSON.parse(await fs.readFile(path.join(directory, "provenance.json"), "utf8"));
+    const sbom = { components: [
+      { type: "file", hashes: [{ alg: "SHA-256", content: provenance.binarySha256 }] },
+      ...provenance.components.filter(library => library.name !== "skia").map(library => ({
+        name: library.name, "bom-ref": `skia-vendored:${library.name}@${library.revision}`,
+      })),
+    ] };
+    const credits = await collectCanvasNativeNotices(component, sbom, directory);
+    assert.equal(credits.length, 13);
+    for (const credit of credits) assert.ok(credit.notices.length && credit.notices.every(notice => notice.text.length > 100), credit.name);
+    await assert.rejects(collectCanvasNativeNotices({ ...component, version: "2.0.0" }, sbom, directory), /Canvas native binary changed/);
+    const changed = structuredClone(sbom);
+    changed.components.find(entry => entry.name === "freetype")["bom-ref"] += "-changed";
+    await assert.rejects(collectCanvasNativeNotices(component, changed, directory), /dependency list changed/);
+    await fs.writeFile(path.join(directory, "skia-LICENSE.txt"), "changed notice");
+    await assert.rejects(collectCanvasNativeNotices(component, sbom, directory), /License provenance changed/);
+    provenance.components[0].files[0].file = "..\\outside-LICENSE.txt";
+    await fs.writeFile(path.join(directory, "provenance.json"), JSON.stringify(provenance));
+    await assert.rejects(collectCanvasNativeNotices(component, sbom, directory), /Invalid native notice path/);
+    await fs.rm(path.join(directory, "provenance.json"));
+    await assert.rejects(collectCanvasNativeNotices(component, sbom, directory), { code: "ENOENT" });
   } finally {
     await fs.rm(directory, { recursive: true, force: true });
   }

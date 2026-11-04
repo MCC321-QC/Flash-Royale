@@ -63,8 +63,8 @@ integration rather than only testing that WASM loads.
 Release builds also include its pinned upstream source archive and embedded
 Ruffle source in `resources/third-party-sources`, prepared through
 `npm.cmd run setup:license-sources`. See
-[source coverage](maintenance/DEPENDENCY-SOURCES.md#known-gaps-that-remain)
-for the included archives and Xtra submodule availability.
+[source coverage](maintenance/DEPENDENCY-SOURCES.md)
+for the included archives and build materials.
 
 Focused regression coverage:
 
