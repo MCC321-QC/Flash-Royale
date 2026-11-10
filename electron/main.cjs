@@ -28,6 +28,7 @@ const players = require("./players.cjs");
 const { createPlayerDiscovery } = require("./player-discovery.cjs");
 const { sanitizeKeyboardRequest, sanitizeKeyboardResult, sanitizeKeyboardInput, sendKeyboardInput, setGameKeyboardFocus } = require("./virtual-keyboard.cjs");
 const flashpointImport = require("./flashpoint-import.cjs");
+const flashpointContent = require("./flashpoint-content.cjs");
 const flashpointMetadata = require("./flashpoint-metadata.cjs");
 const { lookupFlashpointGames, closeFlashpointGames, searchFlashpointGames } = require("./compatibility.cjs");
 const metadataSources = require("./metadata-sources.cjs");
@@ -1936,14 +1937,22 @@ async function rememberPublicResource(gameId, value) {
   finally { if (pendingResourceWrites.get(gameId) === pending) pendingResourceWrites.delete(gameId); }
 }
 
-function registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl = null) {
-  if (flashpointLaunchUrl && !flashpointPlayerSessions.has(playerSession)) {
+function registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl = null, hasFlashpointContent = false) {
+  if ((flashpointLaunchUrl || hasFlashpointContent) && !flashpointPlayerSessions.has(playerSession)) {
     for (const scheme of ["http", "https"]) {
-      playerSession.protocol.handle(scheme, (request) => {
+      playerSession.protocol.handle(scheme, async (request) => {
         const access = playerSessionNetworkAccess.get(playerSession);
         if (access?.flashpointLaunchUrl === request.url && request.method === "GET") {
           return playerSession.fetch(`${assetBaseUrl}/game/${encodeURIComponent(access.gameId)}/game.swf`,
             { bypassCustomProtocolHandlers: true });
+        }
+        const resource = flashpointContent.findResource(access?.flashpointPack, request.url);
+        if (resource) {
+          try { return await flashpointContent.serveResource(access.flashpointPack, resource, request, contentTypeFor); }
+          catch (error) {
+            console.error("Could not load archived Flashpoint resource:", resource.name, error);
+            return new Response("Could not load the archived Flashpoint resource.", { status: 500 });
+          }
         }
         return playerSession.fetch(request, { bypassCustomProtocolHandlers: true });
       });
@@ -1954,7 +1963,8 @@ function registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl = null) {
   playerSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*"] }, (details, callback) => {
     const access = playerNetworkAccess.get(details.webContentsId) || playerSessionNetworkAccess.get(playerSession);
     // This address is served from the local movie, not from the original website.
-    if (access?.flashpointLaunchUrl === details.url && details.method === "GET") {
+    if ((access?.flashpointLaunchUrl === details.url && details.method === "GET") ||
+        flashpointContent.findResource(access?.flashpointPack, details.url)) {
       callback({});
       return;
     }
@@ -2294,6 +2304,13 @@ function contentTypeFor(filePath) {
   if ([".dcr", ".dxr", ".dir", ".cct", ".cxt", ".cst"].includes(ext)) return "application/x-director";
   if (ext === ".html") return "text/html; charset=utf-8";
   if (ext === ".json") return "application/json";
+  if (ext === ".xml") return "text/xml";
+  if (ext === ".txt") return "text/plain; charset=utf-8";
+  if (ext === ".mp3") return "audio/mpeg";
+  if (ext === ".ogg") return "audio/ogg";
+  if (ext === ".wav") return "audio/wav";
+  if (ext === ".flv") return "video/x-flv";
+  if (ext === ".mp4") return "video/mp4";
   if (ext === ".png") return "image/png";
   if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
   if (ext === ".webp") return "image/webp";
@@ -3125,7 +3142,7 @@ async function runFlashpointImport({ manual = false, language = "en", selectedKe
       const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "flash-royale-flashpoint-"));
       let importedGameId = null;
       try {
-        const { moviePath, assetsDirectory } = await flashpointImport.extractCandidate(candidate, zipPath, temporaryDirectory);
+        const { moviePath, assetsDirectory, contentPackDirectory } = await flashpointImport.extractCandidate(candidate, zipPath, temporaryDirectory);
         const result = await importSwfFiles([moviePath], language);
         const importedGame = result.imported[0];
         importedGameId = importedGame?.id || null;
@@ -3137,6 +3154,9 @@ async function runFlashpointImport({ manual = false, language = "en", selectedKe
             if (!saved) throw new Error("The duplicate Flashpoint game is missing from the library.");
             saved.flashpointId = candidate.gameId;
             saved.flashpointLaunchUrl = candidate.launchUrl;
+            if (contentPackDirectory) {
+              await flashpointContent.installContentPack(contentPackDirectory, path.join(getGamePaths(gamesRoot, saved).directory, "flashpoint"));
+            }
             await writeDb(duplicateDb);
           }
           handled[candidate.key] = duplicate ? { ...record, status: "duplicate", libraryId: duplicate.id } : { ...record, status: "failed", error: String(result.skipped[0]?.reason || "").slice(0, 300) };
@@ -3157,6 +3177,9 @@ async function runFlashpointImport({ manual = false, language = "en", selectedKe
         if (game) {
           game.flashpointId = candidate.gameId;
           game.flashpointLaunchUrl = candidate.launchUrl;
+          if (contentPackDirectory) {
+            await flashpointContent.installContentPack(contentPackDirectory, path.join(getGamePaths(gamesRoot, game).directory, "flashpoint"));
+          }
           if (assetsDirectory) {
             await copyCompanionAssets(assetsDirectory, getGamePaths(gamesRoot, game).contentDirectory, game.originalFileName);
             await extractAndSaveMusic(game);
@@ -3775,7 +3798,7 @@ async function launchExternalPlayer(savedGame, player, variant) {
 }
 
 async function recoverFlashpointLaunchUrl(game) {
-  if (game.format === "dcr" || game.onlineOnly) return null;
+  if (game.format === "dcr" || game.onlineOnly || game.standaloneCompatibility === true) return null;
   if (game.flashpointLaunchUrl) {
     const url = flashpointImport.launchUrlFromCommand(game.flashpointLaunchUrl);
     if (!url || url.username || url.password || !/\.swf$/i.test(url.pathname)) {
@@ -3796,6 +3819,30 @@ async function recoverFlashpointLaunchUrl(game) {
   saved.flashpointLaunchUrl = url;
   await writeDb(db);
   return url;
+}
+
+async function ensureFlashpointContent(game, directory) {
+  const destination = path.join(directory, "flashpoint");
+  const retained = await flashpointContent.loadContentPack(destination);
+  if (retained) return retained;
+  if (!game.flashpointId || game.onlineOnly) return null;
+  const state = await readJson(flashpointImportStatePath, {});
+  const layout = await flashpointLocalLayout();
+  if (!layout) return null;
+  const candidates = flashpointImport.listDownloadedGames(layout.database);
+  const candidate = candidates.find(entry => entry.gameId === game.flashpointId &&
+    state.handled?.[entry.key]?.libraryId === game.id &&
+    ["imported", "duplicate"].includes(state.handled?.[entry.key]?.status));
+  if (!candidate || candidate.format !== (game.format === "dcr" ? "dcr" : "swf")) return null;
+  const zipPath = path.join(layout.dataPacksFolder, candidate.zipName);
+  if (!fssync.existsSync(zipPath)) return null;
+  const staging = await fs.mkdtemp(path.join(directory, ".flashpoint-import-"));
+  try {
+    const extracted = path.join(staging, "pack");
+    await flashpointImport.extractContentPack(candidate, zipPath, extracted);
+    await flashpointContent.installContentPack(extracted, destination);
+    return await flashpointContent.loadContentPack(destination);
+  } finally { await fs.rm(staging, { recursive: true, force: true }); }
 }
 
 async function openPlayerWindow(game, language = "en", sourceWindow = panelManager.getFocusedWindow()) {
@@ -3829,13 +3876,15 @@ async function openPlayerWindow(game, language = "en", sourceWindow = panelManag
   const flashpointLaunchUrl = await recoverFlashpointLaunchUrl(savedGame);
   const storagePaths = getGamePaths(gamesRoot, savedGame);
   await fs.mkdir(storagePaths.savesDirectory, { recursive: true });
+  const flashpointPack = await ensureFlashpointContent(savedGame, storagePaths.directory);
   const playerSession = session.fromPath(storagePaths.savesDirectory, { cache: false });
   openedSaveSessions.add(savedGame.id);
-  registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl);
+  registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl, Boolean(flashpointPack));
   const standaloneCompatibility = savedGame.format !== "dcr" && savedGame.standaloneCompatibility === true;
   const networkAccess = {
     gameId: game.id,
     flashpointLaunchUrl,
+    flashpointPack,
     token: crypto.randomBytes(16).toString("hex"),
     urls: (savedGame.publicResourceUrls || []).map(normalizePublicResourceUrl),
     blockedUrls: (savedGame.blockedPublicResourceUrls || []).map(normalizePublicResourceUrl),
@@ -3850,6 +3899,7 @@ async function openPlayerWindow(game, language = "en", sourceWindow = panelManag
       title: String(game.title || "Flash game"),
       swfUrl: gameToClient(savedGame).swfUrl,
       flashpointLaunchUrl,
+      flashpointContent: Boolean(flashpointPack),
       stageWidth: Number(game.stageWidth) > 0 ? Number(game.stageWidth) : null,
       stageHeight: Number(game.stageHeight) > 0 ? Number(game.stageHeight) : null,
       fullscreenByDefault,

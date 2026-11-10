@@ -119,6 +119,71 @@ test("extractCandidate extracts the launch file and Shockwave companions from a 
   }
 });
 
+test("static content packs preserve other hosts and companion paths using portable files", async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-pack-import-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const zipPath = path.join(directory, "game.zip");
+  await fs.writeFile(zipPath, buildZip([
+    ["content/site.net/game.swf", "movie"],
+    ["content/site.net/levels/level1.xml", "<level/>"],
+    ["content/cdn.net/images/hero:one.png", "image"],
+  ]));
+  const candidate = { format: "swf", key: "game:game.zip", launchEntry: "content/site.net/game.swf", launchUrl: "http://site.net/game.swf" };
+  const result = await flashpoint.extractCandidate(candidate, zipPath, path.join(directory, "extracted"));
+  const content = require("./flashpoint-content.cjs");
+  const pack = await content.loadContentPack(result.contentPackDirectory);
+  assert.equal(Object.keys(pack.manifest.files).length, 3);
+  const image = content.findResource(pack, "https://cdn.net/images/hero%3Aone.png?version=1");
+  assert.equal(await fs.readFile(path.join(pack.directory, image.file), "utf8"), "image");
+});
+
+test("static pack extraction rejects traversal, duplicate URLs and corrupt ZIP data", async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-pack-invalid-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const candidate = { launchEntry: "content/site.net/game.swf", launchUrl: "http://site.net/game.swf" };
+  for (const [label, entries, message] of [
+    ["traversal", [["content/site.net/game.swf", "movie"], ["content/site.net/../evil.txt", "bad"]], /Invalid Flashpoint content path/],
+    ["duplicates", [["content/site.net/game.swf", "movie"], ["content/SITE.net/GAME.swf", "other"]], /Duplicate Flashpoint content path/],
+  ]) {
+    const zip = path.join(directory, `${label}.zip`);
+    await fs.writeFile(zip, buildZip(entries));
+    await assert.rejects(flashpoint.extractContentPack(candidate, zip, path.join(directory, label)), message);
+  }
+  const corrupt = buildZip([["content/site.net/game.swf", "movie", 0]]);
+  corrupt[30 + Buffer.byteLength("content/site.net/game.swf")] ^= 1;
+  const zip = path.join(directory, "corrupt.zip");
+  await fs.writeFile(zip, corrupt);
+  await assert.rejects(flashpoint.extractContentPack(candidate, zip, path.join(directory, "corrupt")), /checksum mismatch/);
+});
+
+test("existing genuine imports acquire static companions once and then run without Flashpoint", async t => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-pack-migrate-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const game = { id: "local-game", format: "swf", flashpointId: "08143aa7-f3ae-45b0-a1d4-afa4ac44c845" };
+  const candidate = flashpoint.toCandidate({ gameId: game.flashpointId, path: "game.zip", dataLaunch: "http://site.net/game.swf" });
+  await fs.writeFile(path.join(directory, "game.zip"), buildZip([
+    ["content/site.net/game.swf", "movie"], ["content/site.net/level.txt", "level"],
+  ]));
+  const source = await fs.readFile(path.join(__dirname, "main.cjs"), "utf8");
+  const state = { handled: {} };
+  const context = require("node:vm").createContext({
+    fs, fssync: require("node:fs"), path,
+    flashpointContent: require("./flashpoint-content.cjs"),
+    flashpointImport: { ...flashpoint, listDownloadedGames: () => [candidate] },
+    flashpointImportStatePath: "state.json", readJson: async () => state,
+    flashpointLocalLayout: async () => ({ database: "db", dataPacksFolder: directory }),
+  });
+  const start = source.indexOf("async function ensureFlashpointContent(");
+  require("node:vm").runInContext(source.slice(start, source.indexOf("\nasync function openPlayerWindow", start)), context);
+  assert.equal(await context.ensureFlashpointContent(game, directory), null, "metadata-only matches never acquire packs");
+  state.handled[candidate.key] = { libraryId: game.id, status: "imported" };
+  const pack = await context.ensureFlashpointContent(game, directory);
+  assert.equal(Object.keys(pack.manifest.files).length, 2);
+  context.flashpointLocalLayout = async () => { throw new Error("Flashpoint unavailable"); };
+  assert.equal((await context.ensureFlashpointContent(game, directory)).manifest.launchUrl, candidate.launchUrl);
+  assert.deepEqual((await fs.readdir(directory)).sort(), ["flashpoint", "game.zip"]);
+});
+
 test("listDownloadedGames returns the newest downloaded data pack per game", async () => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-fp-db-"));
   try {

@@ -3,6 +3,7 @@ const fssync = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 const { pipeline } = require("node:stream/promises");
+const { Transform } = require("node:stream");
 const { containedPath, shockwaveExtensions } = require("./shockwave.cjs");
 
 const gameIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -169,7 +170,7 @@ async function readZipEntries(zipPath) {
         }
         extra += 4 + length;
       }
-      entries.push({ name, method, compressedSize, size: uncompressedSize, localOffset, encrypted: Boolean(flags & 1) });
+      entries.push({ name, method, compressedSize, size: uncompressedSize, localOffset, crc32: directory.readUInt32LE(offset + 16), encrypted: Boolean(flags & 1) });
       offset = extraEnd + commentLength;
     }
     return entries;
@@ -193,16 +194,50 @@ async function extractZipEntry(zipPath, entry, targetPath) {
   }
   await fs.mkdir(path.dirname(targetPath), { recursive: true });
   if (!entry.compressedSize) {
+    if (entry.size !== 0 || entry.crc32 !== 0) throw new Error(`Invalid empty zip entry: ${entry.name}`);
     await fs.writeFile(targetPath, Buffer.alloc(0));
     return;
   }
   const source = fssync.createReadStream(zipPath, { start: dataStart, end: dataStart + entry.compressedSize - 1 });
   const target = fssync.createWriteStream(targetPath);
-  await (entry.method === 8 ? pipeline(source, zlib.createInflateRaw(), target) : pipeline(source, target));
+  let written = 0;
+  let checksum = 0;
+  const limit = new Transform({
+    transform(chunk, _encoding, callback) {
+      written += chunk.length;
+      checksum = zlib.crc32(chunk, checksum);
+      callback(written > entry.size || written > maxEntryBytes ? new Error(`Zip entry exceeds declared size: ${entry.name}`) : null, chunk);
+    },
+  });
+  await (entry.method === 8 ? pipeline(source, zlib.createInflateRaw(), limit, target) : pipeline(source, limit, target));
   if ((await fs.stat(targetPath)).size !== entry.size) throw new Error(`Zip entry size mismatch: ${entry.name}`);
+  if (checksum !== entry.crc32) throw new Error(`Zip entry checksum mismatch: ${entry.name}`);
 }
 
-/** Extracts a downloaded game's launch file, plus the files beside it for Shockwave movies. */
+async function extractContentPack(candidate, zipPath, directory) {
+  const entries = (await readZipEntries(zipPath)).filter(entry => !entry.name.endsWith("/") && entry.name.startsWith("content/"));
+  if (entries.length > 10000 || entries.reduce((sum, entry) => sum + entry.size, 0) > 8 * 1024 ** 3) {
+    throw new Error("Flashpoint content pack exceeds the 10,000-file / 8 GiB import limit.");
+  }
+  const files = {};
+  await fs.mkdir(directory, { recursive: true });
+  for (const [index, entry] of entries.entries()) {
+    const parts = entry.name.split("/");
+    if (parts.length < 3 || parts.some(part => !part || part === "." || part === ".." || /[\u0000-\u001f]/.test(part))) {
+      throw new Error(`Invalid Flashpoint content path: ${entry.name}`);
+    }
+    const key = entry.name.toLowerCase();
+    if (Object.hasOwn(files, key)) throw new Error(`Duplicate Flashpoint content path: ${entry.name}`);
+    const file = `files/${String(index).padStart(5, "0")}.bin`;
+    await extractZipEntry(zipPath, entry, path.join(directory, file));
+    files[key] = { file, name: entry.name, size: entry.size };
+  }
+  if (!Object.hasOwn(files, candidate.launchEntry.toLowerCase())) throw new Error("The launch file is missing from the Flashpoint content pack.");
+  const manifest = { version: 1, key: candidate.key, launchUrl: candidate.launchUrl, files };
+  await fs.writeFile(path.join(directory, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+/** Extracts the launch movie and retains archived companion files for local playback. */
 async function extractCandidate(candidate, zipPath, temporaryDirectory) {
   const entries = (await readZipEntries(zipPath)).filter((entry) => !entry.name.endsWith("/"));
   const wanted = candidate.launchEntry.toLowerCase();
@@ -223,7 +258,12 @@ async function extractCandidate(candidate, zipPath, temporaryDirectory) {
       }
     }
   }
-  return { moviePath, assetsDirectory };
+  let contentPackDirectory = null;
+  if (candidate.launchUrl) {
+    contentPackDirectory = path.join(temporaryDirectory, "flashpoint");
+    await extractContentPack(candidate, zipPath, contentPackDirectory);
+  }
+  return { moviePath, assetsDirectory, contentPackDirectory };
 }
 
 /** Reads one Flashpoint image ("Logos" or "Screenshots") locally, then from the on-demand image server. */
@@ -263,6 +303,7 @@ module.exports = {
   readZipEntries,
   extractZipEntry,
   extractCandidate,
+  extractContentPack,
   findCoverImage,
   readFlashpointImage,
 };

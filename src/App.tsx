@@ -2128,30 +2128,31 @@ export function PlayerModal({
         if (crtRef.current.enabled) player.style.opacity = "0";
         containerRef.current.appendChild(player);
         setStatus(text.loadingGame);
-        let movieSource: { url: string } | { data: ArrayBuffer; swfFileName: string; base: string } = { url: game.flashpointLaunchUrl || game.swfUrl };
-        if (!game.flashpointLaunchUrl && game.standaloneCompatibility && window.location.protocol === "file:") {
+        const flashpointLaunchUrl = game.standaloneCompatibility ? null : game.flashpointLaunchUrl;
+        let movieSource: { url: string } | { data: ArrayBuffer; swfFileName: string; base: string } = { url: flashpointLaunchUrl || game.swfUrl };
+        if (game.standaloneCompatibility && window.location.protocol === "file:") {
           const response = await fetch(game.swfUrl);
           if (!response.ok) throw new Error(text.gameLoadFailed);
           movieSource = { data: await response.arrayBuffer(), swfFileName: game.originalFileName || "game.swf", base: new URL("./", game.swfUrl).href };
           if (cancelled) return;
         }
         const publicResourceRules: [RegExp | string, string][] = [];
-        if (game.allowOnlineFeatures !== false) {
+        if (game.allowOnlineFeatures !== false && !game.flashpointContent) {
           for (const [index, url] of (game.publicResourceUrls || []).entries()) {
             const relay = game.publicResourceRelayUrls?.[index];
-            if (relay && url !== game.flashpointLaunchUrl) publicResourceRules.push([new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), relay]);
+            if (relay && url !== flashpointLaunchUrl) publicResourceRules.push([new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), relay]);
           }
         }
         const loadMovie = () => ruffleApi(player!).load({
           ...movieSource,
-          ...(game.flashpointLaunchUrl ? { base: new URL("./", game.flashpointLaunchUrl).href, upgradeToHttps: false } : {}),
+          ...(flashpointLaunchUrl ? { base: new URL("./", flashpointLaunchUrl).href, upgradeToHttps: false } : {}),
           volume: volumeRef.current,
           allowScriptAccess: false,
           salign: "",
           forceAlign: true,
           scale: "showAll",
           forceScale: game.fixScaling === true,
-          allowNetworking: game.allowOnlineFeatures === false ? "none" : "all",
+          allowNetworking: game.allowOnlineFeatures === false && !game.flashpointContent ? "none" : "all",
           urlRewriteRules: publicResourceRules,
           ...(crtNeedsCapture(crtRef.current) ? { preferredRenderer: "wgpu-webgl" as const } : {}),
         });

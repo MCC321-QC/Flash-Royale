@@ -63,8 +63,20 @@ which website they run on. Ruffle sees that address, but the movie is served
 from your local library, including with online features disabled. Older genuine
 Flashpoint imports recover the address on launch while Flashpoint is installed,
 then remember it for later offline use; metadata-only matches are not changed.
-This does not add HTML launchers, full supporting-file packs or server emulation,
-and does not guarantee that a domain-locked game will work.
+**Standalone compatibility** takes priority over the original-address behavior,
+so games configured for standalone playback keep their existing loading mode.
+
+Direct-movie imports also retain static companion files (secondary SWFs, levels,
+images and other archived data) in the game's `flashpoint/` folder. These files
+are served locally at their original addresses, including with online features
+disabled. Older genuine imports copy the companions on launch while their
+Flashpoint data pack is available; retained copies then work without Flashpoint.
+Missing local files or size mismatches report an error rather than falling back online.
+
+This does not add HTML launchers, PHP execution, save-service emulation, database
+services or native players. Archived server endpoints are explicitly unsupported.
+Games that depend on the archived website environment may need **Standalone
+compatibility** turned off. Complete archives still do not guarantee compatibility.
 
 ## Completing metadata
 

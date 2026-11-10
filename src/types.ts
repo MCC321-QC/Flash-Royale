@@ -307,6 +307,7 @@ export type PlayerWindowData = Pick<Game, "id" | "title" | "swfUrl" | "stageWidt
   allowOnlineFeatures?: boolean;
   originalFileName?: string;
   flashpointLaunchUrl?: string | null;
+  flashpointContent?: boolean;
   publicResourceUrls?: string[];
   publicResourceRelayUrls?: string[];
   onlineOnly?: boolean;
