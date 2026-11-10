@@ -43,6 +43,14 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
   Play with built-in emulators or choose external players, with per-game settings for fullscreen, scaling, volume and more.
 </details>
 <details>
+  <summary>🐧 <b>Wine & Proton compatibility</b></summary>
+  Run the Windows version on Linux through Wine or Proton, including Steam integration.
+</details>
+<details>
+  <summary>🎮 <b>Handheld PC support</b></summary>
+  Good fit for a handheld device like Steam Deck and ROG Ally.
+</details>
+<details>
   <summary>🌐 <b>Online catalogs & Flashpoint</b></summary>
   Discover and import games from supported websites, add supported browser-only games, or automatically import your Flashpoint downloads.
 </details>
@@ -59,7 +67,7 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
   Automatically extract game music to play it in the library, choose default scanned tracks or custom songs, and optionally normalize their volume.
 </details>
 <details>
-  <summary>🎮 <b>Controller & touch support</b></summary>
+  <summary>🕹️ <b>Controller & touch support</b></summary>
   Navigate the app with a controller, create per-game input mappings, configure on-screen controls, and use the virtual keyboard to enter text in games.
 </details>
 <details>
