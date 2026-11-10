@@ -154,6 +154,10 @@ constraints; [maintenance](maintenance/README.md) contains release checklists.
 **Privacy:** `package:share` copies the current `library/` into its output.
 Use an intentionally prepared library and inspect the archive before sharing.
 
+Promotional artwork under `assets/steam/` and videos under `assets/trailer/`
+are excluded from both the app package and the collected source materials.
+Runtime artwork and dependency notices/source archives remain included.
+
 Do not commit `node_modules`, build outputs, generated runtime copies, root
 Electron binaries, logs, personal libraries or signing keys. Some vendored
 runtime/source/provenance assets are intentionally tracked: follow existing

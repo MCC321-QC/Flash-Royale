@@ -282,6 +282,7 @@ export interface Game {
   andkonPagePath?: string;
   y8Slug?: string;
   flashpointId?: string;
+  flashpointLaunchUrl?: string;
   y8Slugs?: string[];
   y8DuplicateSlugs?: string[];
   sourceRatingSource?: ExploreSource;
@@ -305,6 +306,7 @@ export type PlayerWindowData = Pick<Game, "id" | "title" | "swfUrl" | "stageWidt
   pinCursor?: boolean;
   allowOnlineFeatures?: boolean;
   originalFileName?: string;
+  flashpointLaunchUrl?: string | null;
   publicResourceUrls?: string[];
   publicResourceRelayUrls?: string[];
   onlineOnly?: boolean;

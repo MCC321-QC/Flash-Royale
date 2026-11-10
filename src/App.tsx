@@ -337,7 +337,7 @@ function ruffleApi(player: HTMLElement) {
       suspend(): void;
       resume(): void;
       volume: number;
-      load(options: string | (({ url: string } | { data: ArrayBuffer; swfFileName: string; base: string }) & { preferredRenderer?: "wgpu-webgl"; volume?: number; allowScriptAccess?: boolean; salign?: string; forceAlign?: boolean; scale?: string; forceScale?: boolean; allowNetworking?: "all" | "none"; urlRewriteRules?: [RegExp | string, string][] })): Promise<void> | void;
+      load(options: string | (({ url: string } | { data: ArrayBuffer; swfFileName: string; base: string }) & { base?: string; upgradeToHttps?: boolean; preferredRenderer?: "wgpu-webgl"; volume?: number; allowScriptAccess?: boolean; salign?: string; forceAlign?: boolean; scale?: string; forceScale?: boolean; allowNetworking?: "all" | "none"; urlRewriteRules?: [RegExp | string, string][] })): Promise<void> | void;
     };
   }).ruffle();
 }
@@ -2128,8 +2128,8 @@ export function PlayerModal({
         if (crtRef.current.enabled) player.style.opacity = "0";
         containerRef.current.appendChild(player);
         setStatus(text.loadingGame);
-        let movieSource: { url: string } | { data: ArrayBuffer; swfFileName: string; base: string } = { url: game.swfUrl };
-        if (game.standaloneCompatibility && window.location.protocol === "file:") {
+        let movieSource: { url: string } | { data: ArrayBuffer; swfFileName: string; base: string } = { url: game.flashpointLaunchUrl || game.swfUrl };
+        if (!game.flashpointLaunchUrl && game.standaloneCompatibility && window.location.protocol === "file:") {
           const response = await fetch(game.swfUrl);
           if (!response.ok) throw new Error(text.gameLoadFailed);
           movieSource = { data: await response.arrayBuffer(), swfFileName: game.originalFileName || "game.swf", base: new URL("./", game.swfUrl).href };
@@ -2139,11 +2139,12 @@ export function PlayerModal({
         if (game.allowOnlineFeatures !== false) {
           for (const [index, url] of (game.publicResourceUrls || []).entries()) {
             const relay = game.publicResourceRelayUrls?.[index];
-            if (relay) publicResourceRules.push([new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), relay]);
+            if (relay && url !== game.flashpointLaunchUrl) publicResourceRules.push([new RegExp(`^${url.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`), relay]);
           }
         }
         const loadMovie = () => ruffleApi(player!).load({
           ...movieSource,
+          ...(game.flashpointLaunchUrl ? { base: new URL("./", game.flashpointLaunchUrl).href, upgradeToHttps: false } : {}),
           volume: volumeRef.current,
           allowScriptAccess: false,
           salign: "",

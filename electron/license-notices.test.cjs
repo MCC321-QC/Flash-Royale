@@ -129,9 +129,32 @@ test("packaging regenerates and ships the collected notices", async () => {
   assert.equal(pkg.scripts["setup:license-sources"], "node scripts/collect-license-sources.cjs --download");
   assert.ok(pkg.build.extraResources.some(entry => entry.from === "third-party-notices" && entry.to === "third-party-notices"));
   assert.ok(pkg.build.extraResources.some(entry => entry.from === "third-party-sources" && entry.to === "third-party-sources"));
+  assert.ok(pkg.build.files.includes("!assets/trailer/**/*"));
   const source = await fs.readFile(path.join(root, "scripts", "collect-licenses.cjs"), "utf8");
   assert.ok(source.includes("LICENSES.chromium.html"));
   assert.ok(source.includes("if (report.missingNotices.length) throw"));
+});
+
+test("source collection excludes promotional media but keeps runtime artwork", async (t) => {
+  const root = path.resolve(__dirname, "..");
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "fr-source-artwork-"));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  for (const relative of ["assets/steam", "assets/trailer", "assets/icons"]) {
+    await fs.mkdir(path.join(directory, relative), { recursive: true });
+  }
+  for (const relative of ["assets/steam/promo.png", "assets/trailer/trailer.mp4", "assets/icons/app.png", "assets/logo.png"]) {
+    await fs.writeFile(path.join(directory, relative), "fixture");
+  }
+  const copied = [];
+  const source = await fs.readFile(path.join(root, "scripts", "collect-license-sources.cjs"), "utf8");
+  const start = source.indexOf("  async function copyTree(");
+  const end = source.indexOf("\n  try {", start);
+  assert.ok(start > 0 && end > start);
+  const context = require("node:vm").createContext({
+    fs, path, root: directory, copy: async (_source, relative) => copied.push(relative),
+  });
+  await require("node:vm").runInContext(`${source.slice(start, end)}\ncopyTree("assets");`, context);
+  assert.deepEqual(copied.sort(), ["assets/icons/app.png", "assets/logo.png"]);
 });
 
 test("derived fonts include each OFL text, modification provenance and the actual shipped font hashes", async () => {

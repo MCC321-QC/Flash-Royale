@@ -68,12 +68,29 @@ test("toCandidate keeps supported games and marks others unsupported", () => {
   const swf = flashpoint.toCandidate({ ...base, dataLaunch: "http://h.net/g.swf", gameLaunch: "" });
   assert.equal(swf.format, "swf");
   assert.equal(swf.launchEntry, "content/h.net/g.swf");
+  assert.equal(swf.launchUrl, "http://h.net/g.swf");
   assert.deepEqual(swf.tags, ["Action", "Arcade"]);
   assert.equal(swf.key, `${base.gameId}:${base.path}`);
   assert.equal(flashpoint.toCandidate({ ...base, dataLaunch: null, gameLaunch: "http://h.net/m.DCR" }).format, "dcr");
   assert.equal(flashpoint.toCandidate({ ...base, dataLaunch: "http://h.net/index.html" }).format, "");
   assert.equal(flashpoint.toCandidate({ ...base, gameId: "../x" }), null);
   assert.equal(flashpoint.toCandidate({ ...base, path: "game.7z" }), null);
+});
+
+test("original addresses are recovered only for genuine Flashpoint imports", () => {
+  const game = { id: "local-game", flashpointId: "08143aa7-f3ae-45b0-a1d4-afa4ac44c845" };
+  const candidate = flashpoint.toCandidate({
+    gameId: game.flashpointId, path: "game.zip",
+    dataLaunch: "http://www.xgenstudios.com/motherload/8khsgfbehb.swf",
+  });
+  const handled = { [candidate.key]: { status: "imported", libraryId: game.id } };
+  assert.equal(flashpoint.importedLaunchUrl(game, handled, [candidate]), candidate.launchUrl);
+  assert.equal(flashpoint.importedLaunchUrl({ ...game, id: "other-game" }, handled, [candidate]), null);
+  assert.equal(flashpoint.importedLaunchUrl(game, {}, [candidate]), null);
+  handled[candidate.key].status = "failed";
+  assert.equal(flashpoint.importedLaunchUrl(game, handled, [candidate]), null);
+  handled[candidate.key].status = "duplicate";
+  assert.equal(flashpoint.importedLaunchUrl(game, handled, [candidate]), candidate.launchUrl);
 });
 
 test("extractCandidate extracts the launch file and Shockwave companions from a data pack", async () => {

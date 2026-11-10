@@ -798,6 +798,7 @@ const trackWindowFocus = createWindowFocus({
 const playerNetworkAccess = new Map();
 const playerSessionNetworkAccess = new WeakMap();
 const guardedPlayerSessions = new WeakSet();
+const flashpointPlayerSessions = new WeakSet();
 
 const coverExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 
@@ -1935,15 +1936,33 @@ async function rememberPublicResource(gameId, value) {
   finally { if (pendingResourceWrites.get(gameId) === pending) pendingResourceWrites.delete(gameId); }
 }
 
-function registerPlayerNetworkGuard(playerSession) {
+function registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl = null) {
+  if (flashpointLaunchUrl && !flashpointPlayerSessions.has(playerSession)) {
+    for (const scheme of ["http", "https"]) {
+      playerSession.protocol.handle(scheme, (request) => {
+        const access = playerSessionNetworkAccess.get(playerSession);
+        if (access?.flashpointLaunchUrl === request.url && request.method === "GET") {
+          return playerSession.fetch(`${assetBaseUrl}/game/${encodeURIComponent(access.gameId)}/game.swf`,
+            { bypassCustomProtocolHandlers: true });
+        }
+        return playerSession.fetch(request, { bypassCustomProtocolHandlers: true });
+      });
+    }
+    flashpointPlayerSessions.add(playerSession);
+  }
   if (guardedPlayerSessions.has(playerSession)) return;
   playerSession.webRequest.onBeforeRequest({ urls: ["http://*/*", "https://*/*", "ws://*/*", "wss://*/*"] }, (details, callback) => {
+    const access = playerNetworkAccess.get(details.webContentsId) || playerSessionNetworkAccess.get(playerSession);
+    // This address is served from the local movie, not from the original website.
+    if (access?.flashpointLaunchUrl === details.url && details.method === "GET") {
+      callback({});
+      return;
+    }
     // A security alert keeps every page and game on the local asset server.
     if (!networkGuard.allows(details.url, "web")) {
       callback({ cancel: true });
       return;
     }
-    const access = playerNetworkAccess.get(details.webContentsId) || playerSessionNetworkAccess.get(playerSession);
     if (!access || access.allowOnlineFeatures) {
       if (!access || !access.allowOnlineFeatures || details.method !== "GET" || !["http:", "https:"].includes(new URL(details.url).protocol)) {
         callback({ cancel: Boolean(access?.blockedUrls?.includes(details.url)) });
@@ -3112,6 +3131,14 @@ async function runFlashpointImport({ manual = false, language = "en", selectedKe
         importedGameId = importedGame?.id || null;
         if (!importedGame) {
           const duplicate = result.skipped[0]?.game;
+          if (duplicate) {
+            const duplicateDb = await readDb();
+            const saved = duplicateDb.games.find((entry) => entry.id === duplicate.id);
+            if (!saved) throw new Error("The duplicate Flashpoint game is missing from the library.");
+            saved.flashpointId = candidate.gameId;
+            saved.flashpointLaunchUrl = candidate.launchUrl;
+            await writeDb(duplicateDb);
+          }
           handled[candidate.key] = duplicate ? { ...record, status: "duplicate", libraryId: duplicate.id } : { ...record, status: "failed", error: String(result.skipped[0]?.reason || "").slice(0, 300) };
           continue;
         }
@@ -3129,6 +3156,7 @@ async function runFlashpointImport({ manual = false, language = "en", selectedKe
         const game = db.games.find((entry) => entry.id === importedGame.id);
         if (game) {
           game.flashpointId = candidate.gameId;
+          game.flashpointLaunchUrl = candidate.launchUrl;
           if (assetsDirectory) {
             await copyCompanionAssets(assetsDirectory, getGamePaths(gamesRoot, game).contentDirectory, game.originalFileName);
             await extractAndSaveMusic(game);
@@ -3746,6 +3774,30 @@ async function launchExternalPlayer(savedGame, player, variant) {
   }
 }
 
+async function recoverFlashpointLaunchUrl(game) {
+  if (game.format === "dcr" || game.onlineOnly) return null;
+  if (game.flashpointLaunchUrl) {
+    const url = flashpointImport.launchUrlFromCommand(game.flashpointLaunchUrl);
+    if (!url || url.username || url.password || !/\.swf$/i.test(url.pathname)) {
+      throw new Error("Invalid imported Flashpoint movie URL.");
+    }
+    return url.href;
+  }
+  if (!game.flashpointId) return null;
+  const state = await readJson(flashpointImportStatePath, {});
+  const layout = await flashpointLocalLayout();
+  if (!layout) return null;
+  const url = flashpointImport.importedLaunchUrl(game, state.handled || {},
+    flashpointImport.listDownloadedGames(layout.database));
+  if (!url) return null;
+  const db = await readDb();
+  const saved = db.games.find((entry) => entry.id === game.id);
+  if (!saved) throw new Error("The imported Flashpoint game is missing from the library.");
+  saved.flashpointLaunchUrl = url;
+  await writeDb(db);
+  return url;
+}
+
 async function openPlayerWindow(game, language = "en", sourceWindow = panelManager.getFocusedWindow()) {
   if (!game || typeof game.id !== "string" || typeof game.swfUrl !== "string") {
     throw new Error("Invalid player window data");
@@ -3774,14 +3826,16 @@ async function openPlayerWindow(game, language = "en", sourceWindow = panelManag
   if (savedGame.format === "dcr" && gamePlayer.id === "dirplayer" && !fssync.existsSync(path.join(dirplayerRoot, "dirplayer-polyfill.js"))) {
     throw new Error("DirPlayer runtime is missing. Run npm.cmd run setup:dirplayer.");
   }
+  const flashpointLaunchUrl = await recoverFlashpointLaunchUrl(savedGame);
   const storagePaths = getGamePaths(gamesRoot, savedGame);
   await fs.mkdir(storagePaths.savesDirectory, { recursive: true });
   const playerSession = session.fromPath(storagePaths.savesDirectory, { cache: false });
   openedSaveSessions.add(savedGame.id);
-  registerPlayerNetworkGuard(playerSession);
+  registerPlayerNetworkGuard(playerSession, flashpointLaunchUrl);
   const standaloneCompatibility = savedGame.format !== "dcr" && savedGame.standaloneCompatibility === true;
   const networkAccess = {
     gameId: game.id,
+    flashpointLaunchUrl,
     token: crypto.randomBytes(16).toString("hex"),
     urls: (savedGame.publicResourceUrls || []).map(normalizePublicResourceUrl),
     blockedUrls: (savedGame.blockedPublicResourceUrls || []).map(normalizePublicResourceUrl),
@@ -3795,6 +3849,7 @@ async function openPlayerWindow(game, language = "en", sourceWindow = panelManag
       player: gamePlayer.id,
       title: String(game.title || "Flash game"),
       swfUrl: gameToClient(savedGame).swfUrl,
+      flashpointLaunchUrl,
       stageWidth: Number(game.stageWidth) > 0 ? Number(game.stageWidth) : null,
       stageHeight: Number(game.stageHeight) > 0 ? Number(game.stageHeight) : null,
       fullscreenByDefault,

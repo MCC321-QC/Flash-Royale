@@ -75,7 +75,7 @@ async function collectLicenseSources(root) {
     const source = path.join(root, ...relative.split("/"));
     for (const entry of (await fs.readdir(source, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name))) {
       if (entry.name === ".gitkeep") continue;
-      if (relative === "assets" && entry.name === "steam") continue;
+      if (relative === "assets" && ["steam", "trailer"].includes(entry.name)) continue;
       const child = `${relative}/${entry.name}`;
       if (entry.isDirectory()) await copyTree(child);
       else await copy(path.join(source, entry.name), child);

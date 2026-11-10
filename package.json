@@ -46,6 +46,7 @@
       "!electron/*.test.*",
       "assets/**/*",
       "!assets/steam/**/*",
+      "!assets/trailer/**/*",
       "public/ruffle/**/*",
       "public/dirplayer/**/*",
       "public/libreshockwave/**/*",

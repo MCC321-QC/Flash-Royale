@@ -58,6 +58,14 @@ this under **Settings > Game players > Flashpoint**.
 This reads the installed Flashpoint database and data packs; it does not download
 the entire Flashpoint archive.
 
+Imported Flash games retain their original movie address for games that check
+which website they run on. Ruffle sees that address, but the movie is served
+from your local library, including with online features disabled. Older genuine
+Flashpoint imports recover the address on launch while Flashpoint is installed,
+then remember it for later offline use; metadata-only matches are not changed.
+This does not add HTML launchers, full supporting-file packs or server emulation,
+and does not guarantee that a domain-locked game will work.
+
 ## Completing metadata
 
 Under **Settings > Catalog and metadata sources > Metadata sources**, enable

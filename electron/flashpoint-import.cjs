@@ -49,6 +49,7 @@ function toCandidate(row) {
     gameId: row.gameId,
     zipName,
     format,
+    launchUrl: url && format ? url.href : "",
     launchEntry: url && format ? contentEntryForUrl(url) : "",
     title: String(row.title || "").trim(),
     developer: String(row.developer || "").trim(),
@@ -59,6 +60,13 @@ function toCandidate(row) {
     notes: String(row.notes || ""),
     tags: splitTags(row.tagsStr),
   };
+}
+
+function importedLaunchUrl(game, handled, candidates) {
+  const candidate = candidates.find((entry) => entry.gameId === game.flashpointId &&
+    handled[entry.key]?.libraryId === game.id &&
+    ["imported", "duplicate"].includes(handled[entry.key]?.status));
+  return candidate?.launchUrl || null;
 }
 
 /** Lists games whose Flashpoint data pack is downloaded, newest data pack per game first. */
@@ -249,6 +257,7 @@ module.exports = {
   launchUrlFromCommand,
   contentEntryForUrl,
   toCandidate,
+  importedLaunchUrl,
   listDownloadedGames,
   readFlashpointLayout,
   readZipEntries,
