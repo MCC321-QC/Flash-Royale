@@ -16,23 +16,23 @@
 > ```
 </details>
 
-# Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/0.9.7/Flash-Royale-v0.9.7-Windows.zip)
+# Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.0/Flash-Royale-v1.0.0-Windows.zip)
 
 ![Flash Royale cover art](assets/steam/header_920x430.png)<br>
 Flash Royale is a library manager for old flash games that lets you have ultimate control. Automatically play the game music, generate cover arts, organise with categories and tags, track your playtime, show/add tons of metadata and a lot more!
 
 <details>
-  <summary>🔍 <b>Gif Preview</b> (Video trailer of v1.0 soon!)</summary><br>
+  <summary>🔍 <b>Features Trailer Video</b></summary><br>
 
-  ![Flash Royale main window preview](docs/assets/Screenshots/preview.gif)
+  [![Video Title](https://img.youtube.com/vi/SP8tZXlwx4U/0.jpg)](https://www.youtube.com/watch?v=SP8tZXlwx4U)
 </details><br>
 
 ## Latest Update
 
-[Flash Royale v0.9.7 (v1.0 coming soon!)](https://github.com/MCC321-QC/Flash-Royale/releases/download/0.9.7/Flash-Royale-v0.9.7-Windows.zip)<br>
+[Flash Royale v1.0.0](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.0/Flash-Royale-v1.0.0-Windows.zip)<br>
 <br>
 
-## Features (v1.0)
+## Features
 
 <details open>
   <summary>🗂️ <b>Import your local games</b></summary>
@@ -41,6 +41,14 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
 <details>
   <summary>▶️ <b>Flexible game players</b></summary>
   Play with built-in emulators or choose external players, with per-game settings for fullscreen, scaling, volume and more.
+</details>
+<details>
+  <summary>🐧 <b>Wine & Proton compatibility</b></summary>
+  Run the Windows version on Linux through Wine or Proton, including Steam integration.
+</details>
+<details>
+  <summary>🎮 <b>Handheld PC support</b></summary>
+  Good fit for a handheld device like Steam Deck and ROG Ally.
 </details>
 <details>
   <summary>🌐 <b>Online catalogs & Flashpoint</b></summary>
@@ -59,7 +67,7 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
   Automatically extract game music to play it in the library, choose default scanned tracks or custom songs, and optionally normalize their volume.
 </details>
 <details>
-  <summary>🎮 <b>Controller & touch support</b></summary>
+  <summary>🕹️ <b>Controller & touch support</b></summary>
   Navigate the app with a controller, create per-game input mappings, configure on-screen controls, and use the virtual keyboard to enter text in games.
 </details>
 <details>
