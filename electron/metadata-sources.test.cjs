@@ -5,7 +5,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
 const {
-  bestTitleMatch, fuzzyThreshold, isoDate, networkPolicy, normalizeTitle, parsers, slugify, sourceIds, tidyTags, titleSimilarity,
+  bestTitleMatch, fuzzyThreshold, isoDate, networkPolicy, normalizeTitle, parsers, providers, slugify, sourceIds, tidyTags, titleSimilarity,
 } = require("./metadata-sources.cjs");
 const { sanitizeMetadataSources } = require("./players.cjs");
 const { closeFlashpointGames, searchFlashpointGames } = require("./compatibility.cjs");
@@ -16,10 +16,73 @@ test("metadata requests are paced and cool down for blocking responses", () => {
     limiter: { maxConcurrent: 1, minIntervalMs: 3_000 },
     backoff: { ...polite, minimumBackoffMs: 15 * 60_000, maximumBackoffMs: 6 * 60 * 60_000 },
   });
-  for (const host of ["www.y8.com", "armorgames.com", "db-api.unstable.life", "www.flashgames247.com", "www.example.com"]) {
+  for (const host of ["www.y8.com", "armorgames.com", "flashpointarchive.org", "www.flashgames247.com", "www.example.com"]) {
     assert.deepEqual(networkPolicy(host), { limiter: { maxConcurrent: 1, minIntervalMs: 1_500 }, backoff: polite });
   }
   assert.deepEqual(networkPolicy("img.ngfiles.com", "image"), { limiter: { maxConcurrent: 1, minIntervalMs: 1_000 }, backoff: polite });
+});
+
+test("Flashpoint website search and detail pages preserve metadata and validate page structure", () => {
+  const id = "242dedc0-431a-4e4e-990c-58fe3c8ef740";
+  const html = `<div class="fp-search-total">Got <b>3</b> results</div><div class="fp-search-results">
+    <div class="fp-search-result"><a class="fp-search-result-title" href="/view?id=${id}">Commando 2</a>
+    <span class="fp-search-result-creator">by Macrojoy</span><div class="fp-search-result-info">Flash game - <span class="fp-search-result-tags">Action</span></div></div>
+    <div class="fp-search-result"><a class="fp-search-result-title" href="/view?id=11111111-1111-1111-1111-111111111111">Video</a>
+    <div class="fp-search-result-info">HTML5 animation - <span class="fp-search-result-tags">Video</span></div></div>
+    <div class="fp-search-result"><a class="fp-search-result-title" href="/view?id=22222222-2222-2222-2222-222222222222">Pool</a>
+    <div class="fp-search-result-info">Shockwave game - <span class="fp-search-result-tags">Pool</span></div></div></div>`;
+  const search = parsers.parseFlashpointSearch(html);
+  assert.equal(search.total, 3);
+  assert.equal(search.count, 3);
+  assert.deepEqual(search.results.map(({ title, platform }) => [title, platform]), [["Commando 2", "Flash"], ["Pool", "Shockwave"]]);
+  assert.equal(search.results[0].developer, "Macrojoy");
+  assert.equal(search.results[0].url, `https://flashpointarchive.org/view?id=${id}`);
+  assert.throws(() => parsers.parseFlashpointSearch("<html>website changed</html>"), /Unexpected Flashpoint search/);
+  assert.throws(() => parsers.parseFlashpointSearch(html.replace("<b>3</b>", "")), /Invalid Flashpoint search result count/);
+  assert.throws(() => parsers.parseFlashpointSearch(`<div class="fp-search-total"><b>3</b></div><div class="fp-search-results"></div>`), /Invalid Flashpoint search results/);
+  assert.equal(parsers.parseFlashpointSearch(`<div class="fp-search-total"><b>0</b></div><div class="fp-search-results"></div>`).results.length, 0);
+  assert.throws(() => parsers.parseFlashpointSearch(html.replace(`/view?id=${id}`, `https://evil.example/view?id=${id}`)), /Invalid Flashpoint search result/);
+
+  const detailsHtml = `<div class="fp-view-container"><table class="fp-view-table">
+    <tr><th>Title:</th><td>Commando 2</td></tr><tr><th>ID:</th><td>${id}</td></tr>
+    <tr><th>Platform:</th><td>Flash</td></tr><tr><th>Developer:</th><td>Macrojoy</td></tr>
+    <tr><th>Publisher:</th><td>Miniclip</td></tr><tr><th>Release Date:</th><td>10/3/2008</td></tr>
+    <tr><th>Source:</th><td>https://www.miniclip.com/game</td></tr><tr><th>Notes:</th><td>Curator note</td></tr>
+    <tr><th>Original Description:</th><td>Battle of Asia</td></tr><tr><th>Tags:</th><td><ul><li>Action</li><li>Shooter</li></ul></td></tr>
+    </table><table class="fp-view-table"><tr><th>Title:</th><td>Other</td></tr></table></div>`;
+  const details = parsers.parseFlashpointDetails(detailsHtml, id);
+  assert.equal(details.releaseDate, "2008-10-03");
+  assert.equal(details.description, "Battle of Asia");
+  assert.equal(details.developer, "Macrojoy");
+  assert.equal(details.publisher, "Miniclip");
+  assert.deepEqual(details.tags, ["Action", "Shooter"]);
+  assert.equal(details.notes, "Curator note");
+  assert.equal(details.flashpointId, id);
+  assert.throws(() => parsers.parseFlashpointDetails(detailsHtml, "11111111-1111-1111-1111-111111111111"), /does not match/);
+});
+
+test("Flashpoint provider uses title filters and paginates without exceeding its limit", async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const requested = [];
+  globalThis.fetch = async address => {
+    const url = new URL(address);
+    requested.push(url);
+    if (url.pathname === "/view") return new Response("", { status: 404 });
+    const page = Number(url.searchParams.get("page"));
+    const id = page === 1 ? "11111111-1111-1111-1111-111111111111" : "22222222-2222-2222-2222-222222222222";
+    return new Response(`<div class="fp-search-total">Got <b>101</b> results</div><div class="fp-search-results">
+      <div class="fp-search-result"><a class="fp-search-result-title" href="/view?id=${id}">Game ${page}</a>
+      <div class="fp-search-result-info">Flash game - <span class="fp-search-result-tags"></span></div></div></div>`);
+  };
+  const results = await providers.flashpointOnline.search("Game", { limit: 2 });
+  assert.deepEqual(results.map(entry => entry.title), ["Game 1", "Game 2"]);
+  assert.deepEqual(requested.map(url => url.searchParams.get("page")), ["1", "2"]);
+  assert.ok(requested.every(url => url.origin === "https://flashpointarchive.org" && url.searchParams.get("field") === "title" &&
+    url.searchParams.get("value") === "Game" && url.searchParams.get("lang") === "en-US"));
+  await assert.rejects(providers.flashpointOnline.details("../invalid"), /Invalid Flashpoint game/);
+  assert.equal(await providers.flashpointOnline.details("11111111-1111-1111-1111-111111111111"), null);
+  assert.equal(requested.at(-1).pathname, "/view");
 });
 
 test("metadata sources do not bypass server cooldowns", async () => {

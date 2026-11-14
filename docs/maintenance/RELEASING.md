@@ -28,6 +28,21 @@ verified cache is already present. Normal builds prepare both
 Dependency installation is a setup/restore step, not required before every
 release command when the correct dependencies are already present.
 
+### Current build dependency advisory
+
+The full npm audit reports CVE-2026-118764 for `minimatch` 9 and 10 through
+Electron Builder. As of November 13, 2026, the patched 11.0.1 release is outside
+the build tools' declared ranges. Do not force an incompatible major version or
+downgrade Electron Builder merely to clear the audit. Recheck upstream fixes
+before release.
+
+The reported amplification requires optimization level 2 or higher and an
+attacker-controlled glob pattern. The inspected Windows packaging path uses
+level 1 by default and project-defined patterns; the `@electron/universal`
+dependency is for macOS universal builds, not the Windows release path. This
+reduces the observed exposure but does not establish that all build paths are
+safe. Use a trusted checkout and trusted build configuration.
+
 ## 2. Inspect the package
 
 `package:fast` creates `release/Flash Royale-ReadyToRun.zip` and a root quick

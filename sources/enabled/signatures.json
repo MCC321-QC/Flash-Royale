@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "signedAt": "2026-11-10T00:39:55.826Z",
+  "signedAt": "2026-11-14T02:17:45.338Z",
   "keyId": "b9d765102d3efdbc",
   "files": {
     "catalog-andkon.json": "e65653469626a62927f973c09d33b1c0446dee2686f9650aa6a66e232405359d",
@@ -15,10 +15,6 @@
     "metadata-silvergames.json": "40c1f7486f4001b7c76daf91df5885f0178e1730efabd6b17a2ec4397ef7e3bc",
     "metadata-y8.json": "2ea05310018f1e25da15b80c54695407d919f413034dc9655647b8bc21c38a0b"
   },
-  "disabled": [
-    "catalog-silvergames.json",
-    "metadata-newgrounds.json",
-    "metadata-silvergames.json"
-  ],
-  "signature": "FNASAkq9Zn3mUm2m3SWK0GpRybccTIzXYK1lEc0qRqTrEVrCRxT3Lff2ofeW10w1fqcMU9DIgrhPp9A0utQJCw=="
+  "disabled": [],
+  "signature": "8Bh8oziG6FNEs2XUVUQwwFpj9l2vhfaqqgSiht4p8m2PlZEp/KmGMLDYpGV3gXxi+B++P/bPIPeQ6nvaUVWeCg=="
 }

@@ -1,6 +1,6 @@
 {
   "name": "flash-royale",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Dominate your local flash games library with Flash Royale. Powered by Electron, React, Ruffle and DirPlayer.",
   "author": "MCC321-QC",
@@ -108,7 +108,7 @@
     "@types/react-dom": "^18.2.19",
     "@vitejs/plugin-react": "^6.0.2",
     "concurrently": "^9.2.1",
-    "electron": "^44.9.3",
+    "electron": "^44.11.3",
     "electron-builder": "^26.8.1",
     "typescript": "^5.3.3",
     "vite": "^8.0.14",

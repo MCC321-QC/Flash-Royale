@@ -31,6 +31,12 @@ const nvdRetryMs = 7 * 24 * 60 * 60 * 1000;
 const backportDays = 7;
 const supportedElectronMajors = 3;
 const severities = ["low", "medium", "high", "critical"];
+// Chromium fix 61cab3f77203: https://github.com/electron/electron/pull/55709
+// Electron 45 incorporates the same fix in Chromium 156.0.8078.96:
+// https://github.com/electron/electron/pull/55708
+const confirmedElectronFixes = {
+  "CVE-2026-125350": { 44: "44.11.1", 45: "45.3.0" },
+};
 
 function parseVersion(text) {
   const match = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z.-]+))?(?:\+\S*)?$/.exec(String(text || "").trim());
@@ -372,6 +378,12 @@ function createSecurityMonitor({
    */
   function assessKev(entry, { electron, releases, releaseDate }) {
     const major = majorOf(electron);
+    const confirmedFix = confirmedElectronFixes[entry.cve]?.[major];
+    if (entry.google && confirmedFix && parseVersion(electron)) {
+      return compareVersions(electron, confirmedFix) >= 0
+        ? { affects: "no", estimated: false, fixedIn: "" }
+        : { affects: "yes", estimated: false, fixedIn: confirmedFix };
+    }
     const fix = entry.google ? state.nvd?.[entry.cve] : null;
     const fixDate = [fix?.published, entry.dateAdded].filter(Boolean).sort()[0];
     const ourChrome = versions?.chrome || "";

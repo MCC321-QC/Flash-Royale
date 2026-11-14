@@ -352,6 +352,60 @@ function nvdServer(base, fixes, { failNvd = false } = {}) {
 
 const kevEntry = (cveID, dateAdded) => ({ cveID, vendorProject: "Google", product: "Chromium V8", dateAdded, vulnerabilityName: cveID, shortDescription: "Exploited" });
 
+test("confirmed Electron backports resolve CVE-2026-125350 only on verified release lines", async t => {
+  const releases = [
+    { version: "44.0.0", date: "2026-07-01", chrome: "152.0.7977.100" },
+    { version: "44.9.3", date: "2026-10-21", chrome: "152.0.7977.167" },
+    { version: "44.11.0", date: "2026-11-10", chrome: "152.0.7977.169" },
+    { version: "44.11.1", date: "2026-11-10", chrome: "152.0.7977.169" },
+    { version: "44.11.3", date: "2026-11-12", chrome: "152.0.7977.169" },
+    { version: "45.0.0", date: "2026-10-01", chrome: "156.0.8078.1" },
+    { version: "45.2.3", date: "2026-11-09", chrome: "156.0.8078.50" },
+    { version: "45.3.0", date: "2026-11-10", chrome: "156.0.8078.96" },
+    { version: "46.0.0", date: "2026-11-12", chrome: "156.0.8078.1" },
+  ];
+  const cases = [
+    ["44.9.3", "152.0.7977.167", "yes", "Electron 44.11.1", false],
+    ["44.11.0", "152.0.7977.169", "yes", "Electron 44.11.1", false],
+    ["44.11.1", "152.0.7977.169", "no", "", false],
+    ["44.11.3", "152.0.7977.169", "no", "", false],
+    ["45.2.3", "156.0.8078.50", "yes", "Electron 45.3.0", false],
+    ["45.3.0", "156.0.8078.96", "no", "", false],
+    ["46.0.0", "156.0.8078.1", "yes", "", true],
+  ];
+  for (const [electron, chrome, affects, fixedIn, estimated] of cases) {
+    const file = statePath();
+    t.after(() => fs.rmSync(path.dirname(file), { recursive: true, force: true }));
+    const base = feedServer({ kev: [kevEntry("CVE-2026-125350", "2026-11-10")], releases });
+    const server = nvdServer(base, { "CVE-2026-125350": { chrome: "157.0.8103.50", published: "2026-11-10" } });
+    const monitor = createSecurityMonitor({ statePath: file, versions: { electron, chrome }, fetchImpl: server.fetchImpl,
+      now: () => Date.parse("2026-11-13T00:00:00Z"), nvdDelay: 0, log: () => {} });
+    const status = await monitor.check();
+    const threat = status.threats.find(item => item.id === "CVE-2026-125350");
+    assert.equal(threat.affects, affects, electron);
+    assert.equal(threat.fixedIn, fixedIn, electron);
+    assert.equal(threat.estimated, estimated, electron);
+    assert.equal(status.blocked, affects === "yes", electron);
+  }
+});
+
+test("confirmed backport works without NVD but does not suppress other exploited alerts", async t => {
+  const file = statePath();
+  t.after(() => fs.rmSync(path.dirname(file), { recursive: true, force: true }));
+  const base = feedServer({
+    kev: [kevEntry("CVE-2026-125350", "2026-11-10"), kevEntry("CVE-2026-99999", "2026-11-12")],
+    releases: [{ version: "44.11.3", date: "2026-11-12", chrome: "152.0.7977.169" }],
+  });
+  const server = nvdServer(base, {}, { failNvd: true });
+  const monitor = createSecurityMonitor({ statePath: file, versions: { electron: "44.11.3", chrome: "152.0.7977.169" },
+    fetchImpl: server.fetchImpl, now: () => Date.parse("2026-11-13T00:00:00Z"), nvdDelay: 0, log: () => {} });
+  const status = await monitor.check();
+  assert.equal(status.errors.nvd, "HTTP 503");
+  assert.equal(status.threats.find(item => item.id === "CVE-2026-125350").affects, "no");
+  assert.equal(status.threats.find(item => item.id === "CVE-2026-99999").affects, "yes");
+  assert.equal(status.blocked, true);
+});
+
 test("KEV Chrome flaws are matched to the installed Chromium through NVD, exactly when possible", async () => {
   const base = feedServer({
     kev: [kevEntry("CVE-2026-1111", "2026-07-01"), kevEntry("CVE-2026-2222", "2026-07-02"), kevEntry("CVE-2026-3333", "2026-07-20"), kevEntry("CVE-2026-4444", "2026-07-05")],

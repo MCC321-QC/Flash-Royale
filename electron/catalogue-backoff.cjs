@@ -110,6 +110,10 @@ function createCatalogueFetcher({ now = () => Date.now(), request = (...args) =>
     }
     return response;
   };
+  /** Replaces the underlying fetch() for every later request; cooldowns keep applying on top of it. */
+  fetcher.configureTransport = (transport) => {
+    request = transport;
+  };
   fetcher.configurePersistence = async (filename) => {
     if (hosts.size !== 0) throw new Error("Backoff persistence must be configured before requests.");
     statePath = filename;

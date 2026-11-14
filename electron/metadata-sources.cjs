@@ -1,6 +1,7 @@
 const { load } = require("cheerio");
 const { fetchCatalogue, politeBackoff, politePageLimit } = require("./catalogue-backoff.cjs");
 const { createRequestLimiter } = require("./request-limiter.cjs");
+const { flashpointEntryUrl } = require("./flashpoint-metadata.cjs");
 
 /** Metadata sources in their default priority order. */
 const sourceIds = ["flashpointLocal", "flashpointOnline", "newgrounds", "silvergames", "y8", "armorgames", "andkon", "flashgames247"];
@@ -18,7 +19,7 @@ const fuzzyThreshold = 0.9;
 const maxTextBytes = 4 * 1024 * 1024;
 const maxImageBytes = 5 * 1024 * 1024;
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
-const flashpointApi = "https://db-api.unstable.life";
+const flashpointSite = "https://flashpointarchive.org";
 const flashpointImages = "https://infinity.flashpointarchive.org/images";
 const gameIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -222,11 +223,6 @@ async function fetchText(url, hosts, options) {
   return result ? result.data.toString("utf8") : null;
 }
 
-async function fetchJson(url, hosts, options) {
-  const text = await fetchText(url, hosts, { ...options, accept: "application/json" });
-  return text === null ? null : JSON.parse(text);
-}
-
 function imageExtension(buffer) {
   if (buffer.length < 12) return "";
   if (buffer[0] === 0x89 && buffer.toString("ascii", 1, 4) === "PNG") return ".png";
@@ -244,63 +240,103 @@ function flashpointImageUrl(folder, id) {
   return `${flashpointImages}/${folder}/${lower.slice(0, 2)}/${lower.slice(2, 4)}/${lower}.png`;
 }
 
-function flashpointEntryUrl(id) {
-  return gameIdPattern.test(String(id || "")) ? `https://flashpointproject.github.io/flashpoint-database/search/#${String(id).toLowerCase()}` : "";
-}
-
-const flashpointHosts = ["db-api.unstable.life"];
+const flashpointHosts = ["flashpointarchive.org"];
 const playablePlatforms = new Set(["Flash", "Shockwave"]);
 
-function flashpointOnlineCandidate(row) {
-  const id = String(row.id || "");
-  if (!gameIdPattern.test(id)) return null;
-  return {
-    source: "flashpointOnline", id, title: cleanText(row.title, 300), platform: cleanText(row.platform, 60),
-    year: String(row.releaseDate || "").slice(0, 4), developer: cleanText(row.developer, 200),
-    imageUrl: flashpointImageUrl("Logos", id), url: flashpointEntryUrl(id),
-  };
+function parseFlashpointSearch(html) {
+  const $ = load(html);
+  if (!$(".fp-search-results").length || !$(".fp-search-total").length) throw new Error("Unexpected Flashpoint search page.");
+  const results = [];
+  $(".fp-search-result").each((_index, element) => {
+    const item = $(element);
+    const title = cleanText(item.find(".fp-search-result-title").text(), 300);
+    let url;
+    try { url = new URL(item.find(".fp-search-result-title").attr("href"), flashpointSite); }
+    catch { throw new Error("Invalid Flashpoint search result URL."); }
+    const id = url.searchParams.get("id") || "";
+    if (url.origin !== flashpointSite || url.pathname !== "/view" || !gameIdPattern.test(id) || !title) {
+      throw new Error("Invalid Flashpoint search result.");
+    }
+    const info = item.find(".fp-search-result-info").clone();
+    info.find(".fp-search-result-tags").remove();
+    const platformText = cleanText(info.text()).replace(/\s+-\s*$/, "");
+    const platform = platformText.split(/\s+/)[0];
+    if (!playablePlatforms.has(platform)) return;
+    results.push({
+      source: "flashpointOnline", id: id.toLowerCase(), title, platform, year: "",
+      developer: cleanText(item.find(".fp-search-result-creator").text().replace(/^by\s+/i, ""), 200),
+      imageUrl: flashpointImageUrl("Logos", id), url: flashpointEntryUrl(id),
+    });
+  });
+  const countText = $(".fp-search-total b").first().text().trim();
+  if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)$/.test(countText)) throw new Error("Invalid Flashpoint search result count.");
+  const total = Number(countText.replace(/,/g, ""));
+  const count = $(".fp-search-result").length;
+  if (!Number.isSafeInteger(total) || (total === 0 && count > 0) || (total > 0 && count === 0)) {
+    throw new Error("Invalid Flashpoint search results.");
+  }
+  return { results, total, count };
 }
 
-function flashpointOnlineDetails(row) {
-  const details = emptyDetails("flashpointOnline", row.id, row.title);
+function parseFlashpointDetails(html, id) {
+  const $ = load(html);
+  const table = $(".fp-view-container > table.fp-view-table").first();
+  if (!table.length) throw new Error("Unexpected Flashpoint game page.");
+  const fields = new Map();
+  table.find("tr").each((_index, element) => {
+    const row = $(element);
+    const name = cleanText(row.children("th").first().text()).replace(/:$/, "");
+    const value = row.children("td").first();
+    if (name) fields.set(name, value);
+  });
+  const text = name => cleanText(fields.get(name)?.text() || "");
+  const title = text("Title");
+  if (!title || text("ID").toLowerCase() !== id.toLowerCase()) throw new Error("Flashpoint game page does not match the requested ID.");
+  const details = emptyDetails("flashpointOnline", id, title);
   return {
     ...details,
-    platform: cleanText(row.platform, 60),
-    developer: cleanText(row.developer, 500),
-    publisher: cleanText(row.publisher, 500),
-    releaseDate: cleanText(row.releaseDate, 40),
-    version: cleanText(row.version, 100),
-    description: cleanText(row.originalDescription),
-    notes: cleanText(row.notes),
-    tags: tidyTags(Array.isArray(row.tags) ? row.tags : String(row.tags || "").split(";")),
-    entryUrl: flashpointEntryUrl(row.id),
-    sourceUrl: httpUrl(row.source),
-    coverUrl: flashpointImageUrl("Logos", row.id),
-    iconUrl: flashpointImageUrl("Logos", row.id),
+    platform: cleanText(text("Platform"), 60),
+    developer: cleanText(text("Developer"), 500),
+    publisher: cleanText(text("Publisher"), 500),
+    releaseDate: isoDate(text("Release Date")),
+    version: cleanText(text("Version"), 100),
+    description: text("Original Description"),
+    notes: text("Notes"),
+    tags: tidyTags(fields.get("Tags")?.find("li").map((_index, element) => $(element).text()).get() || []),
+    entryUrl: flashpointEntryUrl(id),
+    sourceUrl: httpUrl(text("Source")),
+    coverUrl: flashpointImageUrl("Logos", id),
+    iconUrl: flashpointImageUrl("Logos", id),
     hasLogo: true,
     hasScreenshot: true,
-    flashpointId: String(row.id).toLowerCase(),
+    flashpointId: id.toLowerCase(),
   };
 }
 
 const flashpointOnline = {
   async search(query, { limit = 300 } = {}) {
-    const url = new URL("/search", flashpointApi);
-    url.searchParams.set("title", query);
-    url.searchParams.set("filter", "true");
-    url.searchParams.set("fields", "id,title,platform,releaseDate,developer");
-    url.searchParams.set("limit", String(limit));
-    const rows = await fetchJson(url.toString(), flashpointHosts, { timeoutMs: 20000 });
-    return (Array.isArray(rows) ? rows : []).map(flashpointOnlineCandidate).filter((row) => row && playablePlatforms.has(row.platform));
+    const maxResults = Math.min(300, Math.max(0, Number.isFinite(limit) ? Math.floor(limit) : 300));
+    const results = [];
+    for (let page = 1; page <= 3 && results.length < maxResults; page++) {
+      const url = new URL("/search", flashpointSite);
+      for (const [key, value] of Object.entries({ advanced: "true", field: "title", filter: "whitelist", value: query, page: String(page), lang: "en-US" })) {
+        url.searchParams.set(key, value);
+      }
+      const html = await fetchText(url.toString(), flashpointHosts, { timeoutMs: 20000 });
+      if (html === null) throw new Error("Flashpoint search page not found.");
+      const parsed = parseFlashpointSearch(html);
+      results.push(...parsed.results.slice(0, maxResults - results.length));
+      if (page * 100 >= parsed.total) break;
+      if (!parsed.count) throw new Error("Flashpoint search returned an incomplete page.");
+    }
+    return results;
   },
   async details(id) {
     if (!gameIdPattern.test(String(id || ""))) throw new Error("Invalid Flashpoint game.");
-    const url = new URL("/search", flashpointApi);
-    url.searchParams.set("id", id);
-    url.searchParams.set("fields", "id,title,developer,publisher,releaseDate,version,originalDescription,notes,tags,source,platform");
-    const rows = await fetchJson(url.toString(), flashpointHosts, { timeoutMs: 20000 });
-    const row = Array.isArray(rows) ? rows.find((entry) => String(entry.id).toLowerCase() === String(id).toLowerCase()) : null;
-    return row ? flashpointOnlineDetails(row) : null;
+    const url = new URL(flashpointEntryUrl(id));
+    url.searchParams.set("lang", "en-US");
+    const html = await fetchText(url.toString(), flashpointHosts, { timeoutMs: 20000 });
+    return html === null ? null : parseFlashpointDetails(html, String(id));
   },
 };
 
@@ -777,5 +813,5 @@ module.exports = {
   applyDefinitions,
   defaultRank,
   networkPolicy,
-  parsers: { parseNewgroundsSearch, parseNewgroundsGame, parseY8Search, parseArmorSearch, parseArmorGame, parseAndkonGame, parseFg247Search, fg247Game },
+  parsers: { parseFlashpointSearch, parseFlashpointDetails, parseNewgroundsSearch, parseNewgroundsGame, parseY8Search, parseArmorSearch, parseArmorGame, parseAndkonGame, parseFg247Search, fg247Game },
 };

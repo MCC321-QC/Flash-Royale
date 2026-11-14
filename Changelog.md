@@ -1,5 +1,12 @@
 # Flash Royale - Changelog
 
+## v1.0.1
+
+- Re-enabled Flashpoint, Newgrounds and Silvergames sources with fixes
+- Updated Electron to 44.11.3, including Chromium security fixes.
+- Updated Undici, follow-redirects and Joi to patched versions.
+- Fixed the security monitor incorrectly flagging a Chromium vulnerability already patched in Electron.
+
 ## v1.0.0
 
 Changes since the published **v0.9.7** release.

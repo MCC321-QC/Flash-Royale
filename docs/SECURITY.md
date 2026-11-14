@@ -42,6 +42,9 @@ The monitor checks supported installed app/dependency/runtime versions at startu
 and periodically against GitHub advisories, OSV and CISA KEV, with NVD information
 where needed. Version matching and exploit/fix estimates have limits; coverage
 is not identical for every bundled component.
+For CVE-2026-125350, Electron's confirmed Chromium backports are recognized in
+Electron 44.11.1 and later on the 44.x line, and 45.3.0 and later on 45.x.
+Other Chromium vulnerabilities still follow the normal matching and estimation rules.
 
 An alert assessed as affecting the installed component can pause online features
 when it is critical or known exploited. Settings shows the evidence and available

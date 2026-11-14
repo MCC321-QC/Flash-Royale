@@ -536,7 +536,7 @@ test("signature changes with the offer", () => {
 });
 
 test("entry URL only accepts Flashpoint IDs", () => {
-  assert.equal(flashpointEntryUrl(id.toUpperCase()), `https://flashpointproject.github.io/flashpoint-database/search/#${id}`);
+  assert.equal(flashpointEntryUrl(id.toUpperCase()), `https://flashpointarchive.org/view?id=${id}`);
   assert.equal(flashpointEntryUrl("../x"), "");
 });
 

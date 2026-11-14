@@ -59,7 +59,7 @@ function importedScreenshotName(flashpointId) {
 }
 
 function flashpointEntryUrl(flashpointId) {
-  return gameIdPattern.test(String(flashpointId || "")) ? `https://flashpointproject.github.io/flashpoint-database/search/#${String(flashpointId).toLowerCase()}` : "";
+  return gameIdPattern.test(String(flashpointId || "")) ? `https://flashpointarchive.org/view?id=${String(flashpointId).toLowerCase()}` : "";
 }
 
 function sourceUrl(value) {

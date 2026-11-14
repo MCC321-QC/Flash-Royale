@@ -33,10 +33,20 @@ Listings and details are cached, normally for 24 hours. Search, sorting and
 pagination reuse cached results. Reload asks for revalidation, not an unrestricted
 rescan of every website. Provider cooldowns persist across refreshes and restarts.
 
+Silvergames and Newgrounds requests (catalog, metadata, covers and SWFs) use
+Electron's Chromium networking in a separate `persist:web-sources` session,
+because their bot protection refuses Node's own HTTP client. Other sites keep
+using Node's client. When Newgrounds answers with its "NG Guard" browser check,
+Flash Royale shows that page in a small sandboxed window limited to Newgrounds;
+the request is retried once the check passes. Newgrounds decides how long a pass
+lasts. Closing the window, waiting two minutes or pausing online features
+cancels the check, and the normal 403 cooldown then prevents repeated windows.
+
 An HTTP 403 means the site refused the app's request, possibly because of access
-restrictions or browser verification. Opening the website may let you browse it,
-but does not unlock app requests. A 429 indicates rate limiting. Follow the
-displayed wait/update guidance; Flash Royale does not bypass these restrictions.
+restrictions or browser verification. Opening the website in your own browser
+does not unlock app requests. A 429 indicates rate limiting. Follow the
+displayed wait/update guidance; Flash Royale does not solve or bypass these
+checks automatically.
 
 Some games remain domain-locked or depend on discontinued servers after import.
 Catalog availability and game compatibility are separate questions.
@@ -105,6 +115,8 @@ is the same.
 Enabled providers are tried in your priority order. The local Flashpoint
 database can match an ID or title; online providers search by title. Ambiguous
 matches are not chosen automatically.
+Flashpoint's online provider uses the archive's public website and checks up to
+three pages of title matches; its page format and availability may change.
 
 The review prompt distinguishes new values, additions and overwrites. Only
 missing fields from exact matches are selected by default. Close matches and
@@ -167,3 +179,5 @@ rights first.
 - [Flashpoint import](../electron/flashpoint-import.cjs): database/data-pack extraction.
 - [Metadata proposals](../electron/flashpoint-metadata.cjs) and
   [providers](../electron/metadata-sources.cjs): matching and field selection.
+- [Chromium networking](../electron/chromium-network.cjs) and
+  [site verification](../electron/site-verification.cjs): bot-protected sites.

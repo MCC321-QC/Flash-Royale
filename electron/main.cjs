@@ -1,4 +1,4 @@
-const { app, BrowserWindow, WebContentsView, clipboard, ipcMain, Menu, nativeImage, nativeTheme, safeStorage, screen, session, shell, Tray, utilityProcess } = require("electron");
+const { app, BrowserWindow, WebContentsView, clipboard, ipcMain, Menu, nativeImage, nativeTheme, net, safeStorage, screen, session, shell, Tray, utilityProcess } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs/promises");
 const fssync = require("node:fs");
@@ -35,6 +35,8 @@ const metadataSources = require("./metadata-sources.cjs");
 const { createSourceDefinitions, defaultRemote: defaultSourcesRemote } = require("./source-definitions.cjs");
 const { createDefinitionCatalog } = require("./definition-catalog.cjs");
 const { fetchCatalogue } = require("./catalogue-backoff.cjs");
+const { createChromiumTransport } = require("./chromium-network.cjs");
+const { createSiteVerification } = require("./site-verification.cjs");
 const { createInternetConnectivityChecker } = require("./internet-connectivity.cjs");
 const isInternetAvailable = createInternetConnectivityChecker();
 const portableUpdate = require("./portable-update.cjs");
@@ -5857,6 +5859,21 @@ app.whenReady().then(async () => {
   nativeTheme.themeSource = themeWindowLook.scheme;
   const catalogueCacheRoot = path.join(libraryRoot, "catalogue-cache");
   await fetchCatalogue.configurePersistence(path.join(catalogueCacheRoot, "server-backoff.json"));
+  // Kept between launches so a passed browser check stays valid for as long as the site allows.
+  const webSourcesSession = session.fromPartition("persist:web-sources");
+  webSourcesSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  webSourcesSession.setPermissionCheckHandler(() => false);
+  fetchCatalogue.configureTransport(createChromiumTransport({
+    net,
+    session: webSourcesSession,
+    verify: createSiteVerification({
+      BrowserWindow,
+      session: webSourcesSession,
+      allows: (url) => networkGuard.allows(url, "web"),
+      title: "Newgrounds browser check - Flash Royale",
+      icon: path.join(__dirname, "..", "assets", "new-flash-royale-logo.ico"),
+    }),
+  }));
   silvergames.configureCache(path.join(catalogueCacheRoot, "silvergames"));
   andkon.configureCache(path.join(catalogueCacheRoot, "andkon"));
   y8.configureCache(path.join(catalogueCacheRoot, "y8"));
