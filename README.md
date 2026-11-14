@@ -16,7 +16,7 @@
 > ```
 </details>
 
-# Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.0/Flash-Royale-v1.0.0-Windows.zip)
+# Flash Royale [![Release](https://img.shields.io/github/v/release/MCC321-QC/Flash-Royale?display_name=release&include_prereleases&label=Release&sort=date&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/latest) [![Download](https://img.shields.io/github/downloads/MCC321-QC/Flash-Royale/total?label=Downloads&style=flat)](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.1/Flash-Royale-v1.0.1-Windows.zip)
 
 ![Flash Royale cover art](assets/steam/header_920x430.png)<br>
 Flash Royale is a library manager for old flash games that lets you have ultimate control. Automatically play the game music, generate cover arts, organise with categories and tags, track your playtime, show/add tons of metadata and a lot more!
@@ -29,7 +29,7 @@ Flash Royale is a library manager for old flash games that lets you have ultimat
 
 ## Latest Update
 
-[Flash Royale v1.0.0](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.0/Flash-Royale-v1.0.0-Windows.zip)<br>
+[Flash Royale v1.0.1](https://github.com/MCC321-QC/Flash-Royale/releases/download/1.0.1/Flash-Royale-v1.0.1-Windows.zip)<br>
 <br>
 
 ## Features
